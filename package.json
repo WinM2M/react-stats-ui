@@ -1,6 +1,6 @@
 {
   "name": "@winm2m/react-stats-ui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React UI component for inferential statistics workflows in the browser",
   "author": "Youngjune Kwon <yjkwon@winm2m.com>",
   "license": "MIT",
