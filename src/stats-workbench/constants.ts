@@ -1,29 +1,107 @@
 import type { AnalysisDef, AnalysisKind, RoleKey } from "./types";
 
 export const ANALYSIS_DEFS: Record<AnalysisKind, AnalysisDef> = {
-  independent_t_test: {
-    label: "Independent Samples T-Test",
+  frequencies: {
+    label: "Frequencies",
     roles: [
-      { key: "groupVar", label: "Group Variable", multi: false, required: true },
-      { key: "dependentVar", label: "Test Variable", multi: false, required: true }
+      { key: "variable", label: "Variable", multi: false, required: true }
     ]
   },
-  multiple_regression: {
-    label: "Multiple Regression",
+  descriptives: {
+    label: "Descriptives",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 1 }]
+  },
+  crosstabs: {
+    label: "Crosstabs",
     roles: [
-      { key: "dependentVar", label: "Dependent Variable", multi: false, required: true },
-      { key: "independentVars", label: "Independent Variables", multi: true, required: true }
+      { key: "rowVariable", label: "Row Variable", multi: false, required: true },
+      { key: "colVariable", label: "Column Variable", multi: false, required: true }
     ]
   },
-  factor_analysis: {
-    label: "Factor Analysis",
-    roles: [{ key: "analysisVars", label: "Analysis Variables", multi: true, required: true }]
+  ttestIndependent: {
+    label: "Independent-Samples T-Test",
+    roles: [
+      { key: "variable", label: "Test Variable", multi: false, required: true },
+      { key: "groupVariable", label: "Group Variable", multi: false, required: true }
+    ]
+  },
+  ttestPaired: {
+    label: "Paired-Samples T-Test",
+    roles: [
+      { key: "variable1", label: "Variable 1", multi: false, required: true },
+      { key: "variable2", label: "Variable 2", multi: false, required: true }
+    ]
+  },
+  anovaOneway: {
+    label: "One-Way ANOVA",
+    roles: [
+      { key: "variable", label: "Dependent Variable", multi: false, required: true },
+      { key: "groupVariable", label: "Group Variable", multi: false, required: true }
+    ]
+  },
+  posthocTukey: {
+    label: "Post-hoc Tukey HSD",
+    roles: [
+      { key: "variable", label: "Dependent Variable", multi: false, required: true },
+      { key: "groupVariable", label: "Group Variable", multi: false, required: true }
+    ]
+  },
+  linearRegression: {
+    label: "Linear Regression (OLS)",
+    roles: [
+      { key: "dependentVariable", label: "Dependent Variable", multi: false, required: true },
+      { key: "independentVariables", label: "Independent Variables", multi: true, required: true, minItems: 1 }
+    ]
+  },
+  logisticBinary: {
+    label: "Binary Logistic Regression",
+    roles: [
+      { key: "dependentVariable", label: "Dependent Variable", multi: false, required: true },
+      { key: "independentVariables", label: "Independent Variables", multi: true, required: true, minItems: 1 }
+    ]
+  },
+  logisticMultinomial: {
+    label: "Multinomial Logistic Regression",
+    roles: [
+      { key: "dependentVariable", label: "Dependent Variable", multi: false, required: true },
+      { key: "independentVariables", label: "Independent Variables", multi: true, required: true, minItems: 1 }
+    ]
+  },
+  kmeans: {
+    label: "K-Means Clustering",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
+  },
+  hierarchicalCluster: {
+    label: "Hierarchical Clustering",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
+  },
+  efa: {
+    label: "Exploratory Factor Analysis",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
+  },
+  pca: {
+    label: "Principal Component Analysis",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
+  },
+  mds: {
+    label: "Multidimensional Scaling",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
+  },
+  cronbachAlpha: {
+    label: "Cronbach Alpha",
+    roles: [{ key: "items", label: "Scale Items", multi: true, required: true, minItems: 2 }]
   }
 };
 
 export const EMPTY_ASSIGNMENTS: Record<RoleKey, string[]> = {
-  groupVar: [],
-  dependentVar: [],
-  independentVars: [],
-  analysisVars: []
+  variable: [],
+  variables: [],
+  rowVariable: [],
+  colVariable: [],
+  groupVariable: [],
+  dependentVariable: [],
+  independentVariables: [],
+  variable1: [],
+  variable2: [],
+  items: []
 };

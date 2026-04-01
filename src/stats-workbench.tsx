@@ -1,12 +1,14 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import * as React from "react";
-import { executeDefaultAnalysis, getPayload, validateForRole } from "./stats-workbench/analysis";
+import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
+import { executeDefaultAnalysis, getPayload, resolveWorkerUrl, validateForRole } from "./stats-workbench/analysis";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./stats-workbench/constants";
 import { getDatasets, parseXlsx, putDataset, removeDataset } from "./stats-workbench/data-store";
 import { AnalysisTypePanel } from "./stats-workbench/sections/analysis-type-panel";
 import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
 import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
+import { WorkerStatusPanel } from "./stats-workbench/sections/worker-status-panel";
 import type {
   AnalysisKind,
   Dataset,
@@ -15,6 +17,19 @@ import type {
   VariableMeta
 } from "./stats-workbench/types";
 import { cn } from "./stats-workbench/utils";
+
+function normalizeInitialAnalysis(kind: string): AnalysisKind {
+  if (kind === "independent_t_test") {
+    return "ttestIndependent";
+  }
+  if (kind === "multiple_regression") {
+    return "linearRegression";
+  }
+  if (kind === "factor_analysis") {
+    return "efa";
+  }
+  return kind as AnalysisKind;
+}
 
 export type {
   AnalysisDef,
@@ -32,13 +47,13 @@ export type {
 export function StatsWorkbench({
   className,
   style,
-  initialAnalysis = "independent_t_test",
+  initialAnalysis = "ttestIndependent",
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps) {
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string | null>(null);
-  const [analysisType, setAnalysisType] = React.useState<AnalysisKind>(initialAnalysis);
+  const [analysisType, setAnalysisType] = React.useState<AnalysisKind>(normalizeInitialAnalysis(initialAnalysis));
   const [assignments, setAssignments] = React.useState<Record<RoleKey, string[]>>(EMPTY_ASSIGNMENTS);
   const [selectedAvailable, setSelectedAvailable] = React.useState<string | null>(null);
   const [selectedAssigned, setSelectedAssigned] = React.useState<Partial<Record<RoleKey, string>>>({});
@@ -46,12 +61,53 @@ export function StatsWorkbench({
   const [result, setResult] = React.useState<unknown>(null);
   const [error, setError] = React.useState("");
   const [showPayload, setShowPayload] = React.useState(false);
+  const [workerConnectionState, setWorkerConnectionState] = React.useState<
+    "disconnected" | "connecting" | "ready" | "error" | "external"
+  >(analysisExecutor ? "external" : "disconnected");
+  const [workerActivityState, setWorkerActivityState] = React.useState<"idle" | "running">("idle");
+  const [workerStatusMessage, setWorkerStatusMessage] = React.useState(
+    analysisExecutor ? "Using external analysis executor." : "Worker is not initialized yet."
+  );
+  const [workerProgress, setWorkerProgress] = React.useState<number | null>(null);
   const [options, setOptions] = React.useState<Record<string, unknown>>({
     equalVariance: true,
-    includeIntercept: true,
-    factorCount: 2
+    addConstant: true,
+    alpha: 0.05,
+    k: 3,
+    method: "ward",
+    metric: "euclidean",
+    nFactors: 2,
+    rotation: "varimax",
+    nComponents: 2,
+    maxIterations: 300,
+    randomState: 42
   });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const workerUrl = React.useMemo(() => resolveWorkerUrl(), []);
+
+  React.useEffect(() => {
+    if (analysisExecutor) {
+      setWorkerConnectionState("external");
+      setWorkerStatusMessage("Using external analysis executor.");
+      setWorkerProgress(null);
+      return;
+    }
+
+    const target = globalThis as unknown as EventTarget;
+    const listener = (event: Event) => {
+      const detail = (event as CustomEvent<{ stage?: string; progress?: number; message?: string }>).detail ?? {};
+      const stage = detail.stage ?? "init";
+      const progress = typeof detail.progress === "number" ? detail.progress : null;
+      const message = detail.message ?? "Initializing worker.";
+
+      setWorkerConnectionState(stage === "ready" || progress === 100 ? "ready" : "connecting");
+      setWorkerStatusMessage(`[${stage}] ${message}`);
+      setWorkerProgress(progress);
+    };
+
+    target.addEventListener(PROGRESS_EVENT_NAME, listener);
+    return () => target.removeEventListener(PROGRESS_EVENT_NAME, listener);
+  }, [analysisExecutor]);
 
   const refreshDatasets = React.useCallback(async () => {
     const next = await getDatasets();
@@ -96,12 +152,12 @@ export function StatsWorkbench({
       }
 
       setAssignments((prev) => {
-        const next: Record<RoleKey, string[]> = {
-          groupVar: prev.groupVar.filter((v) => v !== variableName),
-          dependentVar: prev.dependentVar.filter((v) => v !== variableName),
-          independentVars: prev.independentVars.filter((v) => v !== variableName),
-          analysisVars: prev.analysisVars.filter((v) => v !== variableName)
-        };
+        const next = Object.fromEntries(
+          Object.entries(prev).map(([key, vars]) => [
+            key,
+            (vars as string[]).filter((value) => value !== variableName)
+          ])
+        ) as Record<RoleKey, string[]>;
         const roleDef = analysisDef.roles.find((r) => r.key === role);
         if (!roleDef) {
           return next;
@@ -126,15 +182,29 @@ export function StatsWorkbench({
     }
     setError("");
     setIsRunning(true);
+    setWorkerActivityState("running");
+    if (!analysisExecutor) {
+      setWorkerConnectionState((prev) => (prev === "ready" ? "ready" : "connecting"));
+      setWorkerStatusMessage("Preparing worker execution.");
+    }
     try {
       const payload = payloadInfo.payload;
       const output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
       setResult(output);
       onResult?.({ payload, result: output });
+      if (!analysisExecutor) {
+        setWorkerConnectionState("ready");
+        setWorkerStatusMessage("Worker connected and analysis completed.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown execution error.");
+      if (!analysisExecutor) {
+        setWorkerConnectionState("error");
+        setWorkerStatusMessage(err instanceof Error ? err.message : "Worker execution failed.");
+      }
     } finally {
       setIsRunning(false);
+      setWorkerActivityState("idle");
     }
   }, [analysisExecutor, onResult, payloadInfo]);
 
@@ -186,6 +256,14 @@ export function StatsWorkbench({
           />
 
           <section className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-3 max-[780px]:gap-2">
+            <WorkerStatusPanel
+              connectionState={workerConnectionState}
+              activityState={workerActivityState}
+              statusMessage={workerStatusMessage}
+              progress={workerProgress}
+              workerUrl={workerUrl}
+            />
+
             <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
 
             <VariableAssignmentPanel

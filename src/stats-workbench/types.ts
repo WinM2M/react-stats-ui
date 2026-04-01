@@ -1,19 +1,42 @@
 import type * as React from "react";
 
 export type VariableType = "continuous" | "nominal" | "unknown";
-export type RoleKey = "groupVar" | "dependentVar" | "independentVars" | "analysisVars";
+export type RoleKey =
+  | "variable"
+  | "variables"
+  | "rowVariable"
+  | "colVariable"
+  | "groupVariable"
+  | "dependentVariable"
+  | "independentVariables"
+  | "variable1"
+  | "variable2"
+  | "items";
 
-export type AnalysisKind = "independent_t_test" | "multiple_regression" | "factor_analysis";
+export type AnalysisKind =
+  | "frequencies"
+  | "descriptives"
+  | "crosstabs"
+  | "ttestIndependent"
+  | "ttestPaired"
+  | "anovaOneway"
+  | "posthocTukey"
+  | "linearRegression"
+  | "logisticBinary"
+  | "logisticMultinomial"
+  | "kmeans"
+  | "hierarchicalCluster"
+  | "efa"
+  | "pca"
+  | "mds"
+  | "cronbachAlpha";
 
 export type AnalysisPayload = {
   analysisType: AnalysisKind;
-  data: Record<string, unknown>[];
-  groupVar?: string;
-  dependentVar?: string;
-  testVar?: string;
-  independentVars?: string[];
-  analysisVars?: string[];
+  method: AnalysisKind;
+  input: Record<string, unknown>;
   options: Record<string, unknown>;
+  assignments: Record<RoleKey, string[]>;
 };
 
 export type AnalysisResult = {
@@ -49,7 +72,13 @@ export type AnalysisDef = {
     label: string;
     multi: boolean;
     required: boolean;
+    minItems?: number;
   }[];
 };
 
-export type PayloadInfo = { payload: AnalysisPayload; canRun: boolean; reason?: string };
+export type PayloadInfo = {
+  payload: AnalysisPayload;
+  canRun: boolean;
+  reason?: string;
+  meta?: Record<string, unknown>;
+};

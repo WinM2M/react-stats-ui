@@ -12,6 +12,12 @@
           "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
           "react-dom": "https://esm.sh/react-dom@18.3.1",
           "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+          "@radix-ui/react-select": "https://esm.sh/@radix-ui/react-select@2.2.5?external=react,react-dom",
+          "@radix-ui/react-separator": "https://esm.sh/@radix-ui/react-separator@1.1.7?external=react,react-dom",
+          "@radix-ui/react-tooltip": "https://esm.sh/@radix-ui/react-tooltip@1.2.8?external=react,react-dom",
+          "lucide-react": "https://esm.sh/lucide-react@0.542.0?external=react",
+          "xlsx": "https://esm.sh/xlsx@0.18.5",
+          "@winm2m/inferential-stats-js": "https://esm.sh/@winm2m/inferential-stats-js@1.0.0?external=react,react-dom",
           "@winm2m/react-stats-ui": "https://esm.sh/@winm2m/react-stats-ui?external=react,react/jsx-runtime,react-dom"
         }
       }
@@ -36,7 +42,12 @@
     <script type="module">
       import React from "react";
       import { createRoot } from "react-dom/client";
-      import { StatsWorkbench } from "@winm2m/react-stats-ui";
+
+      const params = new URLSearchParams(window.location.search);
+      const useDevBuild = params.get("dev") === "true";
+      const packageSpecifier = useDevBuild ? "./dist/index.js" : "@winm2m/react-stats-ui";
+      window.__WINM2M_INFERENTIAL_WORKER_URL__ = "https://cdn.jsdelivr.net/npm/@winm2m/inferential-stats-js@1.0.0/dist/stats-worker.js";
+      const { StatsWorkbench } = await import(packageSpecifier);
 
       function App() {
         return React.createElement(
