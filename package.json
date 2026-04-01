@@ -1,0 +1,44 @@
+{
+  "name": "@winm2m/react-stats-ui",
+  "version": "0.1.0",
+  "description": "React UI component for inferential statistics workflows in the browser",
+  "author": "Youngjune Kwon <yjkwon@winm2m.com>",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "react",
+    "statistics",
+    "xlsx",
+    "indexeddb",
+    "inferential"
+  ],
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@winm2m/inferential-stats-js": "^0.1.0",
+    "lucide-react": "^0.542.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4"
+  }
+}
