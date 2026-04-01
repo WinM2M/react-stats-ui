@@ -38,10 +38,10 @@ export function VariableAssignmentPanel({
   const [invalidMessage, setInvalidMessage] = React.useState("");
 
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_2fr] max-[780px]:gap-2">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
+    <div className="grid min-h-0 grid-cols-1 gap-3 lg:h-[clamp(320px,40vh,560px)] lg:grid-cols-[1fr_2fr] max-[780px]:gap-2">
+      <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
         <div className="mb-2 text-sm font-semibold">Variables</div>
-        <div className="h-52 overflow-auto rounded-lg border border-slate-200 max-[780px]:h-40">
+        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200">
           {availableVariables.length === 0 ? (
             <div className="p-3 text-sm text-slate-500">No available variables.</div>
           ) : (
@@ -70,9 +70,9 @@ export function VariableAssignmentPanel({
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
+      <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
         <div className="mb-2 text-sm font-semibold">Role Assignment</div>
-        <div className="grid gap-2">
+        <div className="grid min-h-0 flex-1 auto-rows-fr gap-2">
           {analysisDef.roles.map((role) => {
             const activeError = invalidRole === role.key ? invalidMessage : "";
             return (
@@ -104,7 +104,10 @@ export function VariableAssignmentPanel({
                       }
                       onAssign(dragVariable, role.key);
                     }}
-                    className={cn("rounded-lg border p-2 transition", activeError ? "border-red-500 bg-red-50" : "border-slate-200")}
+                    className={cn(
+                      "flex h-full min-h-0 flex-col rounded-lg border p-2 transition",
+                      activeError ? "border-red-500 bg-red-50" : "border-slate-200"
+                    )}
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="text-sm font-medium text-slate-700">{role.label}</span>
@@ -139,9 +142,9 @@ export function VariableAssignmentPanel({
                         </button>
                       </div>
                     </div>
-                    <div className="min-h-16 rounded border border-dashed border-slate-200 p-1">
+                    <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1">
                       {assignments[role.key].length === 0 ? (
-                        <div className="px-2 py-2 text-xs text-slate-500">Drop variable here</div>
+                        <div className="px-2 py-3 text-xs text-slate-500">Drop variable here</div>
                       ) : (
                         <ul className="space-y-1">
                           {assignments[role.key].map((name) => {

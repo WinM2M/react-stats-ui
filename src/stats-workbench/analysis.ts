@@ -281,6 +281,10 @@ async function getSdkInstance(): Promise<InferentialStats> {
   return await sdkInitPromise;
 }
 
+export async function ensureWorkerInitialized(): Promise<void> {
+  await getSdkInstance();
+}
+
 export async function executeDefaultAnalysis(payload: AnalysisPayload): Promise<unknown> {
   const sdk = await getSdkInstance();
   const method = (sdk as unknown as Record<string, unknown>)[payload.method];

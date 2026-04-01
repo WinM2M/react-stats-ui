@@ -1,7 +1,13 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import * as React from "react";
 import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
-import { executeDefaultAnalysis, getPayload, resolveWorkerUrl, validateForRole } from "./stats-workbench/analysis";
+import {
+  ensureWorkerInitialized,
+  executeDefaultAnalysis,
+  getPayload,
+  resolveWorkerUrl,
+  validateForRole
+} from "./stats-workbench/analysis";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./stats-workbench/constants";
 import { getDatasets, parseXlsx, putDataset, removeDataset } from "./stats-workbench/data-store";
 import { AnalysisTypePanel } from "./stats-workbench/sections/analysis-type-panel";
@@ -84,6 +90,7 @@ export function StatsWorkbench({
   });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const workerUrl = React.useMemo(() => resolveWorkerUrl(), []);
+  const workerReady = analysisExecutor ? true : workerConnectionState === "ready";
 
   React.useEffect(() => {
     if (analysisExecutor) {
@@ -107,6 +114,37 @@ export function StatsWorkbench({
 
     target.addEventListener(PROGRESS_EVENT_NAME, listener);
     return () => target.removeEventListener(PROGRESS_EVENT_NAME, listener);
+  }, [analysisExecutor]);
+
+  React.useEffect(() => {
+    if (analysisExecutor) {
+      return;
+    }
+    let cancelled = false;
+
+    setWorkerConnectionState("connecting");
+    setWorkerStatusMessage("Initializing worker.");
+
+    void ensureWorkerInitialized()
+      .then(() => {
+        if (cancelled) {
+          return;
+        }
+        setWorkerConnectionState("ready");
+        setWorkerStatusMessage("Worker is ready.");
+        setWorkerProgress(100);
+      })
+      .catch((err) => {
+        if (cancelled) {
+          return;
+        }
+        setWorkerConnectionState("error");
+        setWorkerStatusMessage(err instanceof Error ? err.message : "Worker initialization failed.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [analysisExecutor]);
 
   const refreshDatasets = React.useCallback(async () => {
@@ -176,6 +214,10 @@ export function StatsWorkbench({
   }, []);
 
   const runAnalysis = React.useCallback(async () => {
+    if (!workerReady) {
+      setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
+      return;
+    }
     if (!payloadInfo.canRun) {
       setError(payloadInfo.reason ?? "Analysis setup is incomplete.");
       return;
@@ -206,7 +248,7 @@ export function StatsWorkbench({
       setIsRunning(false);
       setWorkerActivityState("idle");
     }
-  }, [analysisExecutor, onResult, payloadInfo]);
+  }, [analysisExecutor, onResult, payloadInfo, workerProgress, workerReady]);
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -291,6 +333,8 @@ export function StatsWorkbench({
               error={error}
               showPayload={showPayload}
               onTogglePayload={() => setShowPayload((prev) => !prev)}
+              workerReady={workerReady}
+              workerProgress={workerProgress}
             />
           </section>
         </div>
