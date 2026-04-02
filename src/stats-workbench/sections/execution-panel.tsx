@@ -1,4 +1,4 @@
-import { MoreHorizontal, RefreshCw } from "lucide-react";
+import { Copy, MoreHorizontal, RefreshCw } from "lucide-react";
 import * as React from "react";
 import type { PayloadInfo } from "../types";
 
@@ -118,6 +118,61 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
   );
 }
 
+function buildApaClipboardText(tables: TableData[]): string {
+  return tables
+    .map((table, index) => {
+      const header = [`Table ${index + 1}`, table.title].join("\t");
+      const columns = table.columns.join("\t");
+      const rows = table.rows.map((row) => table.columns.map((column) => formatApaValue(row[column])).join("\t")).join("\n");
+      return `${header}\n${columns}\n${rows}`;
+    })
+    .join("\n\n");
+}
+
+function buildApaClipboardHtml(tables: TableData[]): string {
+  const sections = tables
+    .map((table, index) => {
+      const widths =
+        table.columns.length === 2 && table.columns[0] === "Statistic" && table.columns[1] === "Value"
+          ? ["40%", "60%"]
+          : table.columns.map(() => `${(100 / Math.max(1, table.columns.length)).toFixed(2)}%`);
+
+      const colgroup = widths.map((width) => `<col style="width:${width};" />`).join("");
+      const headerCells = table.columns
+        .map(
+          (column) =>
+            `<th style="padding:6px 8px;text-align:left;font-weight:600;font-size:12px;border-top:1px solid #0f172a;border-bottom:1px solid #0f172a;">${column}</th>`
+        )
+        .join("");
+      const bodyRows = table.rows
+        .map((row) => {
+          const cells = table.columns
+            .map(
+              (column) =>
+                `<td style="padding:6px 8px;vertical-align:top;font-size:12px;line-height:1.4;">${formatApaValue(row[column])}</td>`
+            )
+            .join("");
+          return `<tr>${cells}</tr>`;
+        })
+        .join("");
+
+      return `
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Table ${index + 1}</div>
+          <div style="font-size:12px;font-style:italic;color:#334155;margin-bottom:6px;">${table.title}</div>
+          <table style="width:100%;border-collapse:collapse;table-layout:fixed;border-bottom:1px solid #0f172a;">
+            <colgroup>${colgroup}</colgroup>
+            <thead><tr>${headerCells}</tr></thead>
+            <tbody>${bodyRows}</tbody>
+          </table>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `<div>${sections}</div>`;
+}
+
 export function ExecutionPanel({
   isRunning,
   payloadInfo,
@@ -131,6 +186,7 @@ export function ExecutionPanel({
 }: ExecutionPanelProps) {
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
   const [moreOpen, setMoreOpen] = React.useState(false);
+  const [copyStatus, setCopyStatus] = React.useState<"idle" | "copied" | "error">("idle");
   const moreRef = React.useRef<HTMLDivElement>(null);
   const tables = buildTableData(result);
   const runDisabled = isRunning || !payloadInfo.canRun || !workerReady;
@@ -148,6 +204,41 @@ export function ExecutionPanel({
 
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [moreOpen]);
+
+  const handleCopyApaTable = React.useCallback(async () => {
+    if (tables.length === 0) {
+      return;
+    }
+
+    const text = buildApaClipboardText(tables);
+    const html = buildApaClipboardHtml(tables);
+    try {
+      if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+        const item = new ClipboardItem({
+          "text/plain": new Blob([text], { type: "text/plain" }),
+          "text/html": new Blob([html], { type: "text/html" })
+        });
+        await navigator.clipboard.write([item]);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopyStatus("copied");
+      setTimeout(() => setCopyStatus("idle"), 1200);
+    } catch {
+      setCopyStatus("error");
+      setTimeout(() => setCopyStatus("idle"), 1400);
+    }
+  }, [tables]);
 
   return (
     <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
@@ -215,6 +306,18 @@ export function ExecutionPanel({
           result ? (
             tables.length > 0 ? (
               <div>
+                <div className="mb-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => void handleCopyApaTable()}
+                    className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    aria-label="Copy APA tables"
+                    title={copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Copy failed" : "Copy APA tables"}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    {copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Failed" : "Copy"}
+                  </button>
+                </div>
                 {tables.map((table, index) => (
                   <ApaTable key={`${table.title}-${index}`} table={table} index={index} />
                 ))}
