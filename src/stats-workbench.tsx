@@ -5,7 +5,6 @@ import {
   ensureWorkerInitialized,
   executeDefaultAnalysis,
   getPayload,
-  resolveWorkerUrl,
   validateForRole
 } from "./stats-workbench/analysis";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./stats-workbench/constants";
@@ -14,8 +13,9 @@ import { AnalysisTypePanel } from "./stats-workbench/sections/analysis-type-pane
 import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
 import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
-import { WorkerStatusPanel } from "./stats-workbench/sections/worker-status-panel";
+import { WorkerSignalIndicator } from "./stats-workbench/sections/worker-signal-indicator";
 import type {
+  AnalysisPayload,
   AnalysisKind,
   Dataset,
   RoleKey,
@@ -53,10 +53,11 @@ export type {
 export function StatsWorkbench({
   className,
   style,
-  initialAnalysis = "ttestIndependent",
+  initialAnalysis = "frequencies",
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps) {
+  const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string | null>(null);
   const [analysisType, setAnalysisType] = React.useState<AnalysisKind>(normalizeInitialAnalysis(initialAnalysis));
@@ -67,6 +68,9 @@ export function StatsWorkbench({
   const [result, setResult] = React.useState<unknown>(null);
   const [error, setError] = React.useState("");
   const [showPayload, setShowPayload] = React.useState(false);
+  const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
+  const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
+  const [isResizingPanels, setIsResizingPanels] = React.useState(false);
   const [workerConnectionState, setWorkerConnectionState] = React.useState<
     "disconnected" | "connecting" | "ready" | "error" | "external"
   >(analysisExecutor ? "external" : "disconnected");
@@ -89,8 +93,9 @@ export function StatsWorkbench({
     randomState: 42
   });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const workerUrl = React.useMemo(() => resolveWorkerUrl(), []);
+  const panelsRef = React.useRef<HTMLElement>(null);
   const workerReady = analysisExecutor ? true : workerConnectionState === "ready";
+  const blockInitialLoading = !analysisExecutor && workerConnectionState === "connecting" && !workerReady;
 
   React.useEffect(() => {
     if (analysisExecutor) {
@@ -172,6 +177,36 @@ export function StatsWorkbench({
   const availableVariables = (selectedDataset?.columns ?? []).filter((column) => !assignedNames.has(column.name));
   const analysisDef = ANALYSIS_DEFS[analysisType];
   const payloadInfo = getPayload(analysisType, selectedDataset?.rows ?? [], assignments, options);
+  const hasOptions = React.useMemo(
+    () =>
+      [
+        "ttestIndependent",
+        "posthocTukey",
+        "linearRegression",
+        "logisticBinary",
+        "logisticMultinomial",
+        "kmeans",
+        "hierarchicalCluster",
+        "efa",
+        "pca",
+        "mds"
+      ].includes(analysisType),
+    [analysisType]
+  );
+  const groupCandidates = (payloadInfo.meta?.groupCandidates as Array<string | number> | undefined) ?? [];
+  const autoRunKey = React.useMemo(
+    () =>
+      JSON.stringify({
+        analysisType,
+        selectedDatasetId,
+        selectedDatasetCreatedAt: selectedDataset?.createdAt ?? null,
+        assignments,
+        options,
+        datasetCount: datasets.length
+      }),
+    [analysisType, assignments, datasets.length, options, selectedDataset?.createdAt, selectedDatasetId]
+  );
+  const lastAutoRunKeyRef = React.useRef<string | null>(null);
 
   const variableByName = React.useMemo(() => {
     const map = new Map<string, VariableMeta>();
@@ -213,7 +248,46 @@ export function StatsWorkbench({
     setSelectedAssigned((prev) => ({ ...prev, [role]: undefined }));
   }, []);
 
-  const runAnalysis = React.useCallback(async () => {
+  const executeAnalysisPayload = React.useCallback(
+    async (payload: AnalysisPayload) => {
+      if (!workerReady) {
+        setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
+        return;
+      }
+
+      setIsRunning(true);
+      setWorkerActivityState("running");
+      if (!analysisExecutor) {
+        setWorkerConnectionState((prev) => (prev === "ready" ? "ready" : "connecting"));
+        setWorkerStatusMessage("Preparing worker execution.");
+      }
+      try {
+        const output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
+        setResult(output);
+        onResult?.({ payload, result: output });
+        if (!analysisExecutor) {
+          setWorkerConnectionState("ready");
+          setWorkerStatusMessage("Worker connected and analysis completed.");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown execution error.");
+        if (!analysisExecutor) {
+          setWorkerConnectionState("error");
+          setWorkerStatusMessage(err instanceof Error ? err.message : "Worker execution failed.");
+        }
+      } finally {
+        setIsRunning(false);
+        setWorkerActivityState("idle");
+      }
+    },
+    [analysisExecutor, onResult, workerProgress, workerReady]
+  );
+
+  const enqueueAnalysis = React.useCallback((payload: AnalysisPayload) => {
+    setAnalysisQueue((prev) => [...prev, payload]);
+  }, []);
+
+  const requestRunAnalysis = React.useCallback(() => {
     if (!workerReady) {
       setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
       return;
@@ -222,51 +296,127 @@ export function StatsWorkbench({
       setError(payloadInfo.reason ?? "Analysis setup is incomplete.");
       return;
     }
+
     setError("");
-    setIsRunning(true);
-    setWorkerActivityState("running");
-    if (!analysisExecutor) {
-      setWorkerConnectionState((prev) => (prev === "ready" ? "ready" : "connecting"));
-      setWorkerStatusMessage("Preparing worker execution.");
+    enqueueAnalysis(payloadInfo.payload);
+  }, [enqueueAnalysis, payloadInfo, workerProgress, workerReady]);
+
+  React.useEffect(() => {
+    if (lastAutoRunKeyRef.current === null) {
+      lastAutoRunKeyRef.current = autoRunKey;
+      return;
     }
-    try {
-      const payload = payloadInfo.payload;
-      const output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
-      setResult(output);
-      onResult?.({ payload, result: output });
-      if (!analysisExecutor) {
-        setWorkerConnectionState("ready");
-        setWorkerStatusMessage("Worker connected and analysis completed.");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown execution error.");
-      if (!analysisExecutor) {
-        setWorkerConnectionState("error");
-        setWorkerStatusMessage(err instanceof Error ? err.message : "Worker execution failed.");
-      }
-    } finally {
-      setIsRunning(false);
-      setWorkerActivityState("idle");
+
+    if (lastAutoRunKeyRef.current === autoRunKey) {
+      return;
     }
-  }, [analysisExecutor, onResult, payloadInfo, workerProgress, workerReady]);
+
+    lastAutoRunKeyRef.current = autoRunKey;
+
+    if (!workerReady || !payloadInfo.canRun) {
+      return;
+    }
+
+    setError("");
+    enqueueAnalysis(payloadInfo.payload);
+  }, [autoRunKey, enqueueAnalysis, payloadInfo, workerReady]);
+
+  React.useEffect(() => {
+    if (isRunning || analysisQueue.length === 0) {
+      return;
+    }
+
+    const [next, ...rest] = analysisQueue;
+    setAnalysisQueue(rest);
+    void executeAnalysisPayload(next);
+  }, [analysisQueue, executeAnalysisPayload, isRunning]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const saved = window.localStorage.getItem(PANEL_HEIGHT_STORAGE_KEY);
+    if (!saved) {
+      return;
+    }
+
+    const parsed = Number(saved);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      setTopPanelHeight(parsed);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || topPanelHeight === null) {
+      return;
+    }
+
+    window.localStorage.setItem(PANEL_HEIGHT_STORAGE_KEY, String(topPanelHeight));
+  }, [topPanelHeight]);
+
+  React.useEffect(() => {
+    if (!isResizingPanels) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const container = panelsRef.current;
+      if (!container) {
+        return;
+      }
+
+      const rect = container.getBoundingClientRect();
+      const dividerHeight = 8;
+      const minPanelHeight = 220;
+      const maxTop = rect.height - minPanelHeight - dividerHeight;
+      const nextTop = Math.max(minPanelHeight, Math.min(event.clientY - rect.top, maxTop));
+      setTopPanelHeight(nextTop);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizingPanels(false);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [isResizingPanels]);
+
+  const importDatasetFile = React.useCallback(
+    async (file: File) => {
+      try {
+        const parsed = await parseXlsx(file);
+        await putDataset(parsed);
+        await refreshDatasets();
+        setSelectedDatasetId(parsed.id);
+        setError("");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to import XLSX file.");
+      }
+    },
+    [refreshDatasets]
+  );
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
-    try {
-      const parsed = await parseXlsx(file);
-      await putDataset(parsed);
-      await refreshDatasets();
-      setSelectedDatasetId(parsed.id);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to import XLSX file.");
-    } finally {
-      event.target.value = "";
-    }
+    await importDatasetFile(file);
+    event.target.value = "";
   };
+
+  const handleDropFile = React.useCallback(
+    (file: File) => {
+      void importDatasetFile(file);
+    },
+    [importDatasetFile]
+  );
 
   const handleDeleteDataset = async (id: string) => {
     await removeDataset(id);
@@ -277,37 +427,50 @@ export function StatsWorkbench({
     }
   };
 
+  const selectedDatasetName = selectedDataset?.name ?? "선택된 데이터셋 없음";
+
   return (
     <Tooltip.Provider delayDuration={80}>
       <div
         className={cn(
-          "h-full w-full overflow-hidden bg-gradient-to-b from-slate-100 to-white p-4 text-slate-900 max-[780px]:p-2",
+          "relative h-full w-full overflow-hidden text-slate-900",
           className
         )}
         style={style}
       >
-        <div className="grid h-full grid-cols-1 gap-3 xl:grid-cols-[320px_1fr] max-[780px]:gap-2">
-          <DatasetPanel
-            datasets={datasets}
-            selectedDatasetId={selectedDatasetId}
-            onSelect={setSelectedDatasetId}
-            onDelete={(id) => void handleDeleteDataset(id)}
-            onUploadClick={() => fileInputRef.current?.click()}
-            fileInputRef={fileInputRef}
-            onFileInput={handleFileInput}
-          />
-
-          <section className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-3 max-[780px]:gap-2">
-            <WorkerStatusPanel
+        <section className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-3 max-[640px]:gap-2">
+          <div className="flex select-none flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[640px]:p-2">
+            <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
+            <DatasetPanel
+              datasets={datasets}
+              selectedDatasetId={selectedDatasetId}
+              selectedDatasetName={selectedDatasetName}
+              onSelect={setSelectedDatasetId}
+              onDelete={(id) => void handleDeleteDataset(id)}
+              onUploadClick={() => fileInputRef.current?.click()}
+              onDropFile={handleDropFile}
+              fileInputRef={fileInputRef}
+              onFileInput={handleFileInput}
+            />
+            <WorkerSignalIndicator
+              isRunning={isRunning}
               connectionState={workerConnectionState}
               activityState={workerActivityState}
               statusMessage={workerStatusMessage}
               progress={workerProgress}
-              workerUrl={workerUrl}
             />
+          </div>
 
-            <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
-
+          <section
+            ref={panelsRef}
+            className={cn("grid min-h-0", isResizingPanels ? "cursor-row-resize select-none" : "")}
+            style={{
+              rowGap: "0.5rem",
+              gridTemplateRows: topPanelHeight
+                ? `${topPanelHeight}px 8px minmax(220px, 1fr)`
+                : "minmax(220px, 1fr) 8px minmax(220px, 1fr)"
+            }}
+          >
             <VariableAssignmentPanel
               analysisType={analysisType}
               analysisDef={analysisDef}
@@ -320,15 +483,25 @@ export function StatsWorkbench({
               onSelectAssigned={(role, name) => setSelectedAssigned((prev) => ({ ...prev, [role]: name }))}
               onAssign={assignVariableToRole}
               onRemove={removeFromRole}
-            />
-
-            <ExecutionPanel
-              analysisType={analysisType}
               options={options}
               onOptionsChange={setOptions}
+              hasOptions={hasOptions}
+              groupCandidates={groupCandidates}
+            />
+
+            <div
+              role="separator"
+              aria-orientation="horizontal"
+              onPointerDown={() => setIsResizingPanels(true)}
+              className="group relative flex cursor-row-resize items-center justify-center"
+            >
+              <div className="h-1.5 w-20 rounded-full bg-slate-300 transition group-hover:bg-slate-400" />
+            </div>
+
+            <ExecutionPanel
               isRunning={isRunning}
               payloadInfo={payloadInfo}
-              onRun={() => void runAnalysis()}
+              onRun={requestRunAnalysis}
               result={result}
               error={error}
               showPayload={showPayload}
@@ -337,7 +510,23 @@ export function StatsWorkbench({
               workerProgress={workerProgress}
             />
           </section>
-        </div>
+        </section>
+
+        {blockInitialLoading ? (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px]">
+            <div className="w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+              <div className="mb-2 text-sm font-semibold text-slate-800">Initializing analysis worker</div>
+              <p className="mb-3 text-xs text-slate-600">{workerStatusMessage}</p>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-amber-500 transition-all duration-300"
+                  style={{ width: `${Math.max(8, workerProgress ?? 0)}%` }}
+                />
+              </div>
+              <div className="mt-2 text-right text-xs font-medium text-slate-600">{workerProgress ?? 0}%</div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </Tooltip.Provider>
   );

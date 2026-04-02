@@ -31,10 +31,6 @@
         height: 100%;
         margin: 0;
       }
-
-      body {
-        background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 100%);
-      }
     </style>
   </head>
   <body>
@@ -46,7 +42,7 @@
 
       const params = new URLSearchParams(window.location.search);
       const useDevBuild = params.get("dev") === "true";
-      const packageSpecifier = useDevBuild ? "./dist/index.js" : "@winm2m/react-stats-ui";
+      const packageSpecifier = useDevBuild ? "/dist/index.js" : "@winm2m/react-stats-ui";
       window.__WINM2M_INFERENTIAL_WORKER_URL__ = "https://cdn.jsdelivr.net/npm/@winm2m/inferential-stats-js@1.0.0/dist/stats-worker.js";
       const { StatsWorkbench } = await import(packageSpecifier);
 
@@ -55,7 +51,7 @@
           "div",
           { className: "h-full w-full p-4 max-[780px]:p-2" },
           React.createElement(StatsWorkbench, {
-            className: "h-full w-full rounded-xl border border-slate-200"
+            className: "h-full w-full rounded-xl"
           })
         );
       }

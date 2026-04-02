@@ -1,11 +1,22 @@
 import type { VariableType } from "../types";
 import { cn } from "../utils";
 
+const VARIABLE_LABELS: Record<VariableType, string> = {
+  continuous: "C",
+  nominal: "N",
+  unknown: "?"
+};
+
+const VARIABLE_COLORS: Record<VariableType, string> = {
+  continuous: "bg-emerald-500 text-white",
+  nominal: "bg-amber-500 text-white",
+  unknown: "bg-slate-400 text-white"
+};
+
 export function RoleTag({ type }: { type: VariableType }) {
-  const styles: Record<VariableType, string> = {
-    continuous: "bg-emerald-100 text-emerald-700",
-    nominal: "bg-amber-100 text-amber-700",
-    unknown: "bg-slate-100 text-slate-600"
-  };
-  return <span className={cn("rounded px-2 py-0.5 text-xs font-medium", styles[type])}>{type}</span>;
+  return (
+    <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold", VARIABLE_COLORS[type])}>
+      {VARIABLE_LABELS[type]}
+    </span>
+  );
 }
