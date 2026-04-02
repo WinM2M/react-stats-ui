@@ -72,6 +72,30 @@ export function App() {
 - `analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>`
 - `onResult?: (result: AnalysisResult) => void`
 
+## Internationalization
+
+The workbench includes built-in i18n via `i18next` + `react-i18next`.
+
+Supported languages:
+
+- `en` (English)
+- `ar` (Arabic)
+- `zh` (Chinese)
+- `fr` (French)
+- `ru` (Russian)
+- `es` (Spanish)
+- `ko` (Korean)
+- `ja` (Japanese)
+- `vi` (Vietnamese)
+
+Coverage includes core UI labels, placeholders, role prompts, options labels, run-state messages, and result-view helper text.
+
+Use `language` prop to set the active language:
+
+```tsx
+<StatsWorkbench language="ko" />
+```
+
 Exports:
 
 - `StatsWorkbench`
