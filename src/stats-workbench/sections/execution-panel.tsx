@@ -1,6 +1,6 @@
 import * as Separator from "@radix-ui/react-separator";
-import * as Tabs from "@radix-ui/react-tabs";
-import { RefreshCw } from "lucide-react";
+import { MoreHorizontal, RefreshCw } from "lucide-react";
+import * as React from "react";
 import type { AnalysisKind, PayloadInfo } from "../types";
 import { SelectBox } from "../ui/select-box";
 
@@ -17,8 +17,6 @@ type ExecutionPanelProps = {
   onTogglePayload: () => void;
   workerReady: boolean;
   workerProgress: number | null;
-  workerConnectionState: "disconnected" | "connecting" | "ready" | "error" | "external";
-  workerActivityState: "idle" | "running";
 };
 
 type TableData = {
@@ -94,28 +92,6 @@ function buildTableData(raw: unknown): TableData[] {
   ];
 }
 
-function getWorkerStatusChip(
-  connectionState: ExecutionPanelProps["workerConnectionState"],
-  activityState: ExecutionPanelProps["workerActivityState"]
-): { label: string; className: string } {
-  if (activityState === "running") {
-    return { label: "Running", className: "bg-sky-100 text-sky-700" };
-  }
-  if (connectionState === "ready") {
-    return { label: "Ready", className: "bg-emerald-100 text-emerald-700" };
-  }
-  if (connectionState === "connecting") {
-    return { label: "Connecting", className: "bg-amber-100 text-amber-700" };
-  }
-  if (connectionState === "external") {
-    return { label: "External", className: "bg-indigo-100 text-indigo-700" };
-  }
-  if (connectionState === "error") {
-    return { label: "Error", className: "bg-red-100 text-red-700" };
-  }
-  return { label: "Disconnected", className: "bg-slate-100 text-slate-700" };
-}
-
 function ApaTable({ table, index }: { table: TableData; index: number }) {
   return (
     <div className="mb-4 overflow-x-auto">
@@ -159,19 +135,33 @@ export function ExecutionPanel({
   showPayload,
   onTogglePayload,
   workerReady,
-  workerProgress,
-  workerConnectionState,
-  workerActivityState
+  workerProgress
 }: ExecutionPanelProps) {
+  const [resultView, setResultView] = React.useState<"table" | "json">("table");
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const moreRef = React.useRef<HTMLDivElement>(null);
   const groupCandidates = (payloadInfo.meta?.groupCandidates as Array<string | number> | undefined) ?? [];
   const updateOption = (key: string, value: unknown) => onOptionsChange({ ...options, [key]: value });
   const tables = buildTableData(result);
 
   const runDisabled = isRunning || !payloadInfo.canRun || !workerReady;
-  const statusChip = getWorkerStatusChip(workerConnectionState, workerActivityState);
+
+  React.useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!moreRef.current?.contains(event.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+
+    if (moreOpen) {
+      document.addEventListener("mousedown", onPointerDown);
+    }
+
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [moreOpen]);
 
   return (
-    <div className="grid min-h-0 grid-cols-1 gap-3 lg:grid-cols-[340px_1fr] max-[780px]:gap-2">
+    <div className="grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-[340px_1fr] max-[780px]:gap-2">
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
         <div className="mb-2 text-sm font-semibold">Options</div>
 
@@ -318,11 +308,6 @@ export function ExecutionPanel({
         )}
 
         <Separator.Root className="my-3 h-px bg-slate-200" />
-        <div className="mt-2">
-          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip.className}`}>
-            {statusChip.label}
-          </span>
-        </div>
         {!workerReady ? (
           <p className="mt-2 text-xs text-amber-700">Analysis is available after worker initialization completes.</p>
         ) : !payloadInfo.canRun ? (
@@ -345,35 +330,48 @@ export function ExecutionPanel({
               <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
             </button>
           </div>
-          <button
-            type="button"
-            onClick={onTogglePayload}
-            className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          >
-            {showPayload ? "Hide API Payload" : "Show API Payload"}
-          </button>
+          <div className="relative" ref={moreRef}>
+            <button
+              type="button"
+              onClick={() => setMoreOpen((prev) => !prev)}
+              className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
+              aria-label="More result actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+
+            {moreOpen ? (
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-52 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResultView((prev) => (prev === "table" ? "json" : "table"));
+                    setMoreOpen(false);
+                  }}
+                  className="mb-1 w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  {resultView === "table" ? "Switch to JSON" : "Switch to APA Table"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onTogglePayload();
+                    setMoreOpen(false);
+                  }}
+                  className="w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  {showPayload ? "Hide API Payload" : "Show API Payload"}
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {error ? <div className="mb-2 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">{error}</div> : null}
 
-        <Tabs.Root defaultValue="table" className="min-h-0 flex-1">
-          <Tabs.List className="mb-2 inline-flex rounded-md border border-slate-300 p-0.5">
-            <Tabs.Trigger
-              value="table"
-              className="rounded px-2 py-1 text-xs font-medium text-slate-600 data-[state=active]:bg-sky-600 data-[state=active]:text-white"
-            >
-              APA Table
-            </Tabs.Trigger>
-            <Tabs.Trigger
-              value="json"
-              className="rounded px-2 py-1 text-xs font-medium text-slate-600 data-[state=active]:bg-sky-600 data-[state=active]:text-white"
-            >
-              JSON
-            </Tabs.Trigger>
-          </Tabs.List>
-
-          <Tabs.Content value="table" className="min-h-0 h-[calc(100%-2.25rem)] overflow-auto rounded border border-slate-200 bg-white p-2">
-            {result ? (
+        <div className="min-h-0 flex-1 overflow-auto rounded border border-slate-200 bg-white p-2">
+          {resultView === "table" ? (
+            result ? (
               tables.length > 0 ? (
                 <div>
                   {tables.map((table, index) => (
@@ -385,17 +383,13 @@ export function ExecutionPanel({
               )
             ) : (
               <div className="text-sm text-slate-500">Run an analysis to view results.</div>
-            )}
-          </Tabs.Content>
-
-          <Tabs.Content value="json" className="min-h-0 h-[calc(100%-2.25rem)] overflow-auto rounded border border-slate-200 bg-slate-50 p-2">
-            {result ? (
-              <pre className="text-xs leading-relaxed text-slate-700">{JSON.stringify(result, null, 2)}</pre>
-            ) : (
-              <div className="text-sm text-slate-500">Run an analysis to view results.</div>
-            )}
-          </Tabs.Content>
-        </Tabs.Root>
+            )
+          ) : result ? (
+            <pre className="text-xs leading-relaxed text-slate-700">{JSON.stringify(result, null, 2)}</pre>
+          ) : (
+            <div className="text-sm text-slate-500">Run an analysis to view results.</div>
+          )}
+        </div>
 
         {showPayload ? (
           <div className="mt-2 min-h-0 overflow-auto rounded border border-slate-200 bg-white p-2">

@@ -93,7 +93,7 @@ export function VariableAssignmentPanel({
   };
 
   return (
-    <div className="grid min-h-0 grid-cols-1 gap-3 lg:h-[clamp(320px,40vh,560px)] lg:grid-cols-[1fr_2fr] max-[780px]:gap-2">
+    <div className="grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_2fr] max-[780px]:gap-2">
       <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
         <div className="mb-2 text-sm font-semibold">Variables</div>
         <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200">

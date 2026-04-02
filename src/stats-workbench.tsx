@@ -13,6 +13,7 @@ import { AnalysisTypePanel } from "./stats-workbench/sections/analysis-type-pane
 import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
 import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
+import { WorkerSignalIndicator } from "./stats-workbench/sections/worker-signal-indicator";
 import type {
   AnalysisPayload,
   AnalysisKind,
@@ -67,6 +68,8 @@ export function StatsWorkbench({
   const [error, setError] = React.useState("");
   const [showPayload, setShowPayload] = React.useState(false);
   const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
+  const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
+  const [isResizingPanels, setIsResizingPanels] = React.useState(false);
   const [workerConnectionState, setWorkerConnectionState] = React.useState<
     "disconnected" | "connecting" | "ready" | "error" | "external"
   >(analysisExecutor ? "external" : "disconnected");
@@ -89,6 +92,7 @@ export function StatsWorkbench({
     randomState: 42
   });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const panelsRef = React.useRef<HTMLElement>(null);
   const workerReady = analysisExecutor ? true : workerConnectionState === "ready";
 
   React.useEffect(() => {
@@ -308,6 +312,38 @@ export function StatsWorkbench({
     void executeAnalysisPayload(next);
   }, [analysisQueue, executeAnalysisPayload, isRunning]);
 
+  React.useEffect(() => {
+    if (!isResizingPanels) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const container = panelsRef.current;
+      if (!container) {
+        return;
+      }
+
+      const rect = container.getBoundingClientRect();
+      const dividerHeight = 8;
+      const minPanelHeight = 220;
+      const maxTop = rect.height - minPanelHeight - dividerHeight;
+      const nextTop = Math.max(minPanelHeight, Math.min(event.clientY - rect.top, maxTop));
+      setTopPanelHeight(nextTop);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizingPanels(false);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [isResizingPanels]);
+
   const importDatasetFile = React.useCallback(
     async (file: File) => {
       try {
@@ -373,9 +409,24 @@ export function StatsWorkbench({
               fileInputRef={fileInputRef}
               onFileInput={handleFileInput}
             />
+            <WorkerSignalIndicator
+              connectionState={workerConnectionState}
+              activityState={workerActivityState}
+              statusMessage={workerStatusMessage}
+              progress={workerProgress}
+            />
           </div>
 
-          <section className="grid min-h-0 grid-rows-[auto_1fr] gap-3 max-[780px]:gap-2">
+          <section
+            ref={panelsRef}
+            className={cn("grid min-h-0", isResizingPanels ? "cursor-row-resize select-none" : "")}
+            style={{
+              rowGap: "0.5rem",
+              gridTemplateRows: topPanelHeight
+                ? `${topPanelHeight}px 8px minmax(220px, 1fr)`
+                : "minmax(220px, 1fr) 8px minmax(220px, 1fr)"
+            }}
+          >
             <VariableAssignmentPanel
               analysisType={analysisType}
               analysisDef={analysisDef}
@@ -390,6 +441,15 @@ export function StatsWorkbench({
               onRemove={removeFromRole}
             />
 
+            <div
+              role="separator"
+              aria-orientation="horizontal"
+              onPointerDown={() => setIsResizingPanels(true)}
+              className="group relative flex cursor-row-resize items-center justify-center"
+            >
+              <div className="h-1.5 w-20 rounded-full bg-slate-300 transition group-hover:bg-slate-400" />
+            </div>
+
             <ExecutionPanel
               analysisType={analysisType}
               options={options}
@@ -403,8 +463,6 @@ export function StatsWorkbench({
               onTogglePayload={() => setShowPayload((prev) => !prev)}
               workerReady={workerReady}
               workerProgress={workerProgress}
-              workerConnectionState={workerConnectionState}
-              workerActivityState={workerActivityState}
             />
           </section>
         </section>
