@@ -1,5 +1,4 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Loader2 } from "lucide-react";
 import * as React from "react";
 import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
 import {
@@ -70,7 +69,8 @@ export function StatsWorkbench({
   const [result, setResult] = React.useState<unknown>(null);
   const [error, setError] = React.useState("");
   const [showPayload, setShowPayload] = React.useState(false);
-  const [minimalTab, setMinimalTab] = React.useState<"control" | "result">("control");
+  const [showMinimalResult, setShowMinimalResult] = React.useState(false);
+  const [showManualRunAction, setShowManualRunAction] = React.useState(false);
   const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
   const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
   const [isResizingPanels, setIsResizingPanels] = React.useState(false);
@@ -210,6 +210,11 @@ export function StatsWorkbench({
     [analysisType, assignments, datasets.length, options, selectedDataset?.createdAt, selectedDatasetId]
   );
   const lastAutoRunKeyRef = React.useRef<string | null>(null);
+  const previousRunningRef = React.useRef(false);
+  const previousAssignmentsRef = React.useRef(assignments);
+  const previousOptionsRef = React.useRef(options);
+  const previousAnalysisTypeRef = React.useRef(analysisType);
+  const previousDatasetIdRef = React.useRef<string | null>(selectedDatasetId);
 
   const variableByName = React.useMemo(() => {
     const map = new Map<string, VariableMeta>();
@@ -301,8 +306,14 @@ export function StatsWorkbench({
     }
 
     setError("");
+    setShowManualRunAction(false);
     enqueueAnalysis(payloadInfo.payload);
   }, [enqueueAnalysis, payloadInfo, workerProgress, workerReady]);
+
+  const requestRunAnalysisFromManual = React.useCallback(() => {
+    setShowManualRunAction(false);
+    requestRunAnalysis();
+  }, [requestRunAnalysis]);
 
   React.useEffect(() => {
     if (lastAutoRunKeyRef.current === null) {
@@ -316,13 +327,47 @@ export function StatsWorkbench({
 
     lastAutoRunKeyRef.current = autoRunKey;
 
+    const analysisChanged = previousAnalysisTypeRef.current !== analysisType;
+    const datasetChanged = previousDatasetIdRef.current !== selectedDatasetId;
+    const optionsChanged = JSON.stringify(previousOptionsRef.current) !== JSON.stringify(options);
+    const changedRoleKeys = analysisDef.roles
+      .filter((role) => {
+        const prev = previousAssignmentsRef.current[role.key] ?? [];
+        const next = assignments[role.key] ?? [];
+        return JSON.stringify(prev) !== JSON.stringify(next);
+      })
+      .map((role) => role.key);
+    const multiRoleChanged = changedRoleKeys.some((roleKey) => analysisDef.roles.find((role) => role.key === roleKey)?.multi);
+
+    previousAssignmentsRef.current = assignments;
+    previousOptionsRef.current = options;
+    previousAnalysisTypeRef.current = analysisType;
+    previousDatasetIdRef.current = selectedDatasetId;
+
     if (!workerReady || !payloadInfo.canRun) {
       return;
     }
 
+    if (layoutMode === "minimal" && !analysisChanged && !datasetChanged && !optionsChanged && multiRoleChanged) {
+      setShowManualRunAction(true);
+      return;
+    }
+
     setError("");
+    setShowManualRunAction(false);
     enqueueAnalysis(payloadInfo.payload);
-  }, [autoRunKey, enqueueAnalysis, payloadInfo, workerReady]);
+  }, [
+    analysisDef.roles,
+    analysisType,
+    assignments,
+    autoRunKey,
+    enqueueAnalysis,
+    layoutMode,
+    options,
+    payloadInfo,
+    selectedDatasetId,
+    workerReady
+  ]);
 
   React.useEffect(() => {
     if (isRunning || analysisQueue.length === 0) {
@@ -333,6 +378,19 @@ export function StatsWorkbench({
     setAnalysisQueue(rest);
     void executeAnalysisPayload(next);
   }, [analysisQueue, executeAnalysisPayload, isRunning]);
+
+  React.useEffect(() => {
+    if (!previousRunningRef.current || isRunning) {
+      previousRunningRef.current = isRunning;
+      return;
+    }
+
+    if (layoutMode === "minimal") {
+      setShowMinimalResult(true);
+    }
+
+    previousRunningRef.current = isRunning;
+  }, [isRunning, layoutMode]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
@@ -470,32 +528,8 @@ export function StatsWorkbench({
               </div>
 
               <section className="flex min-h-0 flex-1 flex-col p-2">
-                <div className="mb-2 inline-flex w-fit rounded-lg p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setMinimalTab("control")}
-                    className={cn(
-                      "rounded px-3 py-1 text-xs font-semibold",
-                      minimalTab === "control" ? "bg-sky-600 text-white" : "text-slate-700 hover:bg-slate-100"
-                    )}
-                  >
-                    Control
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMinimalTab("result")}
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-semibold",
-                      minimalTab === "result" ? "bg-sky-600 text-white" : "text-slate-700 hover:bg-slate-100"
-                    )}
-                  >
-                    Result
-                    {isRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                  </button>
-                </div>
-
-                <div className="min-h-0 flex-1">
-                  {minimalTab === "control" ? (
+                <div className="relative min-h-0 flex-1 overflow-hidden">
+                  <div className="h-full">
                     <VariableAssignmentPanel
                       analysisType={analysisType}
                       analysisDef={analysisDef}
@@ -513,8 +547,17 @@ export function StatsWorkbench({
                       hasOptions={hasOptions}
                       groupCandidates={groupCandidates}
                       borderlessSections
+                      showManualRunAction={showManualRunAction}
+                      onManualRunAction={requestRunAnalysisFromManual}
                     />
-                  ) : (
+                  </div>
+
+                  <div
+                    className={cn(
+                      "absolute inset-0 z-20 h-full transition-transform duration-300 ease-out",
+                      showMinimalResult ? "translate-y-0" : "translate-y-full"
+                    )}
+                  >
                     <ExecutionPanel
                       isRunning={isRunning}
                       payloadInfo={payloadInfo}
@@ -526,8 +569,9 @@ export function StatsWorkbench({
                       workerReady={workerReady}
                       workerProgress={workerProgress}
                       minimalChrome
+                      onCloseResult={() => setShowMinimalResult(false)}
                     />
-                  )}
+                  </div>
                 </div>
               </section>
             </section>

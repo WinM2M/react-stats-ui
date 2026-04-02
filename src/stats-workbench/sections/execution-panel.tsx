@@ -1,4 +1,4 @@
-import { Copy, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Copy, MoreHorizontal, RefreshCw, X } from "lucide-react";
 import * as React from "react";
 import type { PayloadInfo } from "../types";
 import { cn } from "../utils";
@@ -14,6 +14,7 @@ type ExecutionPanelProps = {
   workerReady: boolean;
   workerProgress: number | null;
   minimalChrome?: boolean;
+  onCloseResult?: () => void;
 };
 
 type TableData = {
@@ -185,7 +186,8 @@ export function ExecutionPanel({
   onTogglePayload,
   workerReady,
   workerProgress,
-  minimalChrome = false
+  minimalChrome = false,
+  onCloseResult
 }: ExecutionPanelProps) {
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
   const [moreOpen, setMoreOpen] = React.useState(false);
@@ -269,18 +271,31 @@ export function ExecutionPanel({
           </button>
         </div>
         <div className="relative" ref={moreRef}>
-          <button
-            type="button"
-            onClick={() => setMoreOpen((prev) => !prev)}
-            className={
-              minimalChrome
-                ? "rounded p-1.5 text-slate-700 hover:bg-slate-50"
-                : "rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
-            }
-            aria-label="More result actions"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setMoreOpen((prev) => !prev)}
+              className={
+                minimalChrome
+                  ? "rounded p-1.5 text-slate-700 hover:bg-slate-50"
+                  : "rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
+              }
+              aria-label="More result actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {minimalChrome && onCloseResult ? (
+              <button
+                type="button"
+                onClick={onCloseResult}
+                className="rounded p-1.5 text-slate-700 hover:bg-slate-50"
+                aria-label="Hide result"
+                title="Hide Result"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
 
           {moreOpen ? (
             <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-52 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
