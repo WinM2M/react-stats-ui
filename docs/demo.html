@@ -12,6 +12,8 @@
           "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
           "react-dom": "https://esm.sh/react-dom@18.3.1",
           "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+          "i18next": "https://esm.sh/i18next@24.2.3",
+          "react-i18next": "https://esm.sh/react-i18next@15.2.0?external=react",
           "@radix-ui/react-select": "https://esm.sh/@radix-ui/react-select@2.2.5?external=react,react-dom",
           "@radix-ui/react-separator": "https://esm.sh/@radix-ui/react-separator@1.1.7?external=react,react-dom",
           "@radix-ui/react-tabs": "https://esm.sh/@radix-ui/react-tabs@1.1.13?external=react,react-dom",
@@ -47,6 +49,7 @@
       const { StatsWorkbench } = await import(packageSpecifier);
 
       function App() {
+        const [language, setLanguage] = React.useState("en");
         const [theme, setTheme] = React.useState("light");
         const [layoutMode, setLayoutMode] = React.useState("full");
         const isDark = theme === "dark";
@@ -70,6 +73,24 @@
               React.createElement("option", { value: "light" }, "light"),
               React.createElement("option", { value: "dark" }, "dark")
             ),
+            React.createElement("label", { className: "ml-2 text-sm font-semibold" }, "Language"),
+            React.createElement(
+              "select",
+              {
+                value: language,
+                onChange: (event) => setLanguage(event.target.value),
+                className: `rounded border px-2 py-1 text-sm ${isDark ? "border-slate-600 bg-slate-800 text-slate-100" : "border-slate-300 bg-white text-slate-900"}`
+              },
+              React.createElement("option", { value: "en" }, "en"),
+              React.createElement("option", { value: "ar" }, "ar"),
+              React.createElement("option", { value: "zh" }, "zh"),
+              React.createElement("option", { value: "fr" }, "fr"),
+              React.createElement("option", { value: "ru" }, "ru"),
+              React.createElement("option", { value: "es" }, "es"),
+              React.createElement("option", { value: "ko" }, "ko"),
+              React.createElement("option", { value: "ja" }, "ja"),
+              React.createElement("option", { value: "vi" }, "vi")
+            ),
             React.createElement("label", { className: "ml-2 text-sm font-semibold" }, "Layout"),
             React.createElement(
               "select",
@@ -87,7 +108,8 @@
             { className: "h-[calc(100%-2.5rem)] w-full" },
             React.createElement(StatsWorkbench, {
               className: `h-full w-full rounded-xl ${isDark ? "bg-slate-900" : "bg-white"}`,
-              layoutMode
+              layoutMode,
+              language
             })
           )
         );

@@ -1,4 +1,5 @@
 import type * as React from "react";
+import type { SupportedLanguage } from "./i18n";
 
 export type VariableType = "continuous" | "nominal" | "unknown";
 export type RoleKey =
@@ -49,6 +50,7 @@ export type StatsWorkbenchProps = {
   style?: React.CSSProperties;
   initialAnalysis?: AnalysisKind;
   layoutMode?: "full" | "minimal";
+  language?: SupportedLanguage;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
 };

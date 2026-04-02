@@ -1,6 +1,7 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Play, X } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { validateForRole } from "../analysis";
 import type { AnalysisDef, AnalysisKind, RoleKey, VariableMeta } from "../types";
 import { AnalysisOptionsPanel } from "./analysis-options-panel";
@@ -79,6 +80,7 @@ export function VariableAssignmentPanel({
   showManualRunAction = false,
   onManualRunAction
 }: VariableAssignmentPanelProps) {
+  const { t } = useTranslation();
   const [dragVariable, setDragVariable] = React.useState<string | null>(null);
   const [invalidRole, setInvalidRole] = React.useState<RoleKey | null>(null);
   const [invalidMessage, setInvalidMessage] = React.useState("");
@@ -116,10 +118,10 @@ export function VariableAssignmentPanel({
           borderlessSections ? "" : "border border-slate-200"
         )}
       >
-        <div className="mb-2 text-sm font-semibold">Variables</div>
+        <div className="mb-2 text-sm font-semibold">{t("variables")}</div>
         <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200">
           {availableVariables.length === 0 ? (
-            <div className="p-3 text-sm text-slate-500">No available variables.</div>
+            <div className="p-3 text-sm text-slate-500">{t("noAvailableVariables")}</div>
           ) : (
             <ul className="space-y-2 p-2">
               {availableVariables.map((variable) => (
@@ -174,14 +176,14 @@ export function VariableAssignmentPanel({
           )}
         >
           <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold">Role Assignment</span>
+            <span className="text-sm font-semibold">{t("roleAssignment")}</span>
             {showManualRunAction ? (
               <button
                 type="button"
                 onClick={onManualRunAction}
                 className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50"
-                aria-label="Run analysis"
-                title="Run analysis"
+                aria-label={t("runAnalysis")}
+                title={t("runAnalysis")}
               >
                 <Play className="h-3.5 w-3.5 animate-pulse" />
               </button>
@@ -231,7 +233,7 @@ export function VariableAssignmentPanel({
                     >
                       <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1">
                         {assignments[role.key].length === 0 ? (
-                          <div className="px-2 py-3 text-xs text-slate-500">{role.label}</div>
+                          <div className="px-2 py-3 text-xs text-slate-500">{t(`roles.${role.key}`, { defaultValue: role.label })}</div>
                         ) : (
                           <ul className="space-y-1">
                             {assignments[role.key].map((name) => {
@@ -257,7 +259,7 @@ export function VariableAssignmentPanel({
                                       onRemove(role.key, name);
                                     }}
                                     className="ml-auto rounded p-1 text-slate-400 opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
-                                    aria-label={`Remove ${name}`}
+                                    aria-label={t("removeVariableAria", { name })}
                                   >
                                     <X className="h-4 w-4" />
                                   </button>

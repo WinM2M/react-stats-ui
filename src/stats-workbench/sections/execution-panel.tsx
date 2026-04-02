@@ -1,5 +1,6 @@
 import { Copy, MoreHorizontal, RefreshCw, X } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import type { PayloadInfo } from "../types";
 import { cn } from "../utils";
 
@@ -71,8 +72,8 @@ function buildTableData(raw: unknown): TableData[] {
       const row = value as Record<string, unknown>;
       tables.push({
         title: key,
-        columns: ["Statistic", "Value"],
-        rows: Object.entries(row).map(([stat, val]) => ({ Statistic: stat, Value: val }))
+        columns: ["statistic", "value"],
+        rows: Object.entries(row).map(([stat, val]) => ({ statistic: stat, value: val }))
       });
     }
   }
@@ -84,21 +85,29 @@ function buildTableData(raw: unknown): TableData[] {
   return [
     {
       title: "Summary",
-      columns: ["Statistic", "Value"],
-      rows: Object.entries(objectPayload).map(([stat, val]) => ({ Statistic: stat, Value: val }))
+      columns: ["statistic", "value"],
+      rows: Object.entries(objectPayload).map(([stat, val]) => ({ statistic: stat, value: val }))
     }
   ];
 }
 
 function ApaTable({ table, index }: { table: TableData; index: number }) {
+  const { t } = useTranslation();
+  const translatedTitle = table.title === "Summary" ? t("summary") : table.title;
+  const translatedColumns = table.columns.map((column) => {
+    if (column === "statistic") return t("statistic");
+    if (column === "value") return t("value");
+    return column;
+  });
+
   return (
     <div className="mb-4 overflow-x-auto">
-      <div className="mb-1 text-xs font-semibold text-slate-700">Table {index + 1}</div>
-      <div className="mb-2 text-xs italic text-slate-600">{table.title}</div>
+      <div className="mb-1 text-xs font-semibold text-slate-700">{t("tableLabel", { index: index + 1 })}</div>
+      <div className="mb-2 text-xs italic text-slate-600">{translatedTitle}</div>
       <table className="w-full border-collapse text-left text-xs text-slate-700">
         <thead className="border-b border-t border-slate-900">
           <tr>
-            {table.columns.map((column) => (
+            {translatedColumns.map((column) => (
               <th key={column} className="px-2 py-2 font-semibold">
                 {column}
               </th>
@@ -136,7 +145,7 @@ function buildApaClipboardHtml(tables: TableData[]): string {
   const sections = tables
     .map((table, index) => {
       const widths =
-        table.columns.length === 2 && table.columns[0] === "Statistic" && table.columns[1] === "Value"
+        table.columns.length === 2 && table.columns[0] === "statistic" && table.columns[1] === "value"
           ? ["40%", "60%"]
           : table.columns.map(() => `${(100 / Math.max(1, table.columns.length)).toFixed(2)}%`);
 
@@ -189,6 +198,7 @@ export function ExecutionPanel({
   minimalChrome = false,
   onCloseResult
 }: ExecutionPanelProps) {
+  const { t } = useTranslation();
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [copyStatus, setCopyStatus] = React.useState<"idle" | "copied" | "error">("idle");
@@ -254,15 +264,15 @@ export function ExecutionPanel({
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="text-sm font-semibold">Analysis Result</div>
+          <div className="text-sm font-semibold">{t("analysisResult")}</div>
           {minimalChrome ? null : (
             <button
               type="button"
               onClick={onRun}
               disabled={runDisabled}
               className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Run analysis"
-              title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
+              aria-label={t("runAnalysis")}
+              title={runDisabled ? (isRunning ? t("running") : t("standby")) : t("runAnalysis")}
             >
               <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
             </button>
@@ -278,7 +288,7 @@ export function ExecutionPanel({
                   ? "rounded p-1.5 text-slate-700 hover:bg-slate-50"
                   : "rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
               }
-              aria-label="More result actions"
+              aria-label={t("moreActions")}
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -287,8 +297,8 @@ export function ExecutionPanel({
                 type="button"
                 onClick={onCloseResult}
                 className="rounded p-1.5 text-slate-700 hover:bg-slate-50"
-                aria-label="Hide result"
-                title="Hide Result"
+                aria-label={t("hideResult")}
+                title={t("hideResult")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -305,7 +315,7 @@ export function ExecutionPanel({
                 }}
                 className="mb-1 w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
-                {resultView === "table" ? "Switch to JSON" : "Switch to APA Table"}
+                {resultView === "table" ? t("switchToJson") : t("switchToApa")}
               </button>
               <button
                 type="button"
@@ -315,7 +325,7 @@ export function ExecutionPanel({
                 }}
                 className="w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
-                {showPayload ? "Hide API Payload" : "Show API Payload"}
+                {showPayload ? t("hidePayload") : t("showPayload")}
               </button>
             </div>
           ) : null}
@@ -323,7 +333,7 @@ export function ExecutionPanel({
       </div>
 
       {!workerReady ? (
-        <p className="mb-2 text-xs text-amber-700">Analysis is available after worker initialization completes ({workerProgress ?? 0}%).</p>
+        <p className="mb-2 text-xs text-amber-700">{t("workerInitializingPercent", { progress: workerProgress ?? 0 })}</p>
       ) : !payloadInfo.canRun ? (
         <p className="mb-2 text-xs text-amber-700">{payloadInfo.reason}</p>
       ) : null}
@@ -340,11 +350,11 @@ export function ExecutionPanel({
                     type="button"
                     onClick={() => void handleCopyApaTable()}
                     className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                    aria-label="Copy APA tables"
-                    title={copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Copy failed" : "Copy APA tables"}
+                    aria-label={t("copy")}
+                    title={copyStatus === "copied" ? t("copied") : copyStatus === "error" ? t("copyFailed") : t("copy")}
                   >
                     <Copy className="h-3.5 w-3.5" />
-                    {copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Failed" : "Copy"}
+                    {copyStatus === "copied" ? t("copied") : copyStatus === "error" ? t("copyFailed") : t("copy")}
                   </button>
                 </div>
                 {tables.map((table, index) => (
@@ -352,15 +362,15 @@ export function ExecutionPanel({
                 ))}
               </div>
             ) : (
-              <div className="text-sm text-slate-500">Table rendering is not available for this result shape.</div>
+                <div className="text-sm text-slate-500">{t("renderUnavailable")}</div>
             )
           ) : (
-            <div className="text-sm text-slate-500">Run an analysis to view results.</div>
+              <div className="text-sm text-slate-500">{t("runToView")}</div>
           )
         ) : result ? (
           <pre className="text-xs leading-relaxed text-slate-700">{JSON.stringify(result, null, 2)}</pre>
         ) : (
-          <div className="text-sm text-slate-500">Run an analysis to view results.</div>
+            <div className="text-sm text-slate-500">{t("runToView")}</div>
         )}
       </div>
 

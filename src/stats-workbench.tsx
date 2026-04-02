@@ -1,6 +1,7 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import * as React from "react";
 import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
+import { useTranslation } from "react-i18next";
 import {
   ensureWorkerInitialized,
   executeDefaultAnalysis,
@@ -14,6 +15,7 @@ import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
 import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
 import { WorkerSignalIndicator } from "./stats-workbench/sections/worker-signal-indicator";
+import { workbenchI18n, type SupportedLanguage } from "./stats-workbench/i18n";
 import type {
   AnalysisPayload,
   AnalysisKind,
@@ -50,14 +52,18 @@ export type {
   VariableType
 } from "./stats-workbench/types";
 
+export type { SupportedLanguage } from "./stats-workbench/i18n";
+
 export function StatsWorkbench({
   className,
   style,
   initialAnalysis = "frequencies",
   layoutMode = "full",
+  language = "en",
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps) {
+  const { t } = useTranslation();
   const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string | null>(null);
@@ -79,9 +85,10 @@ export function StatsWorkbench({
   >(analysisExecutor ? "external" : "disconnected");
   const [workerActivityState, setWorkerActivityState] = React.useState<"idle" | "running">("idle");
   const [workerStatusMessage, setWorkerStatusMessage] = React.useState(
-    analysisExecutor ? "Using external analysis executor." : "Worker is not initialized yet."
+    analysisExecutor ? t("usingExternalExecutor") : t("workerNotInitialized")
   );
   const [workerProgress, setWorkerProgress] = React.useState<number | null>(null);
+  const [activeLanguage, setActiveLanguage] = React.useState<SupportedLanguage>(language);
   const [options, setOptions] = React.useState<Record<string, unknown>>({
     equalVariance: true,
     addConstant: true,
@@ -101,9 +108,17 @@ export function StatsWorkbench({
   const blockInitialLoading = !analysisExecutor && workerConnectionState === "connecting" && !workerReady;
 
   React.useEffect(() => {
+    setActiveLanguage(language);
+  }, [language]);
+
+  React.useEffect(() => {
+    void workbenchI18n.changeLanguage(activeLanguage);
+  }, [activeLanguage]);
+
+  React.useEffect(() => {
     if (analysisExecutor) {
       setWorkerConnectionState("external");
-      setWorkerStatusMessage("Using external analysis executor.");
+      setWorkerStatusMessage(t("usingExternalExecutor"));
       setWorkerProgress(null);
       return;
     }
@@ -113,7 +128,7 @@ export function StatsWorkbench({
       const detail = (event as CustomEvent<{ stage?: string; progress?: number; message?: string }>).detail ?? {};
       const stage = detail.stage ?? "init";
       const progress = typeof detail.progress === "number" ? detail.progress : null;
-      const message = detail.message ?? "Initializing worker.";
+      const message = detail.message ?? t("initializingWorkerSimple");
 
       setWorkerConnectionState(stage === "ready" || progress === 100 ? "ready" : "connecting");
       setWorkerStatusMessage(`[${stage}] ${message}`);
@@ -131,7 +146,7 @@ export function StatsWorkbench({
     let cancelled = false;
 
     setWorkerConnectionState("connecting");
-    setWorkerStatusMessage("Initializing worker.");
+    setWorkerStatusMessage(t("initializingWorkerSimple"));
 
     void ensureWorkerInitialized()
       .then(() => {
@@ -139,7 +154,7 @@ export function StatsWorkbench({
           return;
         }
         setWorkerConnectionState("ready");
-        setWorkerStatusMessage("Worker is ready.");
+        setWorkerStatusMessage(t("workerReadyMsg"));
         setWorkerProgress(100);
       })
       .catch((err) => {
@@ -147,7 +162,7 @@ export function StatsWorkbench({
           return;
         }
         setWorkerConnectionState("error");
-        setWorkerStatusMessage(err instanceof Error ? err.message : "Worker initialization failed.");
+        setWorkerStatusMessage(err instanceof Error ? err.message : t("workerInitFailed"));
       });
 
     return () => {
@@ -259,7 +274,7 @@ export function StatsWorkbench({
   const executeAnalysisPayload = React.useCallback(
     async (payload: AnalysisPayload) => {
       if (!workerReady) {
-        setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
+        setError(t("workerStillInitializing", { progress: workerProgress ?? 0 }));
         return;
       }
 
@@ -278,10 +293,10 @@ export function StatsWorkbench({
           setWorkerStatusMessage("Worker connected and analysis completed.");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown execution error.");
+        setError(err instanceof Error ? err.message : t("unknownExecutionError"));
         if (!analysisExecutor) {
           setWorkerConnectionState("error");
-          setWorkerStatusMessage(err instanceof Error ? err.message : "Worker execution failed.");
+          setWorkerStatusMessage(err instanceof Error ? err.message : t("workerFailed"));
         }
       } finally {
         setIsRunning(false);
@@ -297,11 +312,11 @@ export function StatsWorkbench({
 
   const requestRunAnalysis = React.useCallback(() => {
     if (!workerReady) {
-      setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
+      setError(t("workerStillInitializing", { progress: workerProgress ?? 0 }));
       return;
     }
     if (!payloadInfo.canRun) {
-      setError(payloadInfo.reason ?? "Analysis setup is incomplete.");
+      setError(payloadInfo.reason ?? t("setupIncomplete"));
       return;
     }
 
@@ -458,10 +473,10 @@ export function StatsWorkbench({
         setSelectedDatasetId(parsed.id);
         setError("");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to import XLSX file.");
+        setError(err instanceof Error ? err.message : t("importFailed"));
       }
     },
-    [refreshDatasets]
+    [refreshDatasets, t]
   );
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -489,7 +504,7 @@ export function StatsWorkbench({
     }
   };
 
-  const selectedDatasetName = selectedDataset?.name ?? "선택된 데이터셋 없음";
+  const selectedDatasetName = selectedDataset?.name ?? t("noDatasetSelected");
 
   return (
     <Tooltip.Provider delayDuration={80}>
@@ -661,7 +676,7 @@ export function StatsWorkbench({
         {blockInitialLoading ? (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px]">
             <div className="w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
-              <div className="mb-2 text-sm font-semibold text-slate-800">Initializing analysis worker</div>
+              <div className="mb-2 text-sm font-semibold text-slate-800">{t("loadingWorker")}</div>
               <p className="mb-3 text-xs text-slate-600">{workerStatusMessage}</p>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
                 <div
