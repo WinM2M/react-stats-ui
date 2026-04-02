@@ -72,8 +72,8 @@ function buildTableData(raw: unknown): TableData[] {
       const row = value as Record<string, unknown>;
       tables.push({
         title: key,
-        columns: ["Statistic", "Value"],
-        rows: Object.entries(row).map(([stat, val]) => ({ Statistic: stat, Value: val }))
+        columns: ["statistic", "value"],
+        rows: Object.entries(row).map(([stat, val]) => ({ statistic: stat, value: val }))
       });
     }
   }
@@ -85,21 +85,29 @@ function buildTableData(raw: unknown): TableData[] {
   return [
     {
       title: "Summary",
-      columns: ["Statistic", "Value"],
-      rows: Object.entries(objectPayload).map(([stat, val]) => ({ Statistic: stat, Value: val }))
+      columns: ["statistic", "value"],
+      rows: Object.entries(objectPayload).map(([stat, val]) => ({ statistic: stat, value: val }))
     }
   ];
 }
 
 function ApaTable({ table, index }: { table: TableData; index: number }) {
+  const { t } = useTranslation();
+  const translatedTitle = table.title === "Summary" ? t("summary") : table.title;
+  const translatedColumns = table.columns.map((column) => {
+    if (column === "statistic") return t("statistic");
+    if (column === "value") return t("value");
+    return column;
+  });
+
   return (
     <div className="mb-4 overflow-x-auto">
-      <div className="mb-1 text-xs font-semibold text-slate-700">Table {index + 1}</div>
-      <div className="mb-2 text-xs italic text-slate-600">{table.title}</div>
+      <div className="mb-1 text-xs font-semibold text-slate-700">{t("tableLabel", { index: index + 1 })}</div>
+      <div className="mb-2 text-xs italic text-slate-600">{translatedTitle}</div>
       <table className="w-full border-collapse text-left text-xs text-slate-700">
         <thead className="border-b border-t border-slate-900">
           <tr>
-            {table.columns.map((column) => (
+            {translatedColumns.map((column) => (
               <th key={column} className="px-2 py-2 font-semibold">
                 {column}
               </th>
@@ -137,7 +145,7 @@ function buildApaClipboardHtml(tables: TableData[]): string {
   const sections = tables
     .map((table, index) => {
       const widths =
-        table.columns.length === 2 && table.columns[0] === "Statistic" && table.columns[1] === "Value"
+        table.columns.length === 2 && table.columns[0] === "statistic" && table.columns[1] === "value"
           ? ["40%", "60%"]
           : table.columns.map(() => `${(100 / Math.max(1, table.columns.length)).toFixed(2)}%`);
 
@@ -280,7 +288,7 @@ export function ExecutionPanel({
                   ? "rounded p-1.5 text-slate-700 hover:bg-slate-50"
                   : "rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
               }
-              aria-label="More result actions"
+              aria-label={t("moreActions")}
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -289,7 +297,7 @@ export function ExecutionPanel({
                 type="button"
                 onClick={onCloseResult}
                 className="rounded p-1.5 text-slate-700 hover:bg-slate-50"
-                aria-label="Hide result"
+                aria-label={t("hideResult")}
                 title={t("hideResult")}
               >
                 <X className="h-4 w-4" />
@@ -325,7 +333,7 @@ export function ExecutionPanel({
       </div>
 
       {!workerReady ? (
-        <p className="mb-2 text-xs text-amber-700">Analysis is available after worker initialization completes ({workerProgress ?? 0}%).</p>
+        <p className="mb-2 text-xs text-amber-700">{t("workerInitializingPercent", { progress: workerProgress ?? 0 })}</p>
       ) : !payloadInfo.canRun ? (
         <p className="mb-2 text-xs text-amber-700">{payloadInfo.reason}</p>
       ) : null}

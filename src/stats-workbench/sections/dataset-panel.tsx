@@ -95,10 +95,8 @@ export function DatasetPanel({
             </button>
           </div>
 
-          <div className="mb-3 max-h-56 overflow-auto rounded-lg border border-slate-200">
-            {datasets.length === 0 ? (
-              <div className="h-2" />
-            ) : (
+          {datasets.length > 0 ? (
+            <div className="mb-3 max-h-56 overflow-auto rounded-lg border border-slate-200">
               <ul className="divide-y divide-slate-100">
                 {datasets.map((dataset) => {
                   const active = selectedDatasetId === dataset.id;
@@ -122,7 +120,7 @@ export function DatasetPanel({
                         type="button"
                         onClick={() => onDelete(dataset.id)}
                         className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600"
-                        aria-label={`Delete ${dataset.name}`}
+                        aria-label={t("deleteDatasetAria", { name: dataset.name })}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -130,8 +128,8 @@ export function DatasetPanel({
                   );
                 })}
               </ul>
-            )}
-          </div>
+            </div>
+          ) : null}
 
           <div
             className={cn(

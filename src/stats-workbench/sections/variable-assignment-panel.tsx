@@ -182,7 +182,7 @@ export function VariableAssignmentPanel({
                 type="button"
                 onClick={onManualRunAction}
                 className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50"
-                aria-label="Run analysis"
+                aria-label={t("runAnalysis")}
                 title={t("runAnalysis")}
               >
                 <Play className="h-3.5 w-3.5 animate-pulse" />
@@ -259,7 +259,7 @@ export function VariableAssignmentPanel({
                                       onRemove(role.key, name);
                                     }}
                                     className="ml-auto rounded p-1 text-slate-400 opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
-                                    aria-label={`Remove ${name}`}
+                                    aria-label={t("removeVariableAria", { name })}
                                   >
                                     <X className="h-4 w-4" />
                                   </button>

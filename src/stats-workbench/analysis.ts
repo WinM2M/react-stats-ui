@@ -1,5 +1,6 @@
 import { InferentialStats } from "@winm2m/inferential-stats-js";
 import { ANALYSIS_DEFS } from "./constants";
+import i18next from "i18next";
 import type { AnalysisKind, AnalysisPayload, PayloadInfo, RoleKey, VariableMeta } from "./types";
 
 const continuousRoles: Partial<Record<AnalysisKind, RoleKey[]>> = {
@@ -69,7 +70,7 @@ function getInputForAnalysis(
     if (values.length < 2) {
       return {
         input: { data },
-        reason: "Group variable must contain at least two values.",
+        reason: i18next.t("groupNeedsTwoValues"),
         meta: { groupCandidates: values }
       };
     }
@@ -200,7 +201,7 @@ function getInputForAnalysis(
 export function validateForRole(kind: AnalysisKind, role: RoleKey, variable: VariableMeta): string | null {
   const requiresContinuous = continuousRoles[kind]?.includes(role) ?? false;
   if (requiresContinuous && variable.type !== "continuous") {
-    return "Only continuous variables are allowed.";
+    return i18next.t("onlyContinuousAllowed");
   }
   return null;
 }
@@ -218,14 +219,14 @@ export function getPayload(
       return {
         payload: { analysisType, method: analysisType, input: { data: [] }, options, assignments },
         canRun: false,
-        reason: `Set ${role.label}.`
+        reason: i18next.t("setRoleReason", { role: i18next.t(`roles.${role.key}`, { defaultValue: role.label }) })
       };
     }
     if (role.minItems && selected.length < role.minItems) {
       return {
         payload: { analysisType, method: analysisType, input: { data: [] }, options, assignments },
         canRun: false,
-        reason: `Set at least ${role.minItems} items for ${role.label}.`
+        reason: i18next.t("setMinItemsReason", { count: role.minItems, role: i18next.t(`roles.${role.key}`, { defaultValue: role.label }) })
       };
     }
   }
@@ -234,7 +235,7 @@ export function getPayload(
     return {
       payload: { analysisType, method: analysisType, input: { data: [] }, options, assignments },
       canRun: false,
-      reason: "Dataset does not contain rows."
+      reason: i18next.t("noRowsReason")
     };
   }
 
@@ -289,7 +290,7 @@ export async function executeDefaultAnalysis(payload: AnalysisPayload): Promise<
   const sdk = await getSdkInstance();
   const method = (sdk as unknown as Record<string, unknown>)[payload.method];
   if (typeof method !== "function") {
-    throw new Error(`Method ${payload.method} is not available in @winm2m/inferential-stats-js.`);
+    throw new Error(i18next.t("methodUnavailable", { method: payload.method }));
   }
   return await (method as (this: InferentialStats, input: Record<string, unknown>) => Promise<unknown>).call(
     sdk,

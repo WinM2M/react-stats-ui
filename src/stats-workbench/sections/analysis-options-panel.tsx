@@ -25,24 +25,24 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
       <div className="min-h-0 flex-1 overflow-auto">
         {analysisType === "ttestIndependent" && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Equal Variance Assumption</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsEqualVariance")}</label>
             <SelectBox
               value={String(Boolean(options.equalVariance))}
               onChange={(value) => updateOption("equalVariance", value === "true")}
               items={[
-                { value: "true", label: "Enabled" },
-                { value: "false", label: "Disabled" }
+                { value: "true", label: t("optionsEnabled") },
+                { value: "false", label: t("optionsDisabled") }
               ]}
             />
             {groupCandidates.length >= 2 ? (
               <>
-                <label className="text-xs font-medium text-slate-600">Group 1 Value</label>
+                <label className="text-xs font-medium text-slate-600">{t("optionsGroup1")}</label>
                 <SelectBox
                   value={String(options.group1Value ?? groupCandidates[0])}
                   onChange={(value) => updateOption("group1Value", value)}
                   items={groupCandidates.map((candidate) => ({ value: String(candidate), label: String(candidate) }))}
                 />
-                <label className="text-xs font-medium text-slate-600">Group 2 Value</label>
+                <label className="text-xs font-medium text-slate-600">{t("optionsGroup2")}</label>
                 <SelectBox
                   value={String(options.group2Value ?? groupCandidates[1])}
                   onChange={(value) => updateOption("group2Value", value)}
@@ -55,7 +55,7 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {analysisType === "posthocTukey" && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Alpha</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsAlpha")}</label>
             <input
               type="number"
               min={0.001}
@@ -70,13 +70,13 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {(analysisType === "linearRegression" || analysisType === "logisticBinary") && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Add Constant</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsAddConstant")}</label>
             <SelectBox
               value={String(Boolean(options.addConstant))}
               onChange={(value) => updateOption("addConstant", value === "true")}
               items={[
-                { value: "true", label: "Yes" },
-                { value: "false", label: "No" }
+                { value: "true", label: t("optionsYes") },
+                { value: "false", label: t("optionsNo") }
               ]}
             />
           </div>
@@ -84,12 +84,12 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {analysisType === "logisticMultinomial" && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Reference Category</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsReferenceCategory")}</label>
             <input
               type="text"
               value={String(options.referenceCategory ?? "")}
               onChange={(event) => updateOption("referenceCategory", event.target.value)}
-              placeholder="Optional"
+              placeholder={t("optionsOptional")}
               className="h-9 w-full select-text rounded-md border border-slate-300 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             />
           </div>
@@ -97,7 +97,7 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {analysisType === "kmeans" && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Clusters (K)</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsClusters")}</label>
             <SelectBox
               value={String(options.k ?? 3)}
               onChange={(value) => updateOption("k", Number(value))}
@@ -108,25 +108,25 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {analysisType === "hierarchicalCluster" && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Linkage Method</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsLinkageMethod")}</label>
             <SelectBox
               value={String(options.method ?? "ward")}
               onChange={(value) => updateOption("method", value)}
               items={[
-                { value: "ward", label: "Ward" },
-                { value: "complete", label: "Complete" },
-                { value: "average", label: "Average" },
-                { value: "single", label: "Single" }
+                { value: "ward", label: t("optionsWard") },
+                { value: "complete", label: t("optionsComplete") },
+                { value: "average", label: t("optionsAverage") },
+                { value: "single", label: t("optionsSingle") }
               ]}
             />
-            <label className="text-xs font-medium text-slate-600">Distance Metric</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsDistanceMetric")}</label>
             <SelectBox
               value={String(options.metric ?? "euclidean")}
               onChange={(value) => updateOption("metric", value)}
               items={[
-                { value: "euclidean", label: "Euclidean" },
-                { value: "cityblock", label: "Cityblock" },
-                { value: "cosine", label: "Cosine" }
+                { value: "euclidean", label: t("optionsEuclidean") },
+                { value: "cityblock", label: t("optionsCityblock") },
+                { value: "cosine", label: t("optionsCosine") }
               ]}
             />
           </div>
@@ -134,21 +134,21 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {analysisType === "efa" && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Number of Factors</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsNumberFactors")}</label>
             <SelectBox
               value={String(options.nFactors ?? 2)}
               onChange={(value) => updateOption("nFactors", Number(value))}
               items={[2, 3, 4, 5, 6].map((n) => ({ value: String(n), label: String(n) }))}
             />
-            <label className="text-xs font-medium text-slate-600">Rotation</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsRotation")}</label>
             <SelectBox
               value={String(options.rotation ?? "varimax")}
               onChange={(value) => updateOption("rotation", value)}
               items={[
-                { value: "varimax", label: "Varimax" },
-                { value: "promax", label: "Promax" },
-                { value: "oblimin", label: "Oblimin" },
-                { value: "none", label: "None" }
+                { value: "varimax", label: t("optionsVarimax") },
+                { value: "promax", label: t("optionsPromax") },
+                { value: "oblimin", label: t("optionsOblimin") },
+                { value: "none", label: t("optionsNone") }
               ]}
             />
           </div>
@@ -156,7 +156,7 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {(analysisType === "pca" || analysisType === "mds") && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Number of Components</label>
+            <label className="text-xs font-medium text-slate-600">{t("optionsNumberComponents")}</label>
             <SelectBox
               value={String(options.nComponents ?? 2)}
               onChange={(value) => updateOption("nComponents", Number(value))}

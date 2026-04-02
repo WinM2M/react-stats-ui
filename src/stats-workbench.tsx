@@ -15,7 +15,7 @@ import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
 import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
 import { WorkerSignalIndicator } from "./stats-workbench/sections/worker-signal-indicator";
-import { SUPPORTED_LANGUAGES, workbenchI18n, type SupportedLanguage } from "./stats-workbench/i18n";
+import { workbenchI18n, type SupportedLanguage } from "./stats-workbench/i18n";
 import type {
   AnalysisPayload,
   AnalysisKind,
@@ -85,7 +85,7 @@ export function StatsWorkbench({
   >(analysisExecutor ? "external" : "disconnected");
   const [workerActivityState, setWorkerActivityState] = React.useState<"idle" | "running">("idle");
   const [workerStatusMessage, setWorkerStatusMessage] = React.useState(
-    analysisExecutor ? "Using external analysis executor." : "Worker is not initialized yet."
+    analysisExecutor ? t("usingExternalExecutor") : t("workerNotInitialized")
   );
   const [workerProgress, setWorkerProgress] = React.useState<number | null>(null);
   const [activeLanguage, setActiveLanguage] = React.useState<SupportedLanguage>(language);
@@ -118,7 +118,7 @@ export function StatsWorkbench({
   React.useEffect(() => {
     if (analysisExecutor) {
       setWorkerConnectionState("external");
-      setWorkerStatusMessage("Using external analysis executor.");
+      setWorkerStatusMessage(t("usingExternalExecutor"));
       setWorkerProgress(null);
       return;
     }
@@ -128,7 +128,7 @@ export function StatsWorkbench({
       const detail = (event as CustomEvent<{ stage?: string; progress?: number; message?: string }>).detail ?? {};
       const stage = detail.stage ?? "init";
       const progress = typeof detail.progress === "number" ? detail.progress : null;
-      const message = detail.message ?? "Initializing worker.";
+      const message = detail.message ?? t("initializingWorkerSimple");
 
       setWorkerConnectionState(stage === "ready" || progress === 100 ? "ready" : "connecting");
       setWorkerStatusMessage(`[${stage}] ${message}`);
@@ -146,7 +146,7 @@ export function StatsWorkbench({
     let cancelled = false;
 
     setWorkerConnectionState("connecting");
-    setWorkerStatusMessage("Initializing worker.");
+    setWorkerStatusMessage(t("initializingWorkerSimple"));
 
     void ensureWorkerInitialized()
       .then(() => {
@@ -154,7 +154,7 @@ export function StatsWorkbench({
           return;
         }
         setWorkerConnectionState("ready");
-        setWorkerStatusMessage("Worker is ready.");
+        setWorkerStatusMessage(t("workerReadyMsg"));
         setWorkerProgress(100);
       })
       .catch((err) => {
@@ -162,7 +162,7 @@ export function StatsWorkbench({
           return;
         }
         setWorkerConnectionState("error");
-        setWorkerStatusMessage(err instanceof Error ? err.message : "Worker initialization failed.");
+        setWorkerStatusMessage(err instanceof Error ? err.message : t("workerInitFailed"));
       });
 
     return () => {
@@ -274,7 +274,7 @@ export function StatsWorkbench({
   const executeAnalysisPayload = React.useCallback(
     async (payload: AnalysisPayload) => {
       if (!workerReady) {
-        setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
+        setError(t("workerStillInitializing", { progress: workerProgress ?? 0 }));
         return;
       }
 
@@ -293,10 +293,10 @@ export function StatsWorkbench({
           setWorkerStatusMessage("Worker connected and analysis completed.");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown execution error.");
+        setError(err instanceof Error ? err.message : t("unknownExecutionError"));
         if (!analysisExecutor) {
           setWorkerConnectionState("error");
-          setWorkerStatusMessage(err instanceof Error ? err.message : "Worker execution failed.");
+          setWorkerStatusMessage(err instanceof Error ? err.message : t("workerFailed"));
         }
       } finally {
         setIsRunning(false);
@@ -312,11 +312,11 @@ export function StatsWorkbench({
 
   const requestRunAnalysis = React.useCallback(() => {
     if (!workerReady) {
-      setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
+      setError(t("workerStillInitializing", { progress: workerProgress ?? 0 }));
       return;
     }
     if (!payloadInfo.canRun) {
-      setError(payloadInfo.reason ?? "Analysis setup is incomplete.");
+      setError(payloadInfo.reason ?? t("setupIncomplete"));
       return;
     }
 
@@ -473,10 +473,10 @@ export function StatsWorkbench({
         setSelectedDatasetId(parsed.id);
         setError("");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to import XLSX file.");
+        setError(err instanceof Error ? err.message : t("importFailed"));
       }
     },
-    [refreshDatasets]
+    [refreshDatasets, t]
   );
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -545,20 +545,6 @@ export function StatsWorkbench({
                     statusMessage={workerStatusMessage}
                     progress={workerProgress}
                   />
-                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
-                    {t("language")}
-                    <select
-                      value={activeLanguage}
-                      onChange={(event) => setActiveLanguage(event.target.value as SupportedLanguage)}
-                      className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
-                    >
-                      {SUPPORTED_LANGUAGES.map((lang) => (
-                        <option key={lang.code} value={lang.code}>
-                          {lang.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
                 </div>
               </div>
 
@@ -632,20 +618,6 @@ export function StatsWorkbench({
                   statusMessage={workerStatusMessage}
                   progress={workerProgress}
                 />
-                <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
-                  {t("language")}
-                  <select
-                    value={activeLanguage}
-                    onChange={(event) => setActiveLanguage(event.target.value as SupportedLanguage)}
-                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
-                  >
-                    {SUPPORTED_LANGUAGES.map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
 
               <section
