@@ -14,6 +14,7 @@ import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
 import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
 import type {
+  AnalysisPayload,
   AnalysisKind,
   Dataset,
   RoleKey,
@@ -65,6 +66,7 @@ export function StatsWorkbench({
   const [result, setResult] = React.useState<unknown>(null);
   const [error, setError] = React.useState("");
   const [showPayload, setShowPayload] = React.useState(false);
+  const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
   const [workerConnectionState, setWorkerConnectionState] = React.useState<
     "disconnected" | "connecting" | "ready" | "error" | "external"
   >(analysisExecutor ? "external" : "disconnected");
@@ -169,6 +171,19 @@ export function StatsWorkbench({
   const availableVariables = (selectedDataset?.columns ?? []).filter((column) => !assignedNames.has(column.name));
   const analysisDef = ANALYSIS_DEFS[analysisType];
   const payloadInfo = getPayload(analysisType, selectedDataset?.rows ?? [], assignments, options);
+  const autoRunKey = React.useMemo(
+    () =>
+      JSON.stringify({
+        analysisType,
+        selectedDatasetId,
+        selectedDatasetCreatedAt: selectedDataset?.createdAt ?? null,
+        assignments,
+        options,
+        datasetCount: datasets.length
+      }),
+    [analysisType, assignments, datasets.length, options, selectedDataset?.createdAt, selectedDatasetId]
+  );
+  const lastAutoRunKeyRef = React.useRef<string | null>(null);
 
   const variableByName = React.useMemo(() => {
     const map = new Map<string, VariableMeta>();
@@ -210,7 +225,46 @@ export function StatsWorkbench({
     setSelectedAssigned((prev) => ({ ...prev, [role]: undefined }));
   }, []);
 
-  const runAnalysis = React.useCallback(async () => {
+  const executeAnalysisPayload = React.useCallback(
+    async (payload: AnalysisPayload) => {
+      if (!workerReady) {
+        setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
+        return;
+      }
+
+      setIsRunning(true);
+      setWorkerActivityState("running");
+      if (!analysisExecutor) {
+        setWorkerConnectionState((prev) => (prev === "ready" ? "ready" : "connecting"));
+        setWorkerStatusMessage("Preparing worker execution.");
+      }
+      try {
+        const output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
+        setResult(output);
+        onResult?.({ payload, result: output });
+        if (!analysisExecutor) {
+          setWorkerConnectionState("ready");
+          setWorkerStatusMessage("Worker connected and analysis completed.");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown execution error.");
+        if (!analysisExecutor) {
+          setWorkerConnectionState("error");
+          setWorkerStatusMessage(err instanceof Error ? err.message : "Worker execution failed.");
+        }
+      } finally {
+        setIsRunning(false);
+        setWorkerActivityState("idle");
+      }
+    },
+    [analysisExecutor, onResult, workerProgress, workerReady]
+  );
+
+  const enqueueAnalysis = React.useCallback((payload: AnalysisPayload) => {
+    setAnalysisQueue((prev) => [...prev, payload]);
+  }, []);
+
+  const requestRunAnalysis = React.useCallback(() => {
     if (!workerReady) {
       setError(`Worker is still initializing (${workerProgress ?? 0}%).`);
       return;
@@ -219,33 +273,40 @@ export function StatsWorkbench({
       setError(payloadInfo.reason ?? "Analysis setup is incomplete.");
       return;
     }
+
     setError("");
-    setIsRunning(true);
-    setWorkerActivityState("running");
-    if (!analysisExecutor) {
-      setWorkerConnectionState((prev) => (prev === "ready" ? "ready" : "connecting"));
-      setWorkerStatusMessage("Preparing worker execution.");
+    enqueueAnalysis(payloadInfo.payload);
+  }, [enqueueAnalysis, payloadInfo, workerProgress, workerReady]);
+
+  React.useEffect(() => {
+    if (lastAutoRunKeyRef.current === null) {
+      lastAutoRunKeyRef.current = autoRunKey;
+      return;
     }
-    try {
-      const payload = payloadInfo.payload;
-      const output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
-      setResult(output);
-      onResult?.({ payload, result: output });
-      if (!analysisExecutor) {
-        setWorkerConnectionState("ready");
-        setWorkerStatusMessage("Worker connected and analysis completed.");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown execution error.");
-      if (!analysisExecutor) {
-        setWorkerConnectionState("error");
-        setWorkerStatusMessage(err instanceof Error ? err.message : "Worker execution failed.");
-      }
-    } finally {
-      setIsRunning(false);
-      setWorkerActivityState("idle");
+
+    if (lastAutoRunKeyRef.current === autoRunKey) {
+      return;
     }
-  }, [analysisExecutor, onResult, payloadInfo, workerProgress, workerReady]);
+
+    lastAutoRunKeyRef.current = autoRunKey;
+
+    if (!workerReady || !payloadInfo.canRun) {
+      return;
+    }
+
+    setError("");
+    enqueueAnalysis(payloadInfo.payload);
+  }, [autoRunKey, enqueueAnalysis, payloadInfo, workerReady]);
+
+  React.useEffect(() => {
+    if (isRunning || analysisQueue.length === 0) {
+      return;
+    }
+
+    const [next, ...rest] = analysisQueue;
+    setAnalysisQueue(rest);
+    void executeAnalysisPayload(next);
+  }, [analysisQueue, executeAnalysisPayload, isRunning]);
 
   const importDatasetFile = React.useCallback(
     async (file: File) => {
@@ -335,7 +396,7 @@ export function StatsWorkbench({
               onOptionsChange={setOptions}
               isRunning={isRunning}
               payloadInfo={payloadInfo}
-              onRun={() => void runAnalysis()}
+              onRun={requestRunAnalysis}
               result={result}
               error={error}
               showPayload={showPayload}
