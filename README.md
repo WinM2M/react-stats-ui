@@ -1,6 +1,6 @@
 # @winm2m/react-stats-ui
 
-React UI component for running browser-based inferential statistics with `@winm2m/inferential-stats-js`.
+React UI component for browser-based inferential statistics workflows, powered by `@winm2m/inferential-stats-js`.
 
 ## Installation
 
@@ -8,17 +8,42 @@ React UI component for running browser-based inferential statistics with `@winm2
 npm install @winm2m/react-stats-ui @winm2m/inferential-stats-js
 ```
 
-## What it provides
+Peer dependencies:
 
-- Import `.xlsx` files and store datasets in IndexedDB.
-- Browse, select, and delete stored datasets.
-- Assign variables to analysis roles using drag-and-drop or arrow buttons.
-- Run supported analyses:
-  - Independent Samples T-Test
-  - Multiple Regression
-  - Factor Analysis
-- Show real-time validation feedback for invalid role assignments.
-- Toggle a JSON payload viewer to inspect the object sent to analysis execution.
+- `react` `^18.2.0 || ^19.0.0`
+- `react-dom` `^18.2.0 || ^19.0.0`
+
+## What the component provides
+
+- Dataset management with IndexedDB (import XLSX, select/delete dataset, drag-drop upload zone).
+- Analysis selection popover with current analysis display.
+- Variable assignment UI with drag/drop, double-click assignment, and role-aware validation.
+- 16 built-in analysis types (t-test, ANOVA, regression, clustering, factor/component methods, etc.).
+- Auto-run queue execution when inputs change (analysis, role assignment, dataset, options).
+- Worker lifecycle UX (signal indicator, loading state, error state, initial blocking overlay).
+- Result area with APA table rendering, JSON toggle, payload toggle, and formatted clipboard copy.
+- Two layout modes:
+  - `full`: split control/result with resizable vertical divider
+  - `minimal`: compact flow with slide-up result panel
+
+## Supported analyses
+
+- Frequencies
+- Descriptives
+- Crosstabs
+- Independent-Samples T-Test
+- Paired-Samples T-Test
+- One-Way ANOVA
+- Post-hoc Tukey HSD
+- Linear Regression (OLS)
+- Binary Logistic Regression
+- Multinomial Logistic Regression
+- K-Means Clustering
+- Hierarchical Clustering
+- Exploratory Factor Analysis
+- Principal Component Analysis
+- Multidimensional Scaling
+- Cronbach Alpha
 
 ## Basic usage
 
@@ -35,17 +60,84 @@ export function App() {
 }
 ```
 
+## Component API
+
+`StatsWorkbench` props:
+
+- `className?: string`
+- `style?: React.CSSProperties`
+- `initialAnalysis?: AnalysisKind` (default: `"frequencies"`)
+- `layoutMode?: "full" | "minimal"` (default: `"full"`)
+- `analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>`
+- `onResult?: (result: AnalysisResult) => void`
+
+Exports:
+
+- `StatsWorkbench`
+- `AnalysisKind`
+- `StatsWorkbenchProps`
+- `AnalysisPayload`
+- `AnalysisResult`
+
+## Execution behavior
+
+- The workbench builds a payload and runs analysis when configuration is valid.
+- Input changes are queued and processed sequentially.
+- While running, duplicate execution is blocked.
+- In `minimal` mode, result view is a slide-up panel.
+- In `minimal` mode, multi-item role updates (for multi roles like `variables`/`independentVariables`) use a manual Play trigger shown in Role Assignment when execution is valid.
+
+## Result behavior
+
+- APA table view is default.
+- More menu contains:
+  - APA Table <-> JSON toggle
+  - Show/Hide API payload
+- Copy button copies APA tables in both plain text and HTML format for paste into Excel/Word (formatted headers/borders).
+
 ## Demo page
 
-`demo.html` in this repository demonstrates CDN usage (assuming the package is published on npm):
+`docs/demo.html` demonstrates CDN usage and local dev build usage:
 
-- Loads React and `@winm2m/react-stats-ui` with ESM CDN imports.
-- Uses Tailwind CDN for utility classes.
-- Mounts `<StatsWorkbench />` into a full-page container.
+- `?dev=true` loads `/dist/index.js`
+- otherwise loads published package from npm via ESM CDN
+- includes demo selectors for:
+  - Theme: `light` / `dark`
+  - Layout: `full` / `minimal`
+
+## Storybook
+
+Scripts:
+
+```bash
+npm run storybook
+npm run build-storybook
+```
+
+Story file: `src/stats-workbench.stories.tsx`
+
+Interactive controls include:
+
+- `Section Layout`: `full` / `minimal`
+- `Theme`: `light` / `dark` / `custom`
+- `Background`
+- `Background Transparent`
+- `Text`
+- `Border`
+- `Major`
+- `Minor`
+- `Warning`
+- `Error`
+- `Info`
+- `Rounded Edges`
+
+Theme behavior:
+
+- Selecting `light` or `dark` applies a preset palette.
+- Editing any themed color while `light`/`dark` is active switches mode to `custom`.
 
 ## Notes
 
-- The component uses Radix UI primitives and `lucide-react` icons internally.
-- The component fills its parent area with `width: 100%` and `height: 100%`.
-- Default execution tries to call compatible functions from `@winm2m/inferential-stats-js`.
-- If your project uses a custom execution API, pass `analysisExecutor` to `StatsWorkbench`.
+- Internal UI uses Radix primitives and `lucide-react` icons.
+- Worker URL can be controlled via `window.__WINM2M_INFERENTIAL_WORKER_URL__`.
+- The component is designed to fill the parent container.
