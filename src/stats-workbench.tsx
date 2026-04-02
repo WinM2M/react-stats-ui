@@ -52,7 +52,7 @@ export type {
 export function StatsWorkbench({
   className,
   style,
-  initialAnalysis = "ttestIndependent",
+  initialAnalysis = "frequencies",
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps) {

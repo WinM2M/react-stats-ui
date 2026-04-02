@@ -1,6 +1,6 @@
 import * as Separator from "@radix-ui/react-separator";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Play } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import type { AnalysisKind, PayloadInfo } from "../types";
 import { SelectBox } from "../ui/select-box";
 
@@ -168,11 +168,6 @@ export function ExecutionPanel({
   const tables = buildTableData(result);
 
   const runDisabled = isRunning || !payloadInfo.canRun || !workerReady;
-  const runLabel = workerReady
-    ? isRunning
-      ? "Running"
-      : "Run Analysis"
-    : `Worker initializing (${workerProgress ?? 0}%)`;
   const statusChip = getWorkerStatusChip(workerConnectionState, workerActivityState);
 
   return (
@@ -323,16 +318,6 @@ export function ExecutionPanel({
         )}
 
         <Separator.Root className="my-3 h-px bg-slate-200" />
-
-        <button
-          type="button"
-          onClick={onRun}
-          disabled={runDisabled}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-        >
-          <Play className="h-4 w-4" />
-          {runLabel}
-        </button>
         <div className="mt-2">
           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip.className}`}>
             {statusChip.label}
@@ -347,7 +332,19 @@ export function ExecutionPanel({
 
       <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-sm font-semibold">Analysis Result</div>
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-semibold">Analysis Result</div>
+            <button
+              type="button"
+              onClick={onRun}
+              disabled={runDisabled}
+              className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Run analysis"
+              title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
+            >
+              <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
+            </button>
+          </div>
           <button
             type="button"
             onClick={onTogglePayload}
