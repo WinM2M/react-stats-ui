@@ -1,6 +1,7 @@
 import { Copy, MoreHorizontal, RefreshCw } from "lucide-react";
 import * as React from "react";
 import type { PayloadInfo } from "../types";
+import { cn } from "../utils";
 
 type ExecutionPanelProps = {
   isRunning: boolean;
@@ -12,6 +13,7 @@ type ExecutionPanelProps = {
   onTogglePayload: () => void;
   workerReady: boolean;
   workerProgress: number | null;
+  minimalChrome?: boolean;
 };
 
 type TableData = {
@@ -182,7 +184,8 @@ export function ExecutionPanel({
   showPayload,
   onTogglePayload,
   workerReady,
-  workerProgress
+  workerProgress,
+  minimalChrome = false
 }: ExecutionPanelProps) {
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
   const [moreOpen, setMoreOpen] = React.useState(false);
@@ -241,7 +244,12 @@ export function ExecutionPanel({
   }, [tables]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
+    <div
+      className={cn(
+        "flex h-full min-h-0 flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
+        minimalChrome ? "" : "border border-slate-200"
+      )}
+    >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="text-sm font-semibold">Analysis Result</div>
@@ -249,7 +257,11 @@ export function ExecutionPanel({
             type="button"
             onClick={onRun}
             disabled={runDisabled}
-            className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className={
+              minimalChrome
+                ? "rounded p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                : "rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            }
             aria-label="Run analysis"
             title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
           >
@@ -260,7 +272,11 @@ export function ExecutionPanel({
           <button
             type="button"
             onClick={() => setMoreOpen((prev) => !prev)}
-            className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
+            className={
+              minimalChrome
+                ? "rounded p-1.5 text-slate-700 hover:bg-slate-50"
+                : "rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
+            }
             aria-label="More result actions"
           >
             <MoreHorizontal className="h-4 w-4" />

@@ -443,14 +443,15 @@ export function StatsWorkbench({
       >
         <section className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-3 max-[640px]:gap-2">
           {layoutMode === "minimal" ? (
-            <>
-              <div className="flex select-none items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:p-2">
+            <section className="flex min-h-0 flex-col rounded-xl bg-white shadow-sm">
+              <div className="flex select-none items-start justify-between gap-3 p-3 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:p-2">
                 <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} showPrefix={false} />
                 <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
                   <DatasetPanel
                     datasets={datasets}
                     selectedDatasetId={selectedDatasetId}
                     selectedDatasetName={selectedDatasetName}
+                    borderlessButton
                     onSelect={setSelectedDatasetId}
                     onDelete={(id) => void handleDeleteDataset(id)}
                     onUploadClick={() => fileInputRef.current?.click()}
@@ -468,8 +469,8 @@ export function StatsWorkbench({
                 </div>
               </div>
 
-              <section className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-                <div className="mb-2 inline-flex w-fit rounded-lg border border-slate-300 p-0.5">
+              <section className="flex min-h-0 flex-1 flex-col p-2">
+                <div className="mb-2 inline-flex w-fit rounded-lg p-0.5">
                   <button
                     type="button"
                     onClick={() => setMinimalTab("control")}
@@ -511,6 +512,7 @@ export function StatsWorkbench({
                       onOptionsChange={setOptions}
                       hasOptions={hasOptions}
                       groupCandidates={groupCandidates}
+                      borderlessSections
                     />
                   ) : (
                     <ExecutionPanel
@@ -523,11 +525,12 @@ export function StatsWorkbench({
                       onTogglePayload={() => setShowPayload((prev) => !prev)}
                       workerReady={workerReady}
                       workerProgress={workerProgress}
+                      minimalChrome
                     />
                   )}
                 </div>
               </section>
-            </>
+            </section>
           ) : (
             <>
               <div className="flex select-none flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[640px]:p-2">

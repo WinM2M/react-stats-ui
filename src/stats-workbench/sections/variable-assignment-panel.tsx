@@ -23,6 +23,7 @@ type VariableAssignmentPanelProps = {
   onOptionsChange: (next: Record<string, unknown>) => void;
   hasOptions: boolean;
   groupCandidates: Array<string | number>;
+  borderlessSections?: boolean;
 };
 
 const VariableCard = ({
@@ -71,7 +72,8 @@ export function VariableAssignmentPanel({
   options,
   onOptionsChange,
   hasOptions,
-  groupCandidates
+  groupCandidates,
+  borderlessSections = false
 }: VariableAssignmentPanelProps) {
   const [dragVariable, setDragVariable] = React.useState<string | null>(null);
   const [invalidRole, setInvalidRole] = React.useState<RoleKey | null>(null);
@@ -104,7 +106,12 @@ export function VariableAssignmentPanel({
 
   return (
     <div className="grid h-full min-h-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr] max-[640px]:gap-2">
-      <div className="flex min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
+      <div
+        className={cn(
+          "flex min-h-0 select-none flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
+          borderlessSections ? "" : "border border-slate-200"
+        )}
+      >
         <div className="mb-2 text-sm font-semibold">Variables</div>
         <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200">
           {availableVariables.length === 0 ? (
@@ -156,7 +163,12 @@ export function VariableAssignmentPanel({
           columnGap: hasOptions ? "0.75rem" : "0"
         }}
       >
-        <div className="flex min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
+        <div
+          className={cn(
+            "flex min-h-0 select-none flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
+            borderlessSections ? "" : "border border-slate-200"
+          )}
+        >
           <div className="mb-2 text-sm font-semibold">Role Assignment</div>
           <div className="grid min-h-0 flex-1 auto-rows-fr gap-2">
             {analysisDef.roles.map((role) => {
@@ -263,6 +275,7 @@ export function VariableAssignmentPanel({
               options={options}
               onOptionsChange={onOptionsChange}
               groupCandidates={groupCandidates}
+              borderless={borderlessSections}
             />
           ) : null}
         </div>
