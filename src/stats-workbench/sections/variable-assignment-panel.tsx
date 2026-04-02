@@ -1,5 +1,4 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
 import { validateForRole } from "../analysis";
 import type { AnalysisDef, AnalysisKind, RoleKey, VariableMeta } from "../types";
@@ -20,6 +19,37 @@ type VariableAssignmentPanelProps = {
   onRemove: (role: RoleKey, variableName: string) => void;
 };
 
+const VariableCard = ({
+  name,
+  type,
+  isSelected,
+  onClick,
+  onDoubleClick,
+  isDragging
+}: {
+  name: string;
+  type: VariableType;
+  isSelected?: boolean;
+  onClick?: () => void;
+  onDoubleClick?: () => void;
+  isDragging?: boolean;
+}) => (
+  <div
+    onClick={onClick}
+    onDoubleClick={onDoubleClick}
+    className={cn(
+      "flex cursor-grab items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm transition",
+      isSelected ? "ring-2 ring-sky-500 border-sky-500" : "hover:border-slate-300 hover:shadow-md",
+      isDragging && "opacity-50"
+    )}
+  >
+    <RoleTag type={type} />
+    <span className="truncate text-sm font-medium text-slate-700">{name}</span>
+  </div>
+);
+
+type VariableType = VariableMeta["type"];
+
 export function VariableAssignmentPanel({
   analysisType,
   analysisDef,
@@ -37,6 +67,16 @@ export function VariableAssignmentPanel({
   const [invalidRole, setInvalidRole] = React.useState<RoleKey | null>(null);
   const [invalidMessage, setInvalidMessage] = React.useState("");
 
+  const handleDoubleClick = (variableName: string) => {
+    for (const role of analysisDef.roles) {
+      if (assignments[role.key].length === 0) {
+        onAssign(variableName, role.key);
+        return;
+      }
+    }
+    onAssign(variableName, analysisDef.roles[0].key);
+  };
+
   return (
     <div className="grid min-h-0 grid-cols-1 gap-3 lg:h-[clamp(320px,40vh,560px)] lg:grid-cols-[1fr_2fr] max-[780px]:gap-2">
       <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
@@ -45,7 +85,7 @@ export function VariableAssignmentPanel({
           {availableVariables.length === 0 ? (
             <div className="p-3 text-sm text-slate-500">No available variables.</div>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="space-y-2 p-2">
               {availableVariables.map((variable) => (
                 <li
                   key={variable.name}
@@ -55,14 +95,15 @@ export function VariableAssignmentPanel({
                     setDragVariable(null);
                     setInvalidRole(null);
                   }}
-                  className={cn(
-                    "flex cursor-grab items-center justify-between px-3 py-2",
-                    selectedAvailable === variable.name ? "bg-sky-50" : "hover:bg-slate-50"
-                  )}
                   onClick={() => onSelectAvailable(variable.name)}
                 >
-                  <span className="truncate pr-2 text-sm">{variable.name}</span>
-                  <RoleTag type={variable.type} />
+                  <VariableCard
+                    name={variable.name}
+                    type={variable.type}
+                    isSelected={selectedAvailable === variable.name}
+                    onClick={() => onSelectAvailable(variable.name)}
+                    onDoubleClick={() => handleDoubleClick(variable.name)}
+                  />
                 </li>
               ))}
             </ul>
@@ -111,36 +152,6 @@ export function VariableAssignmentPanel({
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="text-sm font-medium text-slate-700">{role.label}</span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!selectedAssigned[role.key]) {
-                              return;
-                            }
-                            onRemove(role.key, selectedAssigned[role.key] as string);
-                          }}
-                          className="rounded border border-slate-300 p-1 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                          disabled={!selectedAssigned[role.key]}
-                          aria-label={`Remove from ${role.label}`}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!selectedAvailable) {
-                              return;
-                            }
-                            onAssign(selectedAvailable, role.key);
-                          }}
-                          className="rounded border border-slate-300 p-1 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                          disabled={!selectedAvailable}
-                          aria-label={`Assign to ${role.label}`}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </div>
                     </div>
                     <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1">
                       {assignments[role.key].length === 0 ? (
@@ -153,13 +164,14 @@ export function VariableAssignmentPanel({
                               <li
                                 key={name}
                                 onClick={() => onSelectAssigned(role.key, name)}
+                                onDoubleClick={() => onRemove(role.key, name)}
                                 className={cn(
-                                  "flex items-center justify-between rounded px-2 py-1 text-sm",
-                                  selectedAssigned[role.key] === name ? "bg-sky-100" : "bg-slate-50"
+                                  "flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm",
+                                  selectedAssigned[role.key] === name ? "ring-2 ring-sky-500 border-sky-500" : "hover:border-slate-300 hover:shadow-md"
                                 )}
                               >
-                                <span className="truncate pr-2">{name}</span>
                                 {variable ? <RoleTag type={variable.type} /> : null}
+                                <span className="truncate text-sm font-medium text-slate-700">{name}</span>
                               </li>
                             );
                           })}
