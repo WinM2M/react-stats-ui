@@ -65,6 +65,7 @@ export function StatsWorkbench({
 }: StatsWorkbenchProps) {
   const { t } = useTranslation();
   const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
+  const MINIMAL_AUTO_SHOW_STORAGE_KEY = "stats-workbench.minimalAutoShowResult";
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string | null>(null);
   const [analysisType, setAnalysisType] = React.useState<AnalysisKind>(normalizeInitialAnalysis(initialAnalysis));
@@ -76,7 +77,9 @@ export function StatsWorkbench({
   const [error, setError] = React.useState("");
   const [showPayload, setShowPayload] = React.useState(false);
   const [showMinimalResult, setShowMinimalResult] = React.useState(false);
+  const [minimalAutoShowResult, setMinimalAutoShowResult] = React.useState(true);
   const [showManualRunAction, setShowManualRunAction] = React.useState(false);
+  const [showResultAfterManualRun, setShowResultAfterManualRun] = React.useState(false);
   const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
   const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
   const [isResizingPanels, setIsResizingPanels] = React.useState(false);
@@ -327,6 +330,7 @@ export function StatsWorkbench({
 
   const requestRunAnalysisFromManual = React.useCallback(() => {
     setShowManualRunAction(false);
+    setShowResultAfterManualRun(true);
     requestRunAnalysis();
   }, [requestRunAnalysis]);
 
@@ -369,6 +373,11 @@ export function StatsWorkbench({
       return;
     }
 
+    if (layoutMode === "minimal" && !minimalAutoShowResult) {
+      setShowManualRunAction(true);
+      return;
+    }
+
     setError("");
     setShowManualRunAction(false);
     enqueueAnalysis(payloadInfo.payload);
@@ -379,6 +388,7 @@ export function StatsWorkbench({
     autoRunKey,
     enqueueAnalysis,
     layoutMode,
+    minimalAutoShowResult,
     options,
     payloadInfo,
     selectedDatasetId,
@@ -401,12 +411,32 @@ export function StatsWorkbench({
       return;
     }
 
-    if (layoutMode === "minimal") {
+    if (layoutMode === "minimal" && (minimalAutoShowResult || showResultAfterManualRun)) {
       setShowMinimalResult(true);
+      setShowResultAfterManualRun(false);
     }
 
     previousRunningRef.current = isRunning;
-  }, [isRunning, layoutMode]);
+  }, [isRunning, layoutMode, minimalAutoShowResult, showResultAfterManualRun]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const saved = window.localStorage.getItem(MINIMAL_AUTO_SHOW_STORAGE_KEY);
+    if (saved === null) {
+      return;
+    }
+    setMinimalAutoShowResult(saved !== "false");
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(MINIMAL_AUTO_SHOW_STORAGE_KEY, String(minimalAutoShowResult));
+  }, [minimalAutoShowResult]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
@@ -431,6 +461,16 @@ export function StatsWorkbench({
 
     window.localStorage.setItem(PANEL_HEIGHT_STORAGE_KEY, String(topPanelHeight));
   }, [topPanelHeight]);
+
+  React.useEffect(() => {
+    if (layoutMode === "minimal" && !minimalAutoShowResult && workerReady && payloadInfo.canRun) {
+      setShowManualRunAction(true);
+      return;
+    }
+    if (layoutMode !== "minimal" || minimalAutoShowResult || !payloadInfo.canRun) {
+      setShowManualRunAction(false);
+    }
+  }, [layoutMode, minimalAutoShowResult, payloadInfo.canRun, workerReady]);
 
   React.useEffect(() => {
     if (!isResizingPanels) {
@@ -591,6 +631,8 @@ export function StatsWorkbench({
                       workerProgress={workerProgress}
                       minimalChrome
                       onCloseResult={() => setShowMinimalResult(false)}
+                      autoShowResult={minimalAutoShowResult}
+                      onAutoShowResultChange={setMinimalAutoShowResult}
                     />
                   </div>
                 </div>

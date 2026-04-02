@@ -16,6 +16,8 @@ type ExecutionPanelProps = {
   workerProgress: number | null;
   minimalChrome?: boolean;
   onCloseResult?: () => void;
+  autoShowResult?: boolean;
+  onAutoShowResultChange?: (next: boolean) => void;
 };
 
 type TableData = {
@@ -196,7 +198,9 @@ export function ExecutionPanel({
   workerReady,
   workerProgress,
   minimalChrome = false,
-  onCloseResult
+  onCloseResult,
+  autoShowResult = true,
+  onAutoShowResultChange
 }: ExecutionPanelProps) {
   const { t } = useTranslation();
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
@@ -265,6 +269,28 @@ export function ExecutionPanel({
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="text-sm font-semibold">{t("analysisResult")}</div>
+          {minimalChrome && onAutoShowResultChange ? (
+            <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-600">
+              {t("autoShowResult")}
+              <button
+                type="button"
+                onClick={() => onAutoShowResultChange(!autoShowResult)}
+                className={cn(
+                  "relative inline-flex h-5 w-9 items-center rounded-full transition",
+                  autoShowResult ? "bg-sky-500" : "bg-slate-300"
+                )}
+                aria-pressed={autoShowResult}
+                aria-label={t("autoShowResult")}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-4 w-4 rounded-full bg-white transition",
+                    autoShowResult ? "translate-x-4" : "translate-x-0.5"
+                  )}
+                />
+              </button>
+            </label>
+          ) : null}
           {minimalChrome ? null : (
             <button
               type="button"
