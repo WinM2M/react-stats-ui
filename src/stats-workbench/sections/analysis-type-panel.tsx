@@ -33,7 +33,7 @@ export function AnalysisTypePanel({ analysisType, onChange }: AnalysisTypePanelP
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="w-64 truncate rounded-b-md border-b-2 border-slate-300 bg-white px-3 py-2 text-left text-lg font-bold leading-tight text-slate-900 shadow hover:bg-slate-50"
+          className="w-80 truncate border-b-2 border-slate-300 bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] hover:bg-slate-50"
         >
           {selectedLabel}
         </button>
