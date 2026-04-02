@@ -57,6 +57,7 @@ export function StatsWorkbench({
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps) {
+  const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string | null>(null);
   const [analysisType, setAnalysisType] = React.useState<AnalysisKind>(normalizeInitialAnalysis(initialAnalysis));
@@ -331,6 +332,30 @@ export function StatsWorkbench({
   }, [analysisQueue, executeAnalysisPayload, isRunning]);
 
   React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const saved = window.localStorage.getItem(PANEL_HEIGHT_STORAGE_KEY);
+    if (!saved) {
+      return;
+    }
+
+    const parsed = Number(saved);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      setTopPanelHeight(parsed);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || topPanelHeight === null) {
+      return;
+    }
+
+    window.localStorage.setItem(PANEL_HEIGHT_STORAGE_KEY, String(topPanelHeight));
+  }, [topPanelHeight]);
+
+  React.useEffect(() => {
     if (!isResizingPanels) {
       return;
     }
@@ -414,7 +439,7 @@ export function StatsWorkbench({
         style={style}
       >
         <section className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-3 max-[780px]:gap-2">
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[780px]:p-2">
+          <div className="flex select-none flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[780px]:p-2">
             <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
             <DatasetPanel
               datasets={datasets}

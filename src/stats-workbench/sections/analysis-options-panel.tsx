@@ -12,7 +12,7 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
   const updateOption = (key: string, value: unknown) => onOptionsChange({ ...options, [key]: value });
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
+    <div className="flex h-full min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
       <div className="mb-2 text-sm font-semibold">Options</div>
 
       <div className="min-h-0 flex-1 overflow-auto">
@@ -56,7 +56,7 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
               step={0.001}
               value={Number(options.alpha ?? 0.05)}
               onChange={(event) => updateOption("alpha", Number(event.target.value))}
-              className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="h-9 w-full select-text rounded-md border border-slate-300 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             />
           </div>
         )}
@@ -83,7 +83,7 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
               value={String(options.referenceCategory ?? "")}
               onChange={(event) => updateOption("referenceCategory", event.target.value)}
               placeholder="Optional"
-              className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="h-9 w-full select-text rounded-md border border-slate-300 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             />
           </div>
         )}
