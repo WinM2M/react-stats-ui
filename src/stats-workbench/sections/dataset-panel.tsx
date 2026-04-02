@@ -7,6 +7,7 @@ type DatasetPanelProps = {
   datasets: Dataset[];
   selectedDatasetId: string | null;
   selectedDatasetName: string;
+  borderlessButton?: boolean;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onUploadClick: () => void;
@@ -19,6 +20,7 @@ export function DatasetPanel({
   datasets,
   selectedDatasetId,
   selectedDatasetName,
+  borderlessButton = false,
   onSelect,
   onDelete,
   onUploadClick,
@@ -65,7 +67,10 @@ export function DatasetPanel({
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+          className={cn(
+            "inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50",
+            borderlessButton ? "" : "border border-slate-300"
+          )}
         >
           <Database className="h-4 w-4" />
           <span className="max-w-[260px] truncate" title={selectedDatasetName}>{selectedDatasetName}</span>
@@ -142,7 +147,7 @@ export function DatasetPanel({
             }}
             onDrop={handleDrop}
           >
-            파일을 여기에 드롭하여 데이터셋을 불러오세요.
+            Drop a file here to load a dataset.
           </div>
         </div>
       ) : null}

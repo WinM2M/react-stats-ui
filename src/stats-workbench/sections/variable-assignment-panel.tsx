@@ -1,5 +1,5 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { X } from "lucide-react";
+import { Play, X } from "lucide-react";
 import * as React from "react";
 import { validateForRole } from "../analysis";
 import type { AnalysisDef, AnalysisKind, RoleKey, VariableMeta } from "../types";
@@ -23,6 +23,9 @@ type VariableAssignmentPanelProps = {
   onOptionsChange: (next: Record<string, unknown>) => void;
   hasOptions: boolean;
   groupCandidates: Array<string | number>;
+  borderlessSections?: boolean;
+  showManualRunAction?: boolean;
+  onManualRunAction?: () => void;
 };
 
 const VariableCard = ({
@@ -71,7 +74,10 @@ export function VariableAssignmentPanel({
   options,
   onOptionsChange,
   hasOptions,
-  groupCandidates
+  groupCandidates,
+  borderlessSections = false,
+  showManualRunAction = false,
+  onManualRunAction
 }: VariableAssignmentPanelProps) {
   const [dragVariable, setDragVariable] = React.useState<string | null>(null);
   const [invalidRole, setInvalidRole] = React.useState<RoleKey | null>(null);
@@ -104,7 +110,12 @@ export function VariableAssignmentPanel({
 
   return (
     <div className="grid h-full min-h-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr] max-[640px]:gap-2">
-      <div className="flex min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
+      <div
+        className={cn(
+          "flex min-h-0 select-none flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
+          borderlessSections ? "" : "border border-slate-200"
+        )}
+      >
         <div className="mb-2 text-sm font-semibold">Variables</div>
         <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200">
           {availableVariables.length === 0 ? (
@@ -152,12 +163,30 @@ export function VariableAssignmentPanel({
       <div
         className="flex min-h-0 flex-col gap-3 sm:grid sm:transition-all sm:duration-300"
         style={{
-          gridTemplateColumns: hasOptions ? "minmax(0, 1fr) 320px" : "minmax(0, 1fr) 0px",
+          gridTemplateColumns: hasOptions ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr) 0px",
           columnGap: hasOptions ? "0.75rem" : "0"
         }}
       >
-        <div className="flex min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
-          <div className="mb-2 text-sm font-semibold">Role Assignment</div>
+        <div
+          className={cn(
+            "flex min-h-0 select-none flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
+            borderlessSections ? "" : "border border-slate-200"
+          )}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold">Role Assignment</span>
+            {showManualRunAction ? (
+              <button
+                type="button"
+                onClick={onManualRunAction}
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+                aria-label="Run analysis"
+                title="Run analysis"
+              >
+                <Play className="h-3.5 w-3.5 animate-pulse" />
+              </button>
+            ) : null}
+          </div>
           <div className="grid min-h-0 flex-1 auto-rows-fr gap-2">
             {analysisDef.roles.map((role) => {
               const activeError = invalidRole === role.key ? invalidMessage : "";
@@ -227,7 +256,7 @@ export function VariableAssignmentPanel({
                                       e.stopPropagation();
                                       onRemove(role.key, name);
                                     }}
-                                    className="ml-auto rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
+                                    className="ml-auto rounded p-1 text-slate-400 opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                                     aria-label={`Remove ${name}`}
                                   >
                                     <X className="h-4 w-4" />
@@ -263,6 +292,7 @@ export function VariableAssignmentPanel({
               options={options}
               onOptionsChange={onOptionsChange}
               groupCandidates={groupCandidates}
+              borderless={borderlessSections}
             />
           ) : null}
         </div>

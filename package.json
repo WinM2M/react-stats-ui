@@ -14,7 +14,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "keywords": [
     "react",
@@ -37,8 +39,12 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@storybook/addon-essentials": "8.6.18",
+    "@storybook/addon-interactions": "8.6.18",
+    "@storybook/react-vite": "8.6.18",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "storybook": "8.6.18",
     "tsup": "^8.2.4",
     "typescript": "^5.5.4"
   }

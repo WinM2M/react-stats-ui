@@ -54,6 +54,7 @@ export function StatsWorkbench({
   className,
   style,
   initialAnalysis = "frequencies",
+  layoutMode = "full",
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps) {
@@ -68,6 +69,8 @@ export function StatsWorkbench({
   const [result, setResult] = React.useState<unknown>(null);
   const [error, setError] = React.useState("");
   const [showPayload, setShowPayload] = React.useState(false);
+  const [showMinimalResult, setShowMinimalResult] = React.useState(false);
+  const [showManualRunAction, setShowManualRunAction] = React.useState(false);
   const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
   const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
   const [isResizingPanels, setIsResizingPanels] = React.useState(false);
@@ -207,6 +210,11 @@ export function StatsWorkbench({
     [analysisType, assignments, datasets.length, options, selectedDataset?.createdAt, selectedDatasetId]
   );
   const lastAutoRunKeyRef = React.useRef<string | null>(null);
+  const previousRunningRef = React.useRef(false);
+  const previousAssignmentsRef = React.useRef(assignments);
+  const previousOptionsRef = React.useRef(options);
+  const previousAnalysisTypeRef = React.useRef(analysisType);
+  const previousDatasetIdRef = React.useRef<string | null>(selectedDatasetId);
 
   const variableByName = React.useMemo(() => {
     const map = new Map<string, VariableMeta>();
@@ -298,8 +306,14 @@ export function StatsWorkbench({
     }
 
     setError("");
+    setShowManualRunAction(false);
     enqueueAnalysis(payloadInfo.payload);
   }, [enqueueAnalysis, payloadInfo, workerProgress, workerReady]);
+
+  const requestRunAnalysisFromManual = React.useCallback(() => {
+    setShowManualRunAction(false);
+    requestRunAnalysis();
+  }, [requestRunAnalysis]);
 
   React.useEffect(() => {
     if (lastAutoRunKeyRef.current === null) {
@@ -313,13 +327,48 @@ export function StatsWorkbench({
 
     lastAutoRunKeyRef.current = autoRunKey;
 
+    const analysisChanged = previousAnalysisTypeRef.current !== analysisType;
+    const datasetChanged = previousDatasetIdRef.current !== selectedDatasetId;
+    const optionsChanged = JSON.stringify(previousOptionsRef.current) !== JSON.stringify(options);
+    const changedRoleKeys = analysisDef.roles
+      .filter((role) => {
+        const prev = previousAssignmentsRef.current[role.key] ?? [];
+        const next = assignments[role.key] ?? [];
+        return JSON.stringify(prev) !== JSON.stringify(next);
+      })
+      .map((role) => role.key);
+    const multiRoleChanged = changedRoleKeys.some((roleKey) => analysisDef.roles.find((role) => role.key === roleKey)?.multi);
+
+    previousAssignmentsRef.current = assignments;
+    previousOptionsRef.current = options;
+    previousAnalysisTypeRef.current = analysisType;
+    previousDatasetIdRef.current = selectedDatasetId;
+
     if (!workerReady || !payloadInfo.canRun) {
+      setShowManualRunAction(false);
+      return;
+    }
+
+    if (layoutMode === "minimal" && !analysisChanged && !datasetChanged && !optionsChanged && multiRoleChanged) {
+      setShowManualRunAction(true);
       return;
     }
 
     setError("");
+    setShowManualRunAction(false);
     enqueueAnalysis(payloadInfo.payload);
-  }, [autoRunKey, enqueueAnalysis, payloadInfo, workerReady]);
+  }, [
+    analysisDef.roles,
+    analysisType,
+    assignments,
+    autoRunKey,
+    enqueueAnalysis,
+    layoutMode,
+    options,
+    payloadInfo,
+    selectedDatasetId,
+    workerReady
+  ]);
 
   React.useEffect(() => {
     if (isRunning || analysisQueue.length === 0) {
@@ -330,6 +379,19 @@ export function StatsWorkbench({
     setAnalysisQueue(rest);
     void executeAnalysisPayload(next);
   }, [analysisQueue, executeAnalysisPayload, isRunning]);
+
+  React.useEffect(() => {
+    if (!previousRunningRef.current || isRunning) {
+      previousRunningRef.current = isRunning;
+      return;
+    }
+
+    if (layoutMode === "minimal") {
+      setShowMinimalResult(true);
+    }
+
+    previousRunningRef.current = isRunning;
+  }, [isRunning, layoutMode]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
@@ -438,78 +500,162 @@ export function StatsWorkbench({
         )}
         style={style}
       >
-        <section className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-3 max-[640px]:gap-2">
-          <div className="flex select-none flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[640px]:p-2">
-            <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
-            <DatasetPanel
-              datasets={datasets}
-              selectedDatasetId={selectedDatasetId}
-              selectedDatasetName={selectedDatasetName}
-              onSelect={setSelectedDatasetId}
-              onDelete={(id) => void handleDeleteDataset(id)}
-              onUploadClick={() => fileInputRef.current?.click()}
-              onDropFile={handleDropFile}
-              fileInputRef={fileInputRef}
-              onFileInput={handleFileInput}
-            />
-            <WorkerSignalIndicator
-              isRunning={isRunning}
-              connectionState={workerConnectionState}
-              activityState={workerActivityState}
-              statusMessage={workerStatusMessage}
-              progress={workerProgress}
-            />
-          </div>
+        <section
+          className={cn(
+            "grid h-full min-h-0 grid-rows-[auto_1fr] max-[640px]:gap-2",
+            layoutMode === "minimal" ? "gap-1.5" : "gap-3"
+          )}
+        >
+          {layoutMode === "minimal" ? (
+            <section className="flex min-h-0 flex-col rounded-xl bg-white shadow-sm">
+              <div className="flex select-none items-start justify-between gap-3 p-3 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:p-2">
+                <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} showPrefix={false} subtleUnderline />
+                <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
+                  <DatasetPanel
+                    datasets={datasets}
+                    selectedDatasetId={selectedDatasetId}
+                    selectedDatasetName={selectedDatasetName}
+                    borderlessButton
+                    onSelect={setSelectedDatasetId}
+                    onDelete={(id) => void handleDeleteDataset(id)}
+                    onUploadClick={() => fileInputRef.current?.click()}
+                    onDropFile={handleDropFile}
+                    fileInputRef={fileInputRef}
+                    onFileInput={handleFileInput}
+                  />
+                  <WorkerSignalIndicator
+                    isRunning={isRunning}
+                    connectionState={workerConnectionState}
+                    activityState={workerActivityState}
+                    statusMessage={workerStatusMessage}
+                    progress={workerProgress}
+                  />
+                </div>
+              </div>
 
-          <section
-            ref={panelsRef}
-            className={cn("grid min-h-0", isResizingPanels ? "cursor-row-resize select-none" : "")}
-            style={{
-              rowGap: "0.5rem",
-              gridTemplateRows: topPanelHeight
-                ? `${topPanelHeight}px 8px minmax(220px, 1fr)`
-                : "minmax(220px, 1fr) 8px minmax(220px, 1fr)"
-            }}
-          >
-            <VariableAssignmentPanel
-              analysisType={analysisType}
-              analysisDef={analysisDef}
-              availableVariables={availableVariables}
-              assignments={assignments}
-              variableByName={variableByName}
-              selectedAvailable={selectedAvailable}
-              onSelectAvailable={setSelectedAvailable}
-              selectedAssigned={selectedAssigned}
-              onSelectAssigned={(role, name) => setSelectedAssigned((prev) => ({ ...prev, [role]: name }))}
-              onAssign={assignVariableToRole}
-              onRemove={removeFromRole}
-              options={options}
-              onOptionsChange={setOptions}
-              hasOptions={hasOptions}
-              groupCandidates={groupCandidates}
-            />
+              <section className="flex min-h-0 flex-1 flex-col p-2">
+                <div className="relative min-h-0 flex-1 overflow-hidden">
+                  <div className="h-full">
+                    <VariableAssignmentPanel
+                      analysisType={analysisType}
+                      analysisDef={analysisDef}
+                      availableVariables={availableVariables}
+                      assignments={assignments}
+                      variableByName={variableByName}
+                      selectedAvailable={selectedAvailable}
+                      onSelectAvailable={setSelectedAvailable}
+                      selectedAssigned={selectedAssigned}
+                      onSelectAssigned={(role, name) => setSelectedAssigned((prev) => ({ ...prev, [role]: name }))}
+                      onAssign={assignVariableToRole}
+                      onRemove={removeFromRole}
+                      options={options}
+                      onOptionsChange={setOptions}
+                      hasOptions={hasOptions}
+                      groupCandidates={groupCandidates}
+                      borderlessSections
+                      showManualRunAction={showManualRunAction}
+                      onManualRunAction={requestRunAnalysisFromManual}
+                    />
+                  </div>
 
-            <div
-              role="separator"
-              aria-orientation="horizontal"
-              onPointerDown={() => setIsResizingPanels(true)}
-              className="group relative flex cursor-row-resize items-center justify-center"
-            >
-              <div className="h-1.5 w-20 rounded-full bg-slate-300 transition group-hover:bg-slate-400" />
-            </div>
+                  <div
+                    className={cn(
+                      "absolute inset-0 z-20 h-full transition-transform duration-300 ease-out",
+                      showMinimalResult ? "translate-y-0" : "translate-y-full"
+                    )}
+                  >
+                    <ExecutionPanel
+                      isRunning={isRunning}
+                      payloadInfo={payloadInfo}
+                      onRun={requestRunAnalysis}
+                      result={result}
+                      error={error}
+                      showPayload={showPayload}
+                      onTogglePayload={() => setShowPayload((prev) => !prev)}
+                      workerReady={workerReady}
+                      workerProgress={workerProgress}
+                      minimalChrome
+                      onCloseResult={() => setShowMinimalResult(false)}
+                    />
+                  </div>
+                </div>
+              </section>
+            </section>
+          ) : (
+            <>
+              <div className="flex select-none flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[640px]:p-2">
+                <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
+                <DatasetPanel
+                  datasets={datasets}
+                  selectedDatasetId={selectedDatasetId}
+                  selectedDatasetName={selectedDatasetName}
+                  onSelect={setSelectedDatasetId}
+                  onDelete={(id) => void handleDeleteDataset(id)}
+                  onUploadClick={() => fileInputRef.current?.click()}
+                  onDropFile={handleDropFile}
+                  fileInputRef={fileInputRef}
+                  onFileInput={handleFileInput}
+                />
+                <WorkerSignalIndicator
+                  isRunning={isRunning}
+                  connectionState={workerConnectionState}
+                  activityState={workerActivityState}
+                  statusMessage={workerStatusMessage}
+                  progress={workerProgress}
+                />
+              </div>
 
-            <ExecutionPanel
-              isRunning={isRunning}
-              payloadInfo={payloadInfo}
-              onRun={requestRunAnalysis}
-              result={result}
-              error={error}
-              showPayload={showPayload}
-              onTogglePayload={() => setShowPayload((prev) => !prev)}
-              workerReady={workerReady}
-              workerProgress={workerProgress}
-            />
-          </section>
+              <section
+                ref={panelsRef}
+                className={cn("grid min-h-0", isResizingPanels ? "cursor-row-resize select-none" : "")}
+                style={{
+                  rowGap: "0.5rem",
+                  gridTemplateRows: topPanelHeight
+                    ? `${topPanelHeight}px 8px minmax(220px, 1fr)`
+                    : "minmax(220px, 1fr) 8px minmax(220px, 1fr)"
+                }}
+              >
+                <VariableAssignmentPanel
+                  analysisType={analysisType}
+                  analysisDef={analysisDef}
+                  availableVariables={availableVariables}
+                  assignments={assignments}
+                  variableByName={variableByName}
+                  selectedAvailable={selectedAvailable}
+                  onSelectAvailable={setSelectedAvailable}
+                  selectedAssigned={selectedAssigned}
+                  onSelectAssigned={(role, name) => setSelectedAssigned((prev) => ({ ...prev, [role]: name }))}
+                  onAssign={assignVariableToRole}
+                  onRemove={removeFromRole}
+                  options={options}
+                  onOptionsChange={setOptions}
+                  hasOptions={hasOptions}
+                  groupCandidates={groupCandidates}
+                />
+
+                <div
+                  role="separator"
+                  aria-orientation="horizontal"
+                  onPointerDown={() => setIsResizingPanels(true)}
+                  className="group relative flex cursor-row-resize items-center justify-center"
+                >
+                  <div className="h-1.5 w-20 rounded-full bg-slate-300 transition group-hover:bg-slate-400" />
+                </div>
+
+                <ExecutionPanel
+                  isRunning={isRunning}
+                  payloadInfo={payloadInfo}
+                  onRun={requestRunAnalysis}
+                  result={result}
+                  error={error}
+                  showPayload={showPayload}
+                  onTogglePayload={() => setShowPayload((prev) => !prev)}
+                  workerReady={workerReady}
+                  workerProgress={workerProgress}
+                />
+              </section>
+            </>
+          )}
         </section>
 
         {blockInitialLoading ? (

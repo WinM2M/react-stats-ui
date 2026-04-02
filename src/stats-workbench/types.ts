@@ -48,6 +48,7 @@ export type StatsWorkbenchProps = {
   className?: string;
   style?: React.CSSProperties;
   initialAnalysis?: AnalysisKind;
+  layoutMode?: "full" | "minimal";
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
 };

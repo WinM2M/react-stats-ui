@@ -1,6 +1,7 @@
-import { Copy, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Copy, MoreHorizontal, RefreshCw, X } from "lucide-react";
 import * as React from "react";
 import type { PayloadInfo } from "../types";
+import { cn } from "../utils";
 
 type ExecutionPanelProps = {
   isRunning: boolean;
@@ -12,6 +13,8 @@ type ExecutionPanelProps = {
   onTogglePayload: () => void;
   workerReady: boolean;
   workerProgress: number | null;
+  minimalChrome?: boolean;
+  onCloseResult?: () => void;
 };
 
 type TableData = {
@@ -182,7 +185,9 @@ export function ExecutionPanel({
   showPayload,
   onTogglePayload,
   workerReady,
-  workerProgress
+  workerProgress,
+  minimalChrome = false,
+  onCloseResult
 }: ExecutionPanelProps) {
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
   const [moreOpen, setMoreOpen] = React.useState(false);
@@ -241,30 +246,54 @@ export function ExecutionPanel({
   }, [tables]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
+    <div
+      className={cn(
+        "flex h-full min-h-0 flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
+        minimalChrome ? "" : "border border-slate-200"
+      )}
+    >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="text-sm font-semibold">Analysis Result</div>
-          <button
-            type="button"
-            onClick={onRun}
-            disabled={runDisabled}
-            className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Run analysis"
-            title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
-          >
-            <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
-          </button>
+          {minimalChrome ? null : (
+            <button
+              type="button"
+              onClick={onRun}
+              disabled={runDisabled}
+              className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Run analysis"
+              title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
+            >
+              <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
+            </button>
+          )}
         </div>
         <div className="relative" ref={moreRef}>
-          <button
-            type="button"
-            onClick={() => setMoreOpen((prev) => !prev)}
-            className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
-            aria-label="More result actions"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setMoreOpen((prev) => !prev)}
+              className={
+                minimalChrome
+                  ? "rounded p-1.5 text-slate-700 hover:bg-slate-50"
+                  : "rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
+              }
+              aria-label="More result actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {minimalChrome && onCloseResult ? (
+              <button
+                type="button"
+                onClick={onCloseResult}
+                className="rounded p-1.5 text-slate-700 hover:bg-slate-50"
+                aria-label="Hide result"
+                title="Hide Result"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
 
           {moreOpen ? (
             <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-52 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">

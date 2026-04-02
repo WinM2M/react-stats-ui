@@ -47,12 +47,49 @@
       const { StatsWorkbench } = await import(packageSpecifier);
 
       function App() {
+        const [theme, setTheme] = React.useState("light");
+        const [layoutMode, setLayoutMode] = React.useState("full");
+        const isDark = theme === "dark";
+
         return React.createElement(
           "div",
-          { className: "h-full w-full p-4 max-[780px]:p-2" },
-          React.createElement(StatsWorkbench, {
-            className: "h-full w-full rounded-xl"
-          })
+          {
+            className: `h-full w-full p-4 max-[780px]:p-2 ${isDark ? "bg-slate-900 text-slate-100" : "bg-slate-100 text-slate-900"}`
+          },
+          React.createElement(
+            "div",
+            { className: "mb-2 flex flex-wrap items-center gap-2" },
+            React.createElement("label", { className: "text-sm font-semibold" }, "Theme"),
+            React.createElement(
+              "select",
+              {
+                value: theme,
+                onChange: (event) => setTheme(event.target.value),
+                className: `rounded border px-2 py-1 text-sm ${isDark ? "border-slate-600 bg-slate-800 text-slate-100" : "border-slate-300 bg-white text-slate-900"}`
+              },
+              React.createElement("option", { value: "light" }, "light"),
+              React.createElement("option", { value: "dark" }, "dark")
+            ),
+            React.createElement("label", { className: "ml-2 text-sm font-semibold" }, "Layout"),
+            React.createElement(
+              "select",
+              {
+                value: layoutMode,
+                onChange: (event) => setLayoutMode(event.target.value),
+                className: `rounded border px-2 py-1 text-sm ${isDark ? "border-slate-600 bg-slate-800 text-slate-100" : "border-slate-300 bg-white text-slate-900"}`
+              },
+              React.createElement("option", { value: "full" }, "full"),
+              React.createElement("option", { value: "minimal" }, "minimal")
+            )
+          ),
+          React.createElement(
+            "div",
+            { className: "h-[calc(100%-2.5rem)] w-full" },
+            React.createElement(StatsWorkbench, {
+              className: `h-full w-full rounded-xl ${isDark ? "bg-slate-900" : "bg-white"}`,
+              layoutMode
+            })
+          )
         );
       }
 
