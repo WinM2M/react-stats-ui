@@ -137,7 +137,10 @@ export function VariableAssignmentPanel({
 
       <div
         className="flex min-h-0 flex-col gap-3 lg:grid lg:transition-all lg:duration-300"
-        style={{ gridTemplateColumns: hasOptions ? "minmax(0, 1fr) 320px" : "minmax(0, 1fr) 0px" }}
+        style={{
+          gridTemplateColumns: hasOptions ? "minmax(0, 1fr) 320px" : "minmax(0, 1fr) 0px",
+          columnGap: hasOptions ? "0.75rem" : "0"
+        }}
       >
         <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
           <div className="mb-2 text-sm font-semibold">Role Assignment</div>
