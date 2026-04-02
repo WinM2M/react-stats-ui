@@ -1,13 +1,8 @@
-import * as Separator from "@radix-ui/react-separator";
 import { MoreHorizontal, RefreshCw } from "lucide-react";
 import * as React from "react";
-import type { AnalysisKind, PayloadInfo } from "../types";
-import { SelectBox } from "../ui/select-box";
+import type { PayloadInfo } from "../types";
 
 type ExecutionPanelProps = {
-  analysisType: AnalysisKind;
-  options: Record<string, unknown>;
-  onOptionsChange: (next: Record<string, unknown>) => void;
   isRunning: boolean;
   payloadInfo: PayloadInfo;
   onRun: () => void;
@@ -51,7 +46,7 @@ function formatApaValue(value: unknown): string {
 }
 
 function buildTableData(raw: unknown): TableData[] {
-  const result = raw as { success?: boolean; data?: unknown; error?: string } | null;
+  const result = raw as { success?: boolean; data?: unknown } | null;
   const payload = result && typeof result === "object" && "data" in result ? result.data : raw;
 
   if (!payload || typeof payload !== "object") {
@@ -124,9 +119,6 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
 }
 
 export function ExecutionPanel({
-  analysisType,
-  options,
-  onOptionsChange,
   isRunning,
   payloadInfo,
   onRun,
@@ -140,10 +132,7 @@ export function ExecutionPanel({
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
   const [moreOpen, setMoreOpen] = React.useState(false);
   const moreRef = React.useRef<HTMLDivElement>(null);
-  const groupCandidates = (payloadInfo.meta?.groupCandidates as Array<string | number> | undefined) ?? [];
-  const updateOption = (key: string, value: unknown) => onOptionsChange({ ...options, [key]: value });
   const tables = buildTableData(result);
-
   const runDisabled = isRunning || !payloadInfo.canRun || !workerReady;
 
   React.useEffect(() => {
@@ -161,242 +150,93 @@ export function ExecutionPanel({
   }, [moreOpen]);
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-[340px_1fr] max-[780px]:gap-2">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
-        <div className="mb-2 text-sm font-semibold">Options</div>
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-semibold">Analysis Result</div>
+          <button
+            type="button"
+            onClick={onRun}
+            disabled={runDisabled}
+            className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Run analysis"
+            title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
+          >
+            <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+        <div className="relative" ref={moreRef}>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((prev) => !prev)}
+            className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
+            aria-label="More result actions"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
 
-        {analysisType === "ttestIndependent" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Equal Variance Assumption</label>
-            <SelectBox
-              value={String(Boolean(options.equalVariance))}
-              onChange={(value) => updateOption("equalVariance", value === "true")}
-              items={[
-                { value: "true", label: "Enabled" },
-                { value: "false", label: "Disabled" }
-              ]}
-            />
-            {groupCandidates.length >= 2 ? (
-              <>
-                <label className="text-xs font-medium text-slate-600">Group 1 Value</label>
-                <SelectBox
-                  value={String(options.group1Value ?? groupCandidates[0])}
-                  onChange={(value) => updateOption("group1Value", value)}
-                  items={groupCandidates.map((candidate) => ({ value: String(candidate), label: String(candidate) }))}
-                />
-                <label className="text-xs font-medium text-slate-600">Group 2 Value</label>
-                <SelectBox
-                  value={String(options.group2Value ?? groupCandidates[1])}
-                  onChange={(value) => updateOption("group2Value", value)}
-                  items={groupCandidates.map((candidate) => ({ value: String(candidate), label: String(candidate) }))}
-                />
-              </>
-            ) : null}
-          </div>
-        )}
-
-        {analysisType === "posthocTukey" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Alpha</label>
-            <input
-              type="number"
-              min={0.001}
-              max={0.5}
-              step={0.001}
-              value={Number(options.alpha ?? 0.05)}
-              onChange={(event) => updateOption("alpha", Number(event.target.value))}
-              className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-            />
-          </div>
-        )}
-
-        {(analysisType === "linearRegression" || analysisType === "logisticBinary") && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Add Constant</label>
-            <SelectBox
-              value={String(Boolean(options.addConstant))}
-              onChange={(value) => updateOption("addConstant", value === "true")}
-              items={[
-                { value: "true", label: "Yes" },
-                { value: "false", label: "No" }
-              ]}
-            />
-          </div>
-        )}
-
-        {analysisType === "logisticMultinomial" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Reference Category</label>
-            <input
-              type="text"
-              value={String(options.referenceCategory ?? "")}
-              onChange={(event) => updateOption("referenceCategory", event.target.value)}
-              placeholder="Optional"
-              className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-            />
-          </div>
-        )}
-
-        {analysisType === "kmeans" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Clusters (K)</label>
-            <SelectBox
-              value={String(options.k ?? 3)}
-              onChange={(value) => updateOption("k", Number(value))}
-              items={[2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: String(n), label: String(n) }))}
-            />
-          </div>
-        )}
-
-        {analysisType === "hierarchicalCluster" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Linkage Method</label>
-            <SelectBox
-              value={String(options.method ?? "ward")}
-              onChange={(value) => updateOption("method", value)}
-              items={[
-                { value: "ward", label: "Ward" },
-                { value: "complete", label: "Complete" },
-                { value: "average", label: "Average" },
-                { value: "single", label: "Single" }
-              ]}
-            />
-            <label className="text-xs font-medium text-slate-600">Distance Metric</label>
-            <SelectBox
-              value={String(options.metric ?? "euclidean")}
-              onChange={(value) => updateOption("metric", value)}
-              items={[
-                { value: "euclidean", label: "Euclidean" },
-                { value: "cityblock", label: "Cityblock" },
-                { value: "cosine", label: "Cosine" }
-              ]}
-            />
-          </div>
-        )}
-
-        {analysisType === "efa" && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Number of Factors</label>
-            <SelectBox
-              value={String(options.nFactors ?? 2)}
-              onChange={(value) => updateOption("nFactors", Number(value))}
-              items={[2, 3, 4, 5, 6].map((n) => ({ value: String(n), label: String(n) }))}
-            />
-            <label className="text-xs font-medium text-slate-600">Rotation</label>
-            <SelectBox
-              value={String(options.rotation ?? "varimax")}
-              onChange={(value) => updateOption("rotation", value)}
-              items={[
-                { value: "varimax", label: "Varimax" },
-                { value: "promax", label: "Promax" },
-                { value: "oblimin", label: "Oblimin" },
-                { value: "none", label: "None" }
-              ]}
-            />
-          </div>
-        )}
-
-        {(analysisType === "pca" || analysisType === "mds") && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">Number of Components</label>
-            <SelectBox
-              value={String(options.nComponents ?? 2)}
-              onChange={(value) => updateOption("nComponents", Number(value))}
-              items={[2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
-            />
-          </div>
-        )}
-
-        <Separator.Root className="my-3 h-px bg-slate-200" />
-        {!workerReady ? (
-          <p className="mt-2 text-xs text-amber-700">Analysis is available after worker initialization completes.</p>
-        ) : !payloadInfo.canRun ? (
-          <p className="mt-2 text-xs text-amber-700">{payloadInfo.reason}</p>
-        ) : null}
+          {moreOpen ? (
+            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-52 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setResultView((prev) => (prev === "table" ? "json" : "table"));
+                  setMoreOpen(false);
+                }}
+                className="mb-1 w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {resultView === "table" ? "Switch to JSON" : "Switch to APA Table"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onTogglePayload();
+                  setMoreOpen(false);
+                }}
+                className="w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {showPayload ? "Hide API Payload" : "Show API Payload"}
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="text-sm font-semibold">Analysis Result</div>
-            <button
-              type="button"
-              onClick={onRun}
-              disabled={runDisabled}
-              className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Run analysis"
-              title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
-            >
-              <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
-            </button>
-          </div>
-          <div className="relative" ref={moreRef}>
-            <button
-              type="button"
-              onClick={() => setMoreOpen((prev) => !prev)}
-              className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50"
-              aria-label="More result actions"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
+      {!workerReady ? (
+        <p className="mb-2 text-xs text-amber-700">Analysis is available after worker initialization completes ({workerProgress ?? 0}%).</p>
+      ) : !payloadInfo.canRun ? (
+        <p className="mb-2 text-xs text-amber-700">{payloadInfo.reason}</p>
+      ) : null}
 
-            {moreOpen ? (
-              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-52 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setResultView((prev) => (prev === "table" ? "json" : "table"));
-                    setMoreOpen(false);
-                  }}
-                  className="mb-1 w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  {resultView === "table" ? "Switch to JSON" : "Switch to APA Table"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onTogglePayload();
-                    setMoreOpen(false);
-                  }}
-                  className="w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  {showPayload ? "Hide API Payload" : "Show API Payload"}
-                </button>
+      {error ? <div className="mb-2 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">{error}</div> : null}
+
+      <div className="min-h-0 flex-1 overflow-auto rounded border border-slate-200 bg-white p-2">
+        {resultView === "table" ? (
+          result ? (
+            tables.length > 0 ? (
+              <div>
+                {tables.map((table, index) => (
+                  <ApaTable key={`${table.title}-${index}`} table={table} index={index} />
+                ))}
               </div>
-            ) : null}
-          </div>
-        </div>
-
-        {error ? <div className="mb-2 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">{error}</div> : null}
-
-        <div className="min-h-0 flex-1 overflow-auto rounded border border-slate-200 bg-white p-2">
-          {resultView === "table" ? (
-            result ? (
-              tables.length > 0 ? (
-                <div>
-                  {tables.map((table, index) => (
-                    <ApaTable key={`${table.title}-${index}`} table={table} index={index} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-slate-500">Table rendering is not available for this result shape.</div>
-              )
             ) : (
-              <div className="text-sm text-slate-500">Run an analysis to view results.</div>
+              <div className="text-sm text-slate-500">Table rendering is not available for this result shape.</div>
             )
-          ) : result ? (
-            <pre className="text-xs leading-relaxed text-slate-700">{JSON.stringify(result, null, 2)}</pre>
           ) : (
             <div className="text-sm text-slate-500">Run an analysis to view results.</div>
-          )}
-        </div>
-
-        {showPayload ? (
-          <div className="mt-2 min-h-0 overflow-auto rounded border border-slate-200 bg-white p-2">
-            <pre className="text-xs leading-relaxed text-slate-700">{JSON.stringify(payloadInfo.payload, null, 2)}</pre>
-          </div>
-        ) : null}
+          )
+        ) : result ? (
+          <pre className="text-xs leading-relaxed text-slate-700">{JSON.stringify(result, null, 2)}</pre>
+        ) : (
+          <div className="text-sm text-slate-500">Run an analysis to view results.</div>
+        )}
       </div>
+
+      {showPayload ? (
+        <div className="mt-2 min-h-0 overflow-auto rounded border border-slate-200 bg-white p-2">
+          <pre className="text-xs leading-relaxed text-slate-700">{JSON.stringify(payloadInfo.payload, null, 2)}</pre>
+        </div>
+      ) : null}
     </div>
   );
 }

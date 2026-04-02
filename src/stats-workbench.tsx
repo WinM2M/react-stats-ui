@@ -176,6 +176,23 @@ export function StatsWorkbench({
   const availableVariables = (selectedDataset?.columns ?? []).filter((column) => !assignedNames.has(column.name));
   const analysisDef = ANALYSIS_DEFS[analysisType];
   const payloadInfo = getPayload(analysisType, selectedDataset?.rows ?? [], assignments, options);
+  const hasOptions = React.useMemo(
+    () =>
+      [
+        "ttestIndependent",
+        "posthocTukey",
+        "linearRegression",
+        "logisticBinary",
+        "logisticMultinomial",
+        "kmeans",
+        "hierarchicalCluster",
+        "efa",
+        "pca",
+        "mds"
+      ].includes(analysisType),
+    [analysisType]
+  );
+  const groupCandidates = (payloadInfo.meta?.groupCandidates as Array<string | number> | undefined) ?? [];
   const autoRunKey = React.useMemo(
     () =>
       JSON.stringify({
@@ -391,7 +408,7 @@ export function StatsWorkbench({
     <Tooltip.Provider delayDuration={80}>
       <div
         className={cn(
-          "relative h-full w-full overflow-hidden bg-gradient-to-b from-slate-100 to-white p-4 text-slate-900 max-[780px]:p-2",
+          "relative h-full w-full overflow-hidden text-slate-900",
           className
         )}
         style={style}
@@ -441,6 +458,10 @@ export function StatsWorkbench({
               onSelectAssigned={(role, name) => setSelectedAssigned((prev) => ({ ...prev, [role]: name }))}
               onAssign={assignVariableToRole}
               onRemove={removeFromRole}
+              options={options}
+              onOptionsChange={setOptions}
+              hasOptions={hasOptions}
+              groupCandidates={groupCandidates}
             />
 
             <div
@@ -453,9 +474,6 @@ export function StatsWorkbench({
             </div>
 
             <ExecutionPanel
-              analysisType={analysisType}
-              options={options}
-              onOptionsChange={setOptions}
               isRunning={isRunning}
               payloadInfo={payloadInfo}
               onRun={requestRunAnalysis}

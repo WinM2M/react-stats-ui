@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import * as React from "react";
 import { validateForRole } from "../analysis";
 import type { AnalysisDef, AnalysisKind, RoleKey, VariableMeta } from "../types";
+import { AnalysisOptionsPanel } from "./analysis-options-panel";
 import { cn } from "../utils";
 import { RoleTag } from "../ui/role-tag";
 
@@ -18,6 +19,10 @@ type VariableAssignmentPanelProps = {
   onSelectAssigned: (role: RoleKey, name: string) => void;
   onAssign: (variableName: string, role: RoleKey) => void;
   onRemove: (role: RoleKey, variableName: string) => void;
+  options: Record<string, unknown>;
+  onOptionsChange: (next: Record<string, unknown>) => void;
+  hasOptions: boolean;
+  groupCandidates: Array<string | number>;
 };
 
 const VariableCard = ({
@@ -62,7 +67,11 @@ export function VariableAssignmentPanel({
   selectedAssigned,
   onSelectAssigned,
   onAssign,
-  onRemove
+  onRemove,
+  options,
+  onOptionsChange,
+  hasOptions,
+  groupCandidates
 }: VariableAssignmentPanelProps) {
   const [dragVariable, setDragVariable] = React.useState<string | null>(null);
   const [invalidRole, setInvalidRole] = React.useState<RoleKey | null>(null);
@@ -126,90 +135,111 @@ export function VariableAssignmentPanel({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
-        <div className="mb-2 text-sm font-semibold">Role Assignment</div>
-        <div className="grid min-h-0 flex-1 auto-rows-fr gap-2">
-          {analysisDef.roles.map((role) => {
-            const activeError = invalidRole === role.key ? invalidMessage : "";
-            return (
-              <Tooltip.Root key={role.key} open={Boolean(activeError)}>
-                <Tooltip.Trigger asChild>
-                  <div
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      if (!dragVariable) {
-                        return;
-                      }
-                      const variable = variableByName.get(dragVariable);
-                      if (!variable) {
-                        return;
-                      }
-                      const msg = validateForRole(analysisType, role.key, variable);
-                      if (msg) {
-                        setInvalidRole(role.key);
-                        setInvalidMessage(msg);
-                      } else {
-                        setInvalidRole(null);
-                        setInvalidMessage("");
-                      }
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      if (!dragVariable) {
-                        return;
-                      }
-                      onAssign(dragVariable, role.key);
-                    }}
-                    className={cn(
-                      "flex h-full min-h-0 flex-col rounded-lg border p-2 transition",
-                      activeError ? "border-red-500 bg-red-50" : "border-slate-200"
-                    )}
-                  >
-                    <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1">
-                      {assignments[role.key].length === 0 ? (
-                        <div className="px-2 py-3 text-xs text-slate-500">{role.label}</div>
-                      ) : (
-                        <ul className="space-y-1">
-                          {assignments[role.key].map((name) => {
-                            const variable = variableByName.get(name);
-                            return (
-                              <li
-                                key={name}
-                                onClick={() => onSelectAssigned(role.key, name)}
-                                className={cn(
-                                  "group flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm",
-                                  selectedAssigned[role.key] === name ? "ring-2 ring-sky-500 border-sky-500" : "hover:border-slate-300 hover:shadow-md"
-                                )}
-                              >
-                                {variable ? <RoleTag type={variable.type} /> : null}
-                                <span className="truncate text-sm font-medium text-slate-700">{name}</span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onRemove(role.key, name);
-                                  }}
-                                  className="ml-auto rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
-                                  aria-label={`Remove ${name}`}
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
+      <div
+        className="flex min-h-0 flex-col gap-3 lg:grid lg:transition-all lg:duration-300"
+        style={{ gridTemplateColumns: hasOptions ? "minmax(0, 1fr) 320px" : "minmax(0, 1fr) 0px" }}
+      >
+        <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
+          <div className="mb-2 text-sm font-semibold">Role Assignment</div>
+          <div className="grid min-h-0 flex-1 auto-rows-fr gap-2">
+            {analysisDef.roles.map((role) => {
+              const activeError = invalidRole === role.key ? invalidMessage : "";
+              return (
+                <Tooltip.Root key={role.key} open={Boolean(activeError)}>
+                  <Tooltip.Trigger asChild>
+                    <div
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        if (!dragVariable) {
+                          return;
+                        }
+                        const variable = variableByName.get(dragVariable);
+                        if (!variable) {
+                          return;
+                        }
+                        const msg = validateForRole(analysisType, role.key, variable);
+                        if (msg) {
+                          setInvalidRole(role.key);
+                          setInvalidMessage(msg);
+                        } else {
+                          setInvalidRole(null);
+                          setInvalidMessage("");
+                        }
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        if (!dragVariable) {
+                          return;
+                        }
+                        onAssign(dragVariable, role.key);
+                      }}
+                      className={cn(
+                        "flex h-full min-h-0 flex-col rounded-lg border p-2 transition",
+                        activeError ? "border-red-500 bg-red-50" : "border-slate-200"
                       )}
+                    >
+                      <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1">
+                        {assignments[role.key].length === 0 ? (
+                          <div className="px-2 py-3 text-xs text-slate-500">{role.label}</div>
+                        ) : (
+                          <ul className="space-y-1">
+                            {assignments[role.key].map((name) => {
+                              const variable = variableByName.get(name);
+                              return (
+                                <li
+                                  key={name}
+                                  onClick={() => onSelectAssigned(role.key, name)}
+                                  className={cn(
+                                    "group flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm",
+                                    selectedAssigned[role.key] === name ? "ring-2 ring-sky-500 border-sky-500" : "hover:border-slate-300 hover:shadow-md"
+                                  )}
+                                >
+                                  {variable ? <RoleTag type={variable.type} /> : null}
+                                  <span className="truncate text-sm font-medium text-slate-700">{name}</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onRemove(role.key, name);
+                                    }}
+                                    className="ml-auto rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
+                                    aria-label={`Remove ${name}`}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content side="top" className="rounded bg-red-600 px-2 py-1 text-xs text-white shadow">
-                    {activeError}
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-            );
-          })}
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content side="top" className="rounded bg-red-600 px-2 py-1 text-xs text-white shadow">
+                      {activeError}
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              );
+            })}
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "min-h-0 overflow-hidden transition-all duration-300",
+            hasOptions ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"
+          )}
+        >
+          {hasOptions ? (
+            <AnalysisOptionsPanel
+              analysisType={analysisType}
+              options={options}
+              onOptionsChange={onOptionsChange}
+              groupCandidates={groupCandidates}
+            />
+          ) : null}
         </div>
       </div>
     </div>
