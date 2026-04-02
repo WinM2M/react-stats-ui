@@ -5,6 +5,7 @@ import { StatsWorkbench } from "./stats-workbench";
 import type { AnalysisPayload } from "./stats-workbench";
 
 type ThemeArgs = {
+  language: "en" | "ar" | "zh" | "fr" | "ru" | "es" | "ko" | "ja" | "vi";
   themeMode: "light" | "dark" | "custom";
   backgroundColor: string;
   backgroundTransparent: boolean;
@@ -163,7 +164,7 @@ function StoryTemplate({ compactHeight, ...args }: ThemeArgs & { compactHeight: 
       style={{ backgroundColor: args.backgroundTransparent ? "transparent" : args.backgroundColor }}
     >
       <style>{css}</style>
-      <StatsWorkbench className="h-full w-full rounded-xl" layoutMode={args.layoutMode} analysisExecutor={mockAnalysisExecutor} />
+      <StatsWorkbench className="h-full w-full rounded-xl" layoutMode={args.layoutMode} language={args.language} analysisExecutor={mockAnalysisExecutor} />
     </div>
   );
 }
@@ -174,6 +175,7 @@ const meta = {
   tags: ["autodocs"],
   args: {
     themeMode: "light",
+    language: "en",
     backgroundColor: "#ffffff",
     backgroundTransparent: false,
     textColor: "#334155",
@@ -188,6 +190,7 @@ const meta = {
   },
   argTypes: {
     layoutMode: { control: { type: "inline-radio" }, options: ["full", "minimal"], name: "Section Layout" },
+    language: { control: { type: "select" }, options: ["en", "ar", "zh", "fr", "ru", "es", "ko", "ja", "vi"], name: "Language" },
     themeMode: { control: { type: "inline-radio" }, options: ["light", "dark", "custom"], name: "Theme" },
     backgroundColor: { control: "color", name: "Background" },
     backgroundTransparent: { control: "boolean", name: "Background Transparent" },

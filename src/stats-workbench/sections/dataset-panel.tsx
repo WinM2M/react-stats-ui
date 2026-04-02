@@ -1,5 +1,6 @@
 import { ChevronDown, Database, FileSpreadsheet, Trash2, Upload } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import type { Dataset } from "../types";
 import { cn } from "../utils";
 
@@ -28,6 +29,7 @@ export function DatasetPanel({
   fileInputRef,
   onFileInput
 }: DatasetPanelProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const [dragActive, setDragActive] = React.useState(false);
   const popoverRef = React.useRef<HTMLDivElement>(null);
@@ -82,20 +84,20 @@ export function DatasetPanel({
       {open ? (
         <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
           <div className="mb-2 flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-800">Datasets</div>
+            <div className="text-sm font-semibold text-slate-800">{t("datasets")}</div>
             <button
               type="button"
               onClick={onUploadClick}
               className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
               <Upload className="h-3.5 w-3.5" />
-              Import XLSX
+              {t("importXlsx")}
             </button>
           </div>
 
           <div className="mb-3 max-h-56 overflow-auto rounded-lg border border-slate-200">
             {datasets.length === 0 ? (
-              <div className="p-3 text-sm text-slate-500">빈 목록에 분석할 데이터파일을 선택해 주세요.</div>
+              <div className="h-2" />
             ) : (
               <ul className="divide-y divide-slate-100">
                 {datasets.map((dataset) => {
@@ -147,7 +149,7 @@ export function DatasetPanel({
             }}
             onDrop={handleDrop}
           >
-            Drop a file here to load a dataset.
+            {t("dropDatasetFile")}
           </div>
         </div>
       ) : null}

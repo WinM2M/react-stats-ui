@@ -1,4 +1,5 @@
 import type { AnalysisKind } from "../types";
+import { useTranslation } from "react-i18next";
 import { SelectBox } from "../ui/select-box";
 
 type AnalysisOptionsPanelProps = {
@@ -10,6 +11,7 @@ type AnalysisOptionsPanelProps = {
 };
 
 export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, groupCandidates, borderless = false }: AnalysisOptionsPanelProps) {
+  const { t } = useTranslation();
   const updateOption = (key: string, value: unknown) => onOptionsChange({ ...options, [key]: value });
 
   return (
@@ -18,7 +20,7 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
         borderless ? "" : "border border-slate-200"
       }`}
     >
-      <div className="mb-2 text-sm font-semibold">Options</div>
+      <div className="mb-2 text-sm font-semibold">{t("options")}</div>
 
       <div className="min-h-0 flex-1 overflow-auto">
         {analysisType === "ttestIndependent" && (

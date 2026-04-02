@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { ANALYSIS_DEFS } from "../constants";
 import type { AnalysisKind } from "../types";
 
@@ -10,9 +11,10 @@ type AnalysisTypePanelProps = {
 };
 
 export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, subtleUnderline = false }: AnalysisTypePanelProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const popoverRef = React.useRef<HTMLDivElement>(null);
-  const selectedLabel = ANALYSIS_DEFS[analysisType].label;
+  const selectedLabel = t(`analysisKinds.${analysisType}`, { defaultValue: ANALYSIS_DEFS[analysisType].label });
 
   React.useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -31,7 +33,7 @@ export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, s
   return (
     <section className="relative" ref={popoverRef}>
       <div className="flex items-center gap-2">
-        {showPrefix ? <span className="relative -top-0.5 text-sm font-semibold text-slate-700">Analysis:</span> : null}
+        {showPrefix ? <span className="relative -top-0.5 text-sm font-semibold text-slate-700">{t("analysis")}:</span> : null}
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
@@ -58,7 +60,7 @@ export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, s
                     value === analysisType ? "bg-sky-100 text-sky-700" : "text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  {def.label}
+                    {t(`analysisKinds.${value}`, { defaultValue: def.label })}
                 </button>
               </li>
             ))}

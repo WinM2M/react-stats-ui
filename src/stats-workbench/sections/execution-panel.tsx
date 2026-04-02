@@ -1,5 +1,6 @@
 import { Copy, MoreHorizontal, RefreshCw, X } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import type { PayloadInfo } from "../types";
 import { cn } from "../utils";
 
@@ -189,6 +190,7 @@ export function ExecutionPanel({
   minimalChrome = false,
   onCloseResult
 }: ExecutionPanelProps) {
+  const { t } = useTranslation();
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [copyStatus, setCopyStatus] = React.useState<"idle" | "copied" | "error">("idle");
@@ -254,15 +256,15 @@ export function ExecutionPanel({
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="text-sm font-semibold">Analysis Result</div>
+          <div className="text-sm font-semibold">{t("analysisResult")}</div>
           {minimalChrome ? null : (
             <button
               type="button"
               onClick={onRun}
               disabled={runDisabled}
               className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Run analysis"
-              title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
+              aria-label={t("runAnalysis")}
+              title={runDisabled ? (isRunning ? t("running") : t("standby")) : t("runAnalysis")}
             >
               <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
             </button>
@@ -288,7 +290,7 @@ export function ExecutionPanel({
                 onClick={onCloseResult}
                 className="rounded p-1.5 text-slate-700 hover:bg-slate-50"
                 aria-label="Hide result"
-                title="Hide Result"
+                title={t("hideResult")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -305,7 +307,7 @@ export function ExecutionPanel({
                 }}
                 className="mb-1 w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
-                {resultView === "table" ? "Switch to JSON" : "Switch to APA Table"}
+                {resultView === "table" ? t("switchToJson") : t("switchToApa")}
               </button>
               <button
                 type="button"
@@ -315,7 +317,7 @@ export function ExecutionPanel({
                 }}
                 className="w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
-                {showPayload ? "Hide API Payload" : "Show API Payload"}
+                {showPayload ? t("hidePayload") : t("showPayload")}
               </button>
             </div>
           ) : null}
@@ -340,11 +342,11 @@ export function ExecutionPanel({
                     type="button"
                     onClick={() => void handleCopyApaTable()}
                     className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                    aria-label="Copy APA tables"
-                    title={copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Copy failed" : "Copy APA tables"}
+                    aria-label={t("copy")}
+                    title={copyStatus === "copied" ? t("copied") : copyStatus === "error" ? t("copyFailed") : t("copy")}
                   >
                     <Copy className="h-3.5 w-3.5" />
-                    {copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Failed" : "Copy"}
+                    {copyStatus === "copied" ? t("copied") : copyStatus === "error" ? t("copyFailed") : t("copy")}
                   </button>
                 </div>
                 {tables.map((table, index) => (
@@ -352,15 +354,15 @@ export function ExecutionPanel({
                 ))}
               </div>
             ) : (
-              <div className="text-sm text-slate-500">Table rendering is not available for this result shape.</div>
+                <div className="text-sm text-slate-500">{t("renderUnavailable")}</div>
             )
           ) : (
-            <div className="text-sm text-slate-500">Run an analysis to view results.</div>
+              <div className="text-sm text-slate-500">{t("runToView")}</div>
           )
         ) : result ? (
           <pre className="text-xs leading-relaxed text-slate-700">{JSON.stringify(result, null, 2)}</pre>
         ) : (
-          <div className="text-sm text-slate-500">Run an analysis to view results.</div>
+            <div className="text-sm text-slate-500">{t("runToView")}</div>
         )}
       </div>
 

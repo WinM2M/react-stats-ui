@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 type WorkerSignalIndicatorProps = {
   isRunning: boolean;
@@ -11,27 +12,29 @@ type WorkerSignalIndicatorProps = {
 function getSignal(
   isRunning: boolean,
   connectionState: WorkerSignalIndicatorProps["connectionState"],
-  activityState: WorkerSignalIndicatorProps["activityState"]
+  activityState: WorkerSignalIndicatorProps["activityState"],
+  t: (key: string) => string
 ) {
   if (connectionState === "error") {
-    return { color: "bg-red-500", ring: "ring-red-200", label: "Error" };
+    return { color: "bg-red-500", ring: "ring-red-200", label: t("error") };
   }
   if (isRunning || activityState === "running") {
-    return { color: "bg-sky-500", ring: "ring-sky-200", label: "Running" };
+    return { color: "bg-sky-500", ring: "ring-sky-200", label: t("running") };
   }
   if (connectionState === "connecting") {
-    return { color: "bg-amber-500", ring: "ring-amber-200", label: "Loading" };
+    return { color: "bg-amber-500", ring: "ring-amber-200", label: t("loading") };
   }
   if (connectionState === "ready" || connectionState === "external") {
-    return { color: "bg-emerald-500", ring: "ring-emerald-200", label: "Ready" };
+    return { color: "bg-emerald-500", ring: "ring-emerald-200", label: t("ready") };
   }
-  return { color: "bg-slate-400", ring: "ring-slate-200", label: "Standby" };
+  return { color: "bg-slate-400", ring: "ring-slate-200", label: t("standby") };
 }
 
 export function WorkerSignalIndicator({ isRunning, connectionState, activityState, statusMessage, progress }: WorkerSignalIndicatorProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const signal = getSignal(isRunning, connectionState, activityState);
+  const signal = getSignal(isRunning, connectionState, activityState, t);
   const isLoading = connectionState === "connecting" || isRunning || activityState === "running";
 
   React.useEffect(() => {
@@ -53,8 +56,8 @@ export function WorkerSignalIndicator({ isRunning, connectionState, activityStat
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white hover:bg-slate-50"
-        aria-label="Worker status"
-        title={`Worker status: ${signal.label}`}
+        aria-label={t("workerStatus")}
+        title={`${t("workerStatus")}: ${signal.label}`}
       >
         <span className={`relative inline-flex h-3.5 w-3.5 rounded-full ${signal.color}`}>
           {isLoading ? <span className={`absolute inset-0 rounded-full animate-ping ${signal.color} opacity-40`} /> : null}
@@ -68,7 +71,7 @@ export function WorkerSignalIndicator({ isRunning, connectionState, activityStat
             {signal.label}
           </div>
           <p className="text-xs text-slate-600">{statusMessage}</p>
-          {progress !== null ? <p className="mt-2 text-xs text-slate-600">Initialization progress: {progress}%</p> : null}
+          {progress !== null ? <p className="mt-2 text-xs text-slate-600">{t("initProgress")}: {progress}%</p> : null}
           {isLoading ? (
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
               <div className={`h-full w-1/2 rounded-full ${signal.color} animate-pulse`} />

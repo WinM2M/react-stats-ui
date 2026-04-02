@@ -68,6 +68,7 @@ export function App() {
 - `style?: React.CSSProperties`
 - `initialAnalysis?: AnalysisKind` (default: `"frequencies"`)
 - `layoutMode?: "full" | "minimal"` (default: `"full"`)
+- `language?: "en" | "ar" | "zh" | "fr" | "ru" | "es" | "ko" | "ja" | "vi"` (default: `"en"`)
 - `analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>`
 - `onResult?: (result: AnalysisResult) => void`
 
@@ -99,6 +100,8 @@ Exports:
 
 `docs/demo.html` demonstrates CDN usage and local dev build usage:
 
+- Live demo: https://winm2m.github.io/react-stats-ui/demo.html
+
 - `?dev=true` loads `/dist/index.js`
 - otherwise loads published package from npm via ESM CDN
 - includes demo selectors for:
@@ -119,6 +122,7 @@ Story file: `src/stats-workbench.stories.tsx`
 Interactive controls include:
 
 - `Section Layout`: `full` / `minimal`
+- `Language`: `en` / `ar` / `zh` / `fr` / `ru` / `es` / `ko` / `ja` / `vi`
 - `Theme`: `light` / `dark` / `custom`
 - `Background`
 - `Background Transparent`

@@ -1,6 +1,7 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import * as React from "react";
 import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
+import { useTranslation } from "react-i18next";
 import {
   ensureWorkerInitialized,
   executeDefaultAnalysis,
@@ -14,6 +15,7 @@ import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
 import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
 import { WorkerSignalIndicator } from "./stats-workbench/sections/worker-signal-indicator";
+import { SUPPORTED_LANGUAGES, workbenchI18n, type SupportedLanguage } from "./stats-workbench/i18n";
 import type {
   AnalysisPayload,
   AnalysisKind,
@@ -50,14 +52,18 @@ export type {
   VariableType
 } from "./stats-workbench/types";
 
+export type { SupportedLanguage } from "./stats-workbench/i18n";
+
 export function StatsWorkbench({
   className,
   style,
   initialAnalysis = "frequencies",
   layoutMode = "full",
+  language = "en",
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps) {
+  const { t } = useTranslation();
   const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string | null>(null);
@@ -82,6 +88,7 @@ export function StatsWorkbench({
     analysisExecutor ? "Using external analysis executor." : "Worker is not initialized yet."
   );
   const [workerProgress, setWorkerProgress] = React.useState<number | null>(null);
+  const [activeLanguage, setActiveLanguage] = React.useState<SupportedLanguage>(language);
   const [options, setOptions] = React.useState<Record<string, unknown>>({
     equalVariance: true,
     addConstant: true,
@@ -99,6 +106,14 @@ export function StatsWorkbench({
   const panelsRef = React.useRef<HTMLElement>(null);
   const workerReady = analysisExecutor ? true : workerConnectionState === "ready";
   const blockInitialLoading = !analysisExecutor && workerConnectionState === "connecting" && !workerReady;
+
+  React.useEffect(() => {
+    setActiveLanguage(language);
+  }, [language]);
+
+  React.useEffect(() => {
+    void workbenchI18n.changeLanguage(activeLanguage);
+  }, [activeLanguage]);
 
   React.useEffect(() => {
     if (analysisExecutor) {
@@ -489,7 +504,7 @@ export function StatsWorkbench({
     }
   };
 
-  const selectedDatasetName = selectedDataset?.name ?? "선택된 데이터셋 없음";
+  const selectedDatasetName = selectedDataset?.name ?? t("noDatasetSelected");
 
   return (
     <Tooltip.Provider delayDuration={80}>
@@ -530,6 +545,20 @@ export function StatsWorkbench({
                     statusMessage={workerStatusMessage}
                     progress={workerProgress}
                   />
+                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    {t("language")}
+                    <select
+                      value={activeLanguage}
+                      onChange={(event) => setActiveLanguage(event.target.value as SupportedLanguage)}
+                      className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
+                    >
+                      {SUPPORTED_LANGUAGES.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </div>
 
@@ -603,6 +632,20 @@ export function StatsWorkbench({
                   statusMessage={workerStatusMessage}
                   progress={workerProgress}
                 />
+                <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
+                  {t("language")}
+                  <select
+                    value={activeLanguage}
+                    onChange={(event) => setActiveLanguage(event.target.value as SupportedLanguage)}
+                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
+                  >
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
 
               <section
@@ -661,7 +704,7 @@ export function StatsWorkbench({
         {blockInitialLoading ? (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px]">
             <div className="w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
-              <div className="mb-2 text-sm font-semibold text-slate-800">Initializing analysis worker</div>
+              <div className="mb-2 text-sm font-semibold text-slate-800">{t("loadingWorker")}</div>
               <p className="mb-3 text-xs text-slate-600">{workerStatusMessage}</p>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
                 <div
