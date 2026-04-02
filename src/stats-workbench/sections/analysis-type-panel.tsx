@@ -29,11 +29,11 @@ export function AnalysisTypePanel({ analysisType, onChange }: AnalysisTypePanelP
   return (
     <section className="relative" ref={popoverRef}>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-slate-700">Analysis:</span>
+        <span className="relative -top-0.5 text-sm font-semibold text-slate-700">Analysis:</span>
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="w-80 truncate border-b-2 border-slate-300 bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] hover:bg-slate-50"
+          className="w-80 truncate border-b-2 border-black bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 hover:bg-slate-50"
         >
           {selectedLabel}
         </button>

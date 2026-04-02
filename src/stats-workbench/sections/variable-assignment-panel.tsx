@@ -183,19 +183,17 @@ export function VariableAssignmentPanel({
                               >
                                 {variable ? <RoleTag type={variable.type} /> : null}
                                 <span className="truncate text-sm font-medium text-slate-700">{name}</span>
-                                {selectedAssigned[role.key] === name && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onRemove(role.key, name);
-                                    }}
-                                    className="ml-auto rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                                    aria-label={`Remove ${name}`}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemove(role.key, name);
+                                  }}
+                                  className="ml-auto rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
+                                  aria-label={`Remove ${name}`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
                               </li>
                             );
                           })}
