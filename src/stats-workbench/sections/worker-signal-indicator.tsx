@@ -1,17 +1,25 @@
 import * as React from "react";
 
 type WorkerSignalIndicatorProps = {
+  isRunning: boolean;
   connectionState: "disconnected" | "connecting" | "ready" | "error" | "external";
   activityState: "idle" | "running";
   statusMessage: string;
   progress: number | null;
 };
 
-function getSignal(connectionState: WorkerSignalIndicatorProps["connectionState"], activityState: WorkerSignalIndicatorProps["activityState"]) {
+function getSignal(
+  isRunning: boolean,
+  connectionState: WorkerSignalIndicatorProps["connectionState"],
+  activityState: WorkerSignalIndicatorProps["activityState"]
+) {
   if (connectionState === "error") {
     return { color: "bg-red-500", ring: "ring-red-200", label: "Error" };
   }
-  if (connectionState === "connecting" || activityState === "running") {
+  if (isRunning || activityState === "running") {
+    return { color: "bg-sky-500", ring: "ring-sky-200", label: "Running" };
+  }
+  if (connectionState === "connecting") {
     return { color: "bg-amber-500", ring: "ring-amber-200", label: "Loading" };
   }
   if (connectionState === "ready" || connectionState === "external") {
@@ -20,11 +28,11 @@ function getSignal(connectionState: WorkerSignalIndicatorProps["connectionState"
   return { color: "bg-slate-400", ring: "ring-slate-200", label: "Standby" };
 }
 
-export function WorkerSignalIndicator({ connectionState, activityState, statusMessage, progress }: WorkerSignalIndicatorProps) {
+export function WorkerSignalIndicator({ isRunning, connectionState, activityState, statusMessage, progress }: WorkerSignalIndicatorProps) {
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const signal = getSignal(connectionState, activityState);
-  const isLoading = connectionState === "connecting" || activityState === "running";
+  const signal = getSignal(isRunning, connectionState, activityState);
+  const isLoading = connectionState === "connecting" || isRunning || activityState === "running";
 
   React.useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -44,7 +52,7 @@ export function WorkerSignalIndicator({ connectionState, activityState, statusMe
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white hover:bg-slate-50"
         aria-label="Worker status"
         title={`Worker status: ${signal.label}`}
       >

@@ -94,6 +94,7 @@ export function StatsWorkbench({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const panelsRef = React.useRef<HTMLElement>(null);
   const workerReady = analysisExecutor ? true : workerConnectionState === "ready";
+  const blockInitialLoading = !analysisExecutor && workerConnectionState === "connecting" && !workerReady;
 
   React.useEffect(() => {
     if (analysisExecutor) {
@@ -390,7 +391,7 @@ export function StatsWorkbench({
     <Tooltip.Provider delayDuration={80}>
       <div
         className={cn(
-          "h-full w-full overflow-hidden bg-gradient-to-b from-slate-100 to-white p-4 text-slate-900 max-[780px]:p-2",
+          "relative h-full w-full overflow-hidden bg-gradient-to-b from-slate-100 to-white p-4 text-slate-900 max-[780px]:p-2",
           className
         )}
         style={style}
@@ -410,6 +411,7 @@ export function StatsWorkbench({
               onFileInput={handleFileInput}
             />
             <WorkerSignalIndicator
+              isRunning={isRunning}
               connectionState={workerConnectionState}
               activityState={workerActivityState}
               statusMessage={workerStatusMessage}
@@ -466,6 +468,22 @@ export function StatsWorkbench({
             />
           </section>
         </section>
+
+        {blockInitialLoading ? (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px]">
+            <div className="w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+              <div className="mb-2 text-sm font-semibold text-slate-800">Initializing analysis worker</div>
+              <p className="mb-3 text-xs text-slate-600">{workerStatusMessage}</p>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-amber-500 transition-all duration-300"
+                  style={{ width: `${Math.max(8, workerProgress ?? 0)}%` }}
+                />
+              </div>
+              <div className="mt-2 text-right text-xs font-medium text-slate-600">{workerProgress ?? 0}%</div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </Tooltip.Provider>
   );
