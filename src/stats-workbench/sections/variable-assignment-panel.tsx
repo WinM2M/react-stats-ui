@@ -180,7 +180,7 @@ export function VariableAssignmentPanel({
                   >
                     <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1">
                       {assignments[role.key].length === 0 ? (
-                        <div className="px-2 py-3 text-xs text-slate-500">Drop variable here</div>
+                        <div className="px-2 py-3 text-xs text-slate-500">{role.label}</div>
                       ) : (
                         <ul className="space-y-1">
                           {assignments[role.key].map((name) => {
