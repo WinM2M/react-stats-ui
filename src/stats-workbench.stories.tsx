@@ -109,6 +109,19 @@ function createThemeCss(vars: ThemeArgs): string {
     color: color-mix(in srgb, var(--sb-text) 88%, white) !important;
   }
 
+  .sb-theme-workbench[data-theme-mode="dark"] .border-slate-200,
+  .sb-theme-workbench[data-theme-mode="dark"] .border-slate-300 {
+    border-color: color-mix(in srgb, var(--sb-border) 72%, white) !important;
+  }
+
+  .sb-theme-workbench[data-theme-mode="dark"] .border-black {
+    border-color: color-mix(in srgb, var(--sb-text) 82%, white) !important;
+  }
+
+  .sb-theme-workbench[data-theme-mode="dark"] .border-slate-900 {
+    border-color: color-mix(in srgb, var(--sb-text) 78%, white) !important;
+  }
+
   .sb-theme-workbench[data-sections-rounded="false"] .rounded-xl,
   .sb-theme-workbench[data-sections-rounded="false"] .rounded-lg,
   .sb-theme-workbench[data-sections-rounded="false"] .rounded-md,
@@ -150,7 +163,7 @@ function StoryTemplate({ compactHeight, ...args }: ThemeArgs & { compactHeight: 
       style={{ backgroundColor: args.backgroundTransparent ? "transparent" : args.backgroundColor }}
     >
       <style>{css}</style>
-      <StatsWorkbench className="h-full w-full rounded-xl" analysisExecutor={mockAnalysisExecutor} />
+      <StatsWorkbench className="h-full w-full rounded-xl" layoutMode={args.layoutMode} analysisExecutor={mockAnalysisExecutor} />
     </div>
   );
 }

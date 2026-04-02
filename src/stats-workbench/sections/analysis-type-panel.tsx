@@ -5,9 +5,10 @@ import type { AnalysisKind } from "../types";
 type AnalysisTypePanelProps = {
   analysisType: AnalysisKind;
   onChange: (next: AnalysisKind) => void;
+  showPrefix?: boolean;
 };
 
-export function AnalysisTypePanel({ analysisType, onChange }: AnalysisTypePanelProps) {
+export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true }: AnalysisTypePanelProps) {
   const [open, setOpen] = React.useState(false);
   const popoverRef = React.useRef<HTMLDivElement>(null);
   const selectedLabel = ANALYSIS_DEFS[analysisType].label;
@@ -29,7 +30,7 @@ export function AnalysisTypePanel({ analysisType, onChange }: AnalysisTypePanelP
   return (
     <section className="relative" ref={popoverRef}>
       <div className="flex items-center gap-2">
-        <span className="relative -top-0.5 text-sm font-semibold text-slate-700">Analysis:</span>
+        {showPrefix ? <span className="relative -top-0.5 text-sm font-semibold text-slate-700">Analysis:</span> : null}
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
