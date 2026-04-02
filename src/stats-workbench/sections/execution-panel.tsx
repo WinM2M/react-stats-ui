@@ -17,6 +17,8 @@ type ExecutionPanelProps = {
   onTogglePayload: () => void;
   workerReady: boolean;
   workerProgress: number | null;
+  workerConnectionState: "disconnected" | "connecting" | "ready" | "error" | "external";
+  workerActivityState: "idle" | "running";
 };
 
 type TableData = {
@@ -92,6 +94,28 @@ function buildTableData(raw: unknown): TableData[] {
   ];
 }
 
+function getWorkerStatusChip(
+  connectionState: ExecutionPanelProps["workerConnectionState"],
+  activityState: ExecutionPanelProps["workerActivityState"]
+): { label: string; className: string } {
+  if (activityState === "running") {
+    return { label: "Running", className: "bg-sky-100 text-sky-700" };
+  }
+  if (connectionState === "ready") {
+    return { label: "Ready", className: "bg-emerald-100 text-emerald-700" };
+  }
+  if (connectionState === "connecting") {
+    return { label: "Connecting", className: "bg-amber-100 text-amber-700" };
+  }
+  if (connectionState === "external") {
+    return { label: "External", className: "bg-indigo-100 text-indigo-700" };
+  }
+  if (connectionState === "error") {
+    return { label: "Error", className: "bg-red-100 text-red-700" };
+  }
+  return { label: "Disconnected", className: "bg-slate-100 text-slate-700" };
+}
+
 function ApaTable({ table, index }: { table: TableData; index: number }) {
   return (
     <div className="mb-4 overflow-x-auto">
@@ -135,7 +159,9 @@ export function ExecutionPanel({
   showPayload,
   onTogglePayload,
   workerReady,
-  workerProgress
+  workerProgress,
+  workerConnectionState,
+  workerActivityState
 }: ExecutionPanelProps) {
   const groupCandidates = (payloadInfo.meta?.groupCandidates as Array<string | number> | undefined) ?? [];
   const updateOption = (key: string, value: unknown) => onOptionsChange({ ...options, [key]: value });
@@ -147,6 +173,7 @@ export function ExecutionPanel({
       ? "Running"
       : "Run Analysis"
     : `Worker initializing (${workerProgress ?? 0}%)`;
+  const statusChip = getWorkerStatusChip(workerConnectionState, workerActivityState);
 
   return (
     <div className="grid min-h-0 grid-cols-1 gap-3 lg:grid-cols-[340px_1fr] max-[780px]:gap-2">
@@ -306,6 +333,11 @@ export function ExecutionPanel({
           <Play className="h-4 w-4" />
           {runLabel}
         </button>
+        <div className="mt-2">
+          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip.className}`}>
+            {statusChip.label}
+          </span>
+        </div>
         {!workerReady ? (
           <p className="mt-2 text-xs text-amber-700">Analysis is available after worker initialization completes.</p>
         ) : !payloadInfo.canRun ? (

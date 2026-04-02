@@ -5,7 +5,6 @@ import {
   ensureWorkerInitialized,
   executeDefaultAnalysis,
   getPayload,
-  resolveWorkerUrl,
   validateForRole
 } from "./stats-workbench/analysis";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./stats-workbench/constants";
@@ -14,7 +13,6 @@ import { AnalysisTypePanel } from "./stats-workbench/sections/analysis-type-pane
 import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
 import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
-import { WorkerStatusPanel } from "./stats-workbench/sections/worker-status-panel";
 import type {
   AnalysisKind,
   Dataset,
@@ -89,7 +87,6 @@ export function StatsWorkbench({
     randomState: 42
   });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const workerUrl = React.useMemo(() => resolveWorkerUrl(), []);
   const workerReady = analysisExecutor ? true : workerConnectionState === "ready";
 
   React.useEffect(() => {
@@ -250,23 +247,36 @@ export function StatsWorkbench({
     }
   }, [analysisExecutor, onResult, payloadInfo, workerProgress, workerReady]);
 
+  const importDatasetFile = React.useCallback(
+    async (file: File) => {
+      try {
+        const parsed = await parseXlsx(file);
+        await putDataset(parsed);
+        await refreshDatasets();
+        setSelectedDatasetId(parsed.id);
+        setError("");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to import XLSX file.");
+      }
+    },
+    [refreshDatasets]
+  );
+
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
-    try {
-      const parsed = await parseXlsx(file);
-      await putDataset(parsed);
-      await refreshDatasets();
-      setSelectedDatasetId(parsed.id);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to import XLSX file.");
-    } finally {
-      event.target.value = "";
-    }
+    await importDatasetFile(file);
+    event.target.value = "";
   };
+
+  const handleDropFile = React.useCallback(
+    (file: File) => {
+      void importDatasetFile(file);
+    },
+    [importDatasetFile]
+  );
 
   const handleDeleteDataset = async (id: string) => {
     await removeDataset(id);
@@ -277,6 +287,8 @@ export function StatsWorkbench({
     }
   };
 
+  const selectedDatasetName = selectedDataset?.name ?? "선택된 데이터셋 없음";
+
   return (
     <Tooltip.Provider delayDuration={80}>
       <div
@@ -286,28 +298,23 @@ export function StatsWorkbench({
         )}
         style={style}
       >
-        <div className="grid h-full grid-cols-1 gap-3 xl:grid-cols-[320px_1fr] max-[780px]:gap-2">
-          <DatasetPanel
-            datasets={datasets}
-            selectedDatasetId={selectedDatasetId}
-            onSelect={setSelectedDatasetId}
-            onDelete={(id) => void handleDeleteDataset(id)}
-            onUploadClick={() => fileInputRef.current?.click()}
-            fileInputRef={fileInputRef}
-            onFileInput={handleFileInput}
-          />
-
-          <section className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-3 max-[780px]:gap-2">
-            <WorkerStatusPanel
-              connectionState={workerConnectionState}
-              activityState={workerActivityState}
-              statusMessage={workerStatusMessage}
-              progress={workerProgress}
-              workerUrl={workerUrl}
+        <section className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-3 max-[780px]:gap-2">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[780px]:p-2">
+            <DatasetPanel
+              datasets={datasets}
+              selectedDatasetId={selectedDatasetId}
+              selectedDatasetName={selectedDatasetName}
+              onSelect={setSelectedDatasetId}
+              onDelete={(id) => void handleDeleteDataset(id)}
+              onUploadClick={() => fileInputRef.current?.click()}
+              onDropFile={handleDropFile}
+              fileInputRef={fileInputRef}
+              onFileInput={handleFileInput}
             />
-
             <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
+          </div>
 
+          <section className="grid min-h-0 grid-rows-[auto_1fr] gap-3 max-[780px]:gap-2">
             <VariableAssignmentPanel
               analysisType={analysisType}
               analysisDef={analysisDef}
@@ -335,9 +342,11 @@ export function StatsWorkbench({
               onTogglePayload={() => setShowPayload((prev) => !prev)}
               workerReady={workerReady}
               workerProgress={workerProgress}
+              workerConnectionState={workerConnectionState}
+              workerActivityState={workerActivityState}
             />
           </section>
-        </div>
+        </section>
       </div>
     </Tooltip.Provider>
   );
