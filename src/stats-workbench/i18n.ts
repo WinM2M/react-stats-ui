@@ -132,7 +132,19 @@ const resources = {
       runToView: "قم بتشغيل تحليل لعرض النتائج.",
       setRoleReason: "حدد {{role}}.",
       language: "اللغة",
-      roles: { ...common.roles, variable: "المتغير", variables: "المتغيرات" }
+      roles: {
+        ...common.roles,
+        variable: "المتغير",
+        variables: "المتغيرات",
+        rowVariable: "متغير الصف",
+        colVariable: "متغير العمود",
+        groupVariable: "متغير المجموعة",
+        dependentVariable: "المتغير التابع",
+        independentVariables: "المتغيرات المستقلة",
+        variable1: "المتغير 1",
+        variable2: "المتغير 2",
+        items: "عناصر المقياس"
+      }
     }
   },
   zh: {
@@ -151,7 +163,19 @@ const resources = {
       runToView: "运行分析以查看结果。",
       setRoleReason: "请设置 {{role}}。",
       language: "语言",
-      roles: { ...common.roles, variable: "变量", variables: "变量" }
+      roles: {
+        ...common.roles,
+        variable: "变量",
+        variables: "变量",
+        rowVariable: "行变量",
+        colVariable: "列变量",
+        groupVariable: "分组变量",
+        dependentVariable: "因变量",
+        independentVariables: "自变量",
+        variable1: "变量 1",
+        variable2: "变量 2",
+        items: "量表条目"
+      }
     }
   },
   fr: {
@@ -170,7 +194,19 @@ const resources = {
       runToView: "Executez une analyse pour voir les resultats.",
       setRoleReason: "Definissez {{role}}.",
       language: "Langue",
-      roles: { ...common.roles, variable: "Variable", variables: "Variables" }
+      roles: {
+        ...common.roles,
+        variable: "Variable",
+        variables: "Variables",
+        rowVariable: "Variable de ligne",
+        colVariable: "Variable de colonne",
+        groupVariable: "Variable de groupe",
+        dependentVariable: "Variable dependante",
+        independentVariables: "Variables independantes",
+        variable1: "Variable 1",
+        variable2: "Variable 2",
+        items: "Elements d'echelle"
+      }
     }
   },
   ru: {
@@ -189,7 +225,19 @@ const resources = {
       runToView: "Запустите анализ, чтобы увидеть результаты.",
       setRoleReason: "Укажите {{role}}.",
       language: "Язык",
-      roles: { ...common.roles, variable: "Переменная", variables: "Переменные" }
+      roles: {
+        ...common.roles,
+        variable: "Переменная",
+        variables: "Переменные",
+        rowVariable: "Переменная строки",
+        colVariable: "Переменная столбца",
+        groupVariable: "Групповая переменная",
+        dependentVariable: "Зависимая переменная",
+        independentVariables: "Независимые переменные",
+        variable1: "Переменная 1",
+        variable2: "Переменная 2",
+        items: "Элементы шкалы"
+      }
     }
   },
   es: {
@@ -208,7 +256,19 @@ const resources = {
       runToView: "Ejecute un analisis para ver los resultados.",
       setRoleReason: "Defina {{role}}.",
       language: "Idioma",
-      roles: { ...common.roles, variable: "Variable", variables: "Variables" }
+      roles: {
+        ...common.roles,
+        variable: "Variable",
+        variables: "Variables",
+        rowVariable: "Variable de fila",
+        colVariable: "Variable de columna",
+        groupVariable: "Variable de grupo",
+        dependentVariable: "Variable dependiente",
+        independentVariables: "Variables independientes",
+        variable1: "Variable 1",
+        variable2: "Variable 2",
+        items: "Elementos de escala"
+      }
     }
   },
   ko: {
@@ -262,7 +322,19 @@ const resources = {
       optionsRotation: "회전",
       optionsNumberComponents: "컴포넌트 수",
       setRoleReason: "{{role}}을(를) 설정하세요.",
-      roles: { ...common.roles, variable: "변수", variables: "변수들" }
+      roles: {
+        ...common.roles,
+        variable: "변수",
+        variables: "변수들",
+        rowVariable: "행 변수",
+        colVariable: "열 변수",
+        groupVariable: "그룹 변수",
+        dependentVariable: "종속 변수",
+        independentVariables: "독립 변수",
+        variable1: "변수 1",
+        variable2: "변수 2",
+        items: "척도 문항"
+      }
     }
   },
   ja: {
@@ -281,7 +353,19 @@ const resources = {
       runToView: "結果を表示するには分析を実行してください。",
       setRoleReason: "{{role}} を設定してください。",
       language: "言語",
-      roles: { ...common.roles, variable: "変数", variables: "変数" }
+      roles: {
+        ...common.roles,
+        variable: "変数",
+        variables: "変数",
+        rowVariable: "行変数",
+        colVariable: "列変数",
+        groupVariable: "グループ変数",
+        dependentVariable: "従属変数",
+        independentVariables: "独立変数",
+        variable1: "変数 1",
+        variable2: "変数 2",
+        items: "尺度項目"
+      }
     }
   },
   vi: {
@@ -300,7 +384,19 @@ const resources = {
       runToView: "Chay phan tich de xem ket qua.",
       setRoleReason: "Dat {{role}}.",
       language: "Ngon ngu",
-      roles: { ...common.roles, variable: "Bien", variables: "Cac bien" }
+      roles: {
+        ...common.roles,
+        variable: "Bien",
+        variables: "Cac bien",
+        rowVariable: "Bien hang",
+        colVariable: "Bien cot",
+        groupVariable: "Bien nhom",
+        dependentVariable: "Bien phu thuoc",
+        independentVariables: "Bien doc lap",
+        variable1: "Bien 1",
+        variable2: "Bien 2",
+        items: "Muc thang do"
+      }
     }
   }
 };
