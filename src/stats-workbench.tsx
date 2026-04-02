@@ -300,6 +300,7 @@ export function StatsWorkbench({
       >
         <section className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-3 max-[780px]:gap-2">
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[780px]:p-2">
+            <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
             <DatasetPanel
               datasets={datasets}
               selectedDatasetId={selectedDatasetId}
@@ -311,7 +312,6 @@ export function StatsWorkbench({
               fileInputRef={fileInputRef}
               onFileInput={handleFileInput}
             />
-            <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
           </div>
 
           <section className="grid min-h-0 grid-rows-[auto_1fr] gap-3 max-[780px]:gap-2">

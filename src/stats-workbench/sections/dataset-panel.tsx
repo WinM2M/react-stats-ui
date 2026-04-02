@@ -1,4 +1,4 @@
-import { Database, FileSpreadsheet, Trash2, Upload } from "lucide-react";
+import { ChevronDown, Database, FileSpreadsheet, Trash2, Upload } from "lucide-react";
 import * as React from "react";
 import type { Dataset } from "../types";
 import { cn } from "../utils";
@@ -60,22 +60,22 @@ export function DatasetPanel({
   };
 
   return (
-    <section className="relative" ref={popoverRef}>
-      <div className="flex items-center gap-2">
+    <section className="relative ml-auto" ref={popoverRef}>
+      <div className="flex items-center gap-2 justify-end">
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
           className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
         >
           <Database className="h-4 w-4" />
-          Datasets
+          <span className="max-w-[260px] truncate" title={selectedDatasetName}>{selectedDatasetName}</span>
+          <ChevronDown className="h-4 w-4 text-slate-500" />
         </button>
-        <span className="max-w-[220px] truncate text-sm text-slate-600">{selectedDatasetName}</span>
         <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={onFileInput} />
       </div>
 
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+0.5rem)] z-30 w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
           <div className="mb-2 flex items-center justify-between">
             <div className="text-sm font-semibold text-slate-800">Datasets</div>
             <button
