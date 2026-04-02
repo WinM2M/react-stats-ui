@@ -1,10 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useArgs } from "@storybook/preview-api";
 import * as React from "react";
 import { StatsWorkbench } from "./stats-workbench";
 import type { AnalysisPayload } from "./stats-workbench";
 
 type ThemeArgs = {
+  themeMode: "light" | "dark" | "custom";
   backgroundColor: string;
+  backgroundTransparent: boolean;
   textColor: string;
   borderColor: string;
   majorColor: string;
@@ -14,6 +17,40 @@ type ThemeArgs = {
   infoColor: string;
   sectionRounded: boolean;
   layoutMode: "full" | "minimal";
+};
+
+const THEME_KEYS = [
+  "backgroundColor",
+  "textColor",
+  "borderColor",
+  "majorColor",
+  "minorColor",
+  "warningColor",
+  "errorColor",
+  "infoColor"
+] as const;
+
+const THEME_PRESETS: Record<"light" | "dark", Pick<ThemeArgs, (typeof THEME_KEYS)[number]>> = {
+  light: {
+    backgroundColor: "#ffffff",
+    textColor: "#334155",
+    borderColor: "#e2e8f0",
+    majorColor: "#22c55e",
+    minorColor: "#94a3b8",
+    warningColor: "#f59e0b",
+    errorColor: "#dc2626",
+    infoColor: "#0ea5e9"
+  },
+  dark: {
+    backgroundColor: "#0f172a",
+    textColor: "#e2e8f0",
+    borderColor: "#334155",
+    majorColor: "#34d399",
+    minorColor: "#64748b",
+    warningColor: "#fbbf24",
+    errorColor: "#f87171",
+    infoColor: "#38bdf8"
+  }
 };
 
 function createThemeCss(vars: ThemeArgs): string {
@@ -97,7 +134,7 @@ function StoryTemplate(args: ThemeArgs) {
       className="sb-theme-workbench h-screen w-full bg-slate-100 p-4 max-[640px]:p-2"
       data-sections-rounded={String(args.sectionRounded)}
       data-layout-mode={args.layoutMode}
-      style={{ backgroundColor: "#f1f5f9" }}
+      style={{ backgroundColor: args.backgroundTransparent ? "transparent" : args.backgroundColor }}
     >
       <style>{css}</style>
       <StatsWorkbench className="h-full w-full rounded-xl" analysisExecutor={mockAnalysisExecutor} />
@@ -110,7 +147,9 @@ const meta = {
   component: StoryTemplate,
   tags: ["autodocs"],
   args: {
+    themeMode: "light",
     backgroundColor: "#ffffff",
+    backgroundTransparent: false,
     textColor: "#334155",
     borderColor: "#e2e8f0",
     majorColor: "#22c55e",
@@ -122,7 +161,9 @@ const meta = {
     layoutMode: "full"
   },
   argTypes: {
+    themeMode: { control: { type: "inline-radio" }, options: ["light", "dark", "custom"], name: "Theme" },
     backgroundColor: { control: "color", name: "Background" },
+    backgroundTransparent: { control: "boolean", name: "Background Transparent" },
     textColor: { control: "color", name: "Text" },
     borderColor: { control: "color", name: "Border" },
     majorColor: { control: "color", name: "Major" },
@@ -140,5 +181,55 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const InteractiveTheme: Story = {
-  render: (args: ThemeArgs) => <StoryTemplate {...args} />
+  args: {
+    themeMode: "dark",
+    backgroundColor: "#0f172a",
+    textColor: "#e2e8f0",
+    borderColor: "#334155",
+    majorColor: "#34d399",
+    minorColor: "#64748b",
+    warningColor: "#fbbf24",
+    errorColor: "#f87171",
+    infoColor: "#38bdf8"
+  },
+
+  render: function Render(args: ThemeArgs) {
+    const [, updateArgs] = useArgs<ThemeArgs>();
+    const isApplyingPresetRef = React.useRef(false);
+
+    React.useEffect(() => {
+      if (args.themeMode === "custom") {
+        return;
+      }
+
+      const preset = THEME_PRESETS[args.themeMode];
+      const needsUpdate = THEME_KEYS.some((key) => args[key] !== preset[key]);
+      if (!needsUpdate) {
+        return;
+      }
+
+      isApplyingPresetRef.current = true;
+      updateArgs(preset);
+    }, [args.themeMode, args.backgroundColor, args.textColor, args.borderColor, args.majorColor, args.minorColor, args.warningColor, args.errorColor, args.infoColor, updateArgs]);
+
+    React.useEffect(() => {
+      if (args.themeMode === "custom") {
+        return;
+      }
+
+      const preset = THEME_PRESETS[args.themeMode];
+      const diverged = THEME_KEYS.some((key) => args[key] !== preset[key]);
+
+      if (isApplyingPresetRef.current && !diverged) {
+        isApplyingPresetRef.current = false;
+        return;
+      }
+
+      if (!isApplyingPresetRef.current && diverged) {
+        updateArgs({ themeMode: "custom" });
+      }
+    }, [args.themeMode, args.backgroundColor, args.textColor, args.borderColor, args.majorColor, args.minorColor, args.warningColor, args.errorColor, args.infoColor, updateArgs]);
+
+    return <StoryTemplate {...args} />;
+  }
 };
