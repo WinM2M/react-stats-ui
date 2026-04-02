@@ -1,4 +1,5 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { X } from "lucide-react";
 import * as React from "react";
 import { validateForRole } from "../analysis";
 import type { AnalysisDef, AnalysisKind, RoleKey, VariableMeta } from "../types";
@@ -164,14 +165,26 @@ export function VariableAssignmentPanel({
                               <li
                                 key={name}
                                 onClick={() => onSelectAssigned(role.key, name)}
-                                onDoubleClick={() => onRemove(role.key, name)}
                                 className={cn(
-                                  "flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm",
+                                  "group flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm",
                                   selectedAssigned[role.key] === name ? "ring-2 ring-sky-500 border-sky-500" : "hover:border-slate-300 hover:shadow-md"
                                 )}
                               >
                                 {variable ? <RoleTag type={variable.type} /> : null}
                                 <span className="truncate text-sm font-medium text-slate-700">{name}</span>
+                                {selectedAssigned[role.key] === name && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onRemove(role.key, name);
+                                    }}
+                                    className="ml-auto rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                    aria-label={`Remove ${name}`}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                )}
                               </li>
                             );
                           })}
