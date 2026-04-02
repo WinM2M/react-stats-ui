@@ -142,7 +142,7 @@ export function DatasetPanel({
             }}
             onDrop={handleDrop}
           >
-            파일을 여기에 드롭하여 데이터셋을 불러오세요.
+            Drop a file here to load a dataset.
           </div>
         </div>
       ) : null}

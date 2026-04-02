@@ -12,6 +12,8 @@ type ThemeArgs = {
   warningColor: string;
   errorColor: string;
   infoColor: string;
+  sectionRounded: boolean;
+  layoutMode: "full" | "minimal";
 };
 
 function createThemeCss(vars: ThemeArgs): string {
@@ -61,6 +63,13 @@ function createThemeCss(vars: ThemeArgs): string {
   .sb-theme-workbench .bg-sky-100 { background-color: color-mix(in srgb, var(--sb-info) 18%, white) !important; }
   .sb-theme-workbench .text-sky-700 { color: var(--sb-info) !important; }
   .sb-theme-workbench .ring-sky-200 { --tw-ring-color: color-mix(in srgb, var(--sb-info) 30%, white) !important; }
+
+  .sb-theme-workbench[data-sections-rounded="false"] .rounded-xl,
+  .sb-theme-workbench[data-sections-rounded="false"] .rounded-lg,
+  .sb-theme-workbench[data-sections-rounded="false"] .rounded-md,
+  .sb-theme-workbench[data-sections-rounded="false"] .rounded {
+    border-radius: 0 !important;
+  }
 `;
 }
 
@@ -84,7 +93,12 @@ function StoryTemplate(args: ThemeArgs) {
   const css = React.useMemo(() => createThemeCss(args), [args]);
 
   return (
-    <div className="sb-theme-workbench h-screen w-full bg-slate-100 p-4 max-[640px]:p-2" style={{ backgroundColor: "#f1f5f9" }}>
+    <div
+      className="sb-theme-workbench h-screen w-full bg-slate-100 p-4 max-[640px]:p-2"
+      data-sections-rounded={String(args.sectionRounded)}
+      data-layout-mode={args.layoutMode}
+      style={{ backgroundColor: "#f1f5f9" }}
+    >
       <style>{css}</style>
       <StatsWorkbench className="h-full w-full rounded-xl" analysisExecutor={mockAnalysisExecutor} />
     </div>
@@ -103,7 +117,9 @@ const meta = {
     minorColor: "#94a3b8",
     warningColor: "#f59e0b",
     errorColor: "#dc2626",
-    infoColor: "#0ea5e9"
+    infoColor: "#0ea5e9",
+    sectionRounded: true,
+    layoutMode: "full"
   },
   argTypes: {
     backgroundColor: { control: "color", name: "Background" },
@@ -113,7 +129,9 @@ const meta = {
     minorColor: { control: "color", name: "Minor" },
     warningColor: { control: "color", name: "Warning" },
     errorColor: { control: "color", name: "Error" },
-    infoColor: { control: "color", name: "Info" }
+    infoColor: { control: "color", name: "Info" },
+    sectionRounded: { control: "boolean", name: "Rounded Edges" },
+    layoutMode: { control: { type: "inline-radio" }, options: ["full", "minimal"], name: "Section Layout" }
   }
 } satisfies Meta<typeof StoryTemplate>;
 
