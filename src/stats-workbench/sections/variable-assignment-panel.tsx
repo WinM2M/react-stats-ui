@@ -70,39 +70,26 @@ export function VariableAssignmentPanel({
 
   const handleDoubleClick = (variableName: string) => {
     const roles = analysisDef.roles;
-    if (roles.length === 0) return;
+    if (roles.length === 0) {
+      return;
+    }
 
-    const role = roles[0];
-    if (!role.multi) {
-      for (const r of roles) {
-        if (assignments[r.key].length === 0) {
-          onAssign(variableName, r.key);
-          return;
-        }
+    const singleRoles = roles.filter((role) => !role.multi);
+    const multiRoles = roles.filter((role) => role.multi);
+
+    for (const role of singleRoles) {
+      if (assignments[role.key].length === 0) {
+        onAssign(variableName, role.key);
+        return;
       }
-      onAssign(variableName, roles[0].key);
+    }
+
+    if (multiRoles.length > 0) {
+      onAssign(variableName, multiRoles[0].key);
       return;
     }
 
-    if (role.key === "variables" || role.key === "items" || role.key === "independentVariables") {
-      onAssign(variableName, role.key);
-      return;
-    }
-
-    const firstRole = roles[0];
-    if (assignments[firstRole.key].length === 0) {
-      onAssign(variableName, firstRole.key);
-      return;
-    }
-    if (roles[1] && assignments[roles[1].key].length === 0) {
-      onAssign(variableName, roles[1].key);
-      return;
-    }
-    if (roles[1]) {
-      onAssign(variableName, roles[1].key);
-      return;
-    }
-    onAssign(variableName, firstRole.key);
+    onAssign(variableName, singleRoles[singleRoles.length - 1].key);
   };
 
   return (
