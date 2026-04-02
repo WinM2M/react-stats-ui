@@ -101,6 +101,14 @@ function createThemeCss(vars: ThemeArgs): string {
   .sb-theme-workbench .text-sky-700 { color: var(--sb-info) !important; }
   .sb-theme-workbench .ring-sky-200 { --tw-ring-color: color-mix(in srgb, var(--sb-info) 30%, white) !important; }
 
+  .sb-theme-workbench[data-theme-mode="dark"] .text-slate-700 {
+    color: color-mix(in srgb, var(--sb-text) 95%, white) !important;
+  }
+
+  .sb-theme-workbench[data-theme-mode="dark"] .text-slate-600 {
+    color: color-mix(in srgb, var(--sb-text) 88%, white) !important;
+  }
+
   .sb-theme-workbench[data-sections-rounded="false"] .rounded-xl,
   .sb-theme-workbench[data-sections-rounded="false"] .rounded-lg,
   .sb-theme-workbench[data-sections-rounded="false"] .rounded-md,
@@ -126,12 +134,17 @@ async function mockAnalysisExecutor(payload: AnalysisPayload): Promise<unknown> 
   };
 }
 
-function StoryTemplate(args: ThemeArgs) {
+function StoryTemplate({ compactHeight, ...args }: ThemeArgs & { compactHeight: boolean }) {
   const css = React.useMemo(() => createThemeCss(args), [args]);
 
   return (
     <div
-      className="sb-theme-workbench h-screen w-full bg-slate-100 p-4 max-[640px]:p-2"
+      className={
+        compactHeight
+          ? "sb-theme-workbench h-[50vh] min-h-[420px] w-full bg-slate-100 p-4 max-[640px]:p-2"
+          : "sb-theme-workbench h-screen min-h-[760px] w-full bg-slate-100 p-4 max-[640px]:p-2"
+      }
+      data-theme-mode={args.themeMode}
       data-sections-rounded={String(args.sectionRounded)}
       data-layout-mode={args.layoutMode}
       style={{ backgroundColor: args.backgroundTransparent ? "transparent" : args.backgroundColor }}
@@ -161,6 +174,7 @@ const meta = {
     layoutMode: "full"
   },
   argTypes: {
+    layoutMode: { control: { type: "inline-radio" }, options: ["full", "minimal"], name: "Section Layout" },
     themeMode: { control: { type: "inline-radio" }, options: ["light", "dark", "custom"], name: "Theme" },
     backgroundColor: { control: "color", name: "Background" },
     backgroundTransparent: { control: "boolean", name: "Background Transparent" },
@@ -171,8 +185,7 @@ const meta = {
     warningColor: { control: "color", name: "Warning" },
     errorColor: { control: "color", name: "Error" },
     infoColor: { control: "color", name: "Info" },
-    sectionRounded: { control: "boolean", name: "Rounded Edges" },
-    layoutMode: { control: { type: "inline-radio" }, options: ["full", "minimal"], name: "Section Layout" }
+    sectionRounded: { control: "boolean", name: "Rounded Edges" }
   }
 } satisfies Meta<typeof StoryTemplate>;
 
@@ -193,7 +206,7 @@ export const InteractiveTheme: Story = {
     infoColor: "#38bdf8"
   },
 
-  render: function Render(args: ThemeArgs) {
+  render: function Render(args: ThemeArgs, context: { viewMode?: string }) {
     const [, updateArgs] = useArgs<ThemeArgs>();
     const isApplyingPresetRef = React.useRef(false);
 
@@ -230,6 +243,6 @@ export const InteractiveTheme: Story = {
       }
     }, [args.themeMode, args.backgroundColor, args.textColor, args.borderColor, args.majorColor, args.minorColor, args.warningColor, args.errorColor, args.infoColor, updateArgs]);
 
-    return <StoryTemplate {...args} />;
+    return <StoryTemplate {...args} compactHeight={context.viewMode === "docs"} />;
   }
 };
