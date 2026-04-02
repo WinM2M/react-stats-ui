@@ -76,6 +76,7 @@ export function VariableAssignmentPanel({
   const [dragVariable, setDragVariable] = React.useState<string | null>(null);
   const [invalidRole, setInvalidRole] = React.useState<RoleKey | null>(null);
   const [invalidMessage, setInvalidMessage] = React.useState("");
+  const lastTouchTapRef = React.useRef<{ name: string; at: number } | null>(null);
 
   const handleDoubleClick = (variableName: string) => {
     const roles = analysisDef.roles;
@@ -102,8 +103,8 @@ export function VariableAssignmentPanel({
   };
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_2fr] max-[780px]:gap-2">
-      <div className="flex min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
+    <div className="grid h-full min-h-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr] max-[640px]:gap-2">
+      <div className="flex min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
         <div className="mb-2 text-sm font-semibold">Variables</div>
         <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200">
           {availableVariables.length === 0 ? (
@@ -120,6 +121,19 @@ export function VariableAssignmentPanel({
                     setInvalidRole(null);
                   }}
                   onClick={() => onSelectAvailable(variable.name)}
+                  onPointerUp={(event) => {
+                    if (event.pointerType !== "touch" && event.pointerType !== "pen") {
+                      return;
+                    }
+                    const now = Date.now();
+                    const lastTap = lastTouchTapRef.current;
+                    if (lastTap && lastTap.name === variable.name && now - lastTap.at < 320) {
+                      handleDoubleClick(variable.name);
+                      lastTouchTapRef.current = null;
+                      return;
+                    }
+                    lastTouchTapRef.current = { name: variable.name, at: now };
+                  }}
                 >
                   <VariableCard
                     name={variable.name}
@@ -136,13 +150,13 @@ export function VariableAssignmentPanel({
       </div>
 
       <div
-        className="flex min-h-0 flex-col gap-3 lg:grid lg:transition-all lg:duration-300"
+        className="flex min-h-0 flex-col gap-3 sm:grid sm:transition-all sm:duration-300"
         style={{
           gridTemplateColumns: hasOptions ? "minmax(0, 1fr) 320px" : "minmax(0, 1fr) 0px",
           columnGap: hasOptions ? "0.75rem" : "0"
         }}
       >
-        <div className="flex min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
+        <div className="flex min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
           <div className="mb-2 text-sm font-semibold">Role Assignment</div>
           <div className="grid min-h-0 flex-1 auto-rows-fr gap-2">
             {analysisDef.roles.map((role) => {
@@ -176,6 +190,11 @@ export function VariableAssignmentPanel({
                         }
                         onAssign(dragVariable, role.key);
                       }}
+                      onClick={() => {
+                        if (selectedAvailable) {
+                          onAssign(selectedAvailable, role.key);
+                        }
+                      }}
                       className={cn(
                         "flex h-full min-h-0 flex-col rounded-lg border p-2 transition",
                         activeError ? "border-red-500 bg-red-50" : "border-slate-200"
@@ -191,7 +210,10 @@ export function VariableAssignmentPanel({
                               return (
                                 <li
                                   key={name}
-                                  onClick={() => onSelectAssigned(role.key, name)}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSelectAssigned(role.key, name);
+                                  }}
                                   className={cn(
                                     "group flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm",
                                     selectedAssigned[role.key] === name ? "ring-2 ring-sky-500 border-sky-500" : "hover:border-slate-300 hover:shadow-md"

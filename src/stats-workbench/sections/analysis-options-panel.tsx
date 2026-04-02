@@ -12,7 +12,7 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
   const updateOption = (key: string, value: unknown) => onOptionsChange({ ...options, [key]: value });
 
   return (
-    <div className="flex h-full min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[780px]:p-2">
+    <div className="flex h-full min-h-0 select-none flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm max-[640px]:p-2">
       <div className="mb-2 text-sm font-semibold">Options</div>
 
       <div className="min-h-0 flex-1 overflow-auto">
