@@ -1,5 +1,4 @@
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
 import { ANALYSIS_DEFS } from "../constants";
 import type { AnalysisKind } from "../types";
 
@@ -30,15 +29,14 @@ export function AnalysisTypePanel({ analysisType, onChange }: AnalysisTypePanelP
   return (
     <section className="relative" ref={popoverRef}>
       <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-slate-700">Analysis:</span>
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+          className="max-w-[280px] truncate rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-lg font-bold leading-tight text-slate-900 shadow-sm hover:bg-slate-50"
         >
-          Analysis
-          <ChevronDown className="h-4 w-4 text-slate-500" />
+          {selectedLabel}
         </button>
-        <span className="max-w-[280px] truncate text-lg font-bold leading-tight text-slate-900">{selectedLabel}</span>
       </div>
 
       {open ? (
