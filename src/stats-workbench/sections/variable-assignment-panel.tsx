@@ -163,7 +163,7 @@ export function VariableAssignmentPanel({
       <div
         className="flex min-h-0 flex-col gap-3 sm:grid sm:transition-all sm:duration-300"
         style={{
-          gridTemplateColumns: hasOptions ? "minmax(0, 1fr) 320px" : "minmax(0, 1fr) 0px",
+          gridTemplateColumns: hasOptions ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr) 0px",
           columnGap: hasOptions ? "0.75rem" : "0"
         }}
       >
@@ -256,7 +256,7 @@ export function VariableAssignmentPanel({
                                       e.stopPropagation();
                                       onRemove(role.key, name);
                                     }}
-                                    className="ml-auto rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
+                                    className="ml-auto rounded p-1 text-slate-400 opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                                     aria-label={`Remove ${name}`}
                                   >
                                     <X className="h-4 w-4" />

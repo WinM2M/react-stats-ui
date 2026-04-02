@@ -255,20 +255,18 @@ export function ExecutionPanel({
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="text-sm font-semibold">Analysis Result</div>
-          <button
-            type="button"
-            onClick={onRun}
-            disabled={runDisabled}
-            className={
-              minimalChrome
-                ? "rounded p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                : "rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            }
-            aria-label="Run analysis"
-            title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
-          >
-            <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
-          </button>
+          {minimalChrome ? null : (
+            <button
+              type="button"
+              onClick={onRun}
+              disabled={runDisabled}
+              className="rounded border border-slate-300 p-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Run analysis"
+              title={runDisabled ? (isRunning ? "Analysis running" : "Analysis not ready") : "Run analysis"}
+            >
+              <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
+            </button>
+          )}
         </div>
         <div className="relative" ref={moreRef}>
           <div className="flex items-center gap-1">

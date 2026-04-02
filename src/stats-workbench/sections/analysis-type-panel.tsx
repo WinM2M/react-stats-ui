@@ -6,9 +6,10 @@ type AnalysisTypePanelProps = {
   analysisType: AnalysisKind;
   onChange: (next: AnalysisKind) => void;
   showPrefix?: boolean;
+  subtleUnderline?: boolean;
 };
 
-export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true }: AnalysisTypePanelProps) {
+export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, subtleUnderline = false }: AnalysisTypePanelProps) {
   const [open, setOpen] = React.useState(false);
   const popoverRef = React.useRef<HTMLDivElement>(null);
   const selectedLabel = ANALYSIS_DEFS[analysisType].label;
@@ -34,7 +35,9 @@ export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true }:
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="w-80 truncate border-b-2 border-black bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 hover:bg-slate-50"
+          className={`w-80 truncate bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 hover:bg-slate-50 ${
+            subtleUnderline ? "border-b border-slate-300" : "border-b-2 border-black"
+          }`}
         >
           {selectedLabel}
         </button>

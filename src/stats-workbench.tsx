@@ -345,6 +345,7 @@ export function StatsWorkbench({
     previousDatasetIdRef.current = selectedDatasetId;
 
     if (!workerReady || !payloadInfo.canRun) {
+      setShowManualRunAction(false);
       return;
     }
 
@@ -499,11 +500,16 @@ export function StatsWorkbench({
         )}
         style={style}
       >
-        <section className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-3 max-[640px]:gap-2">
+        <section
+          className={cn(
+            "grid h-full min-h-0 grid-rows-[auto_1fr] max-[640px]:gap-2",
+            layoutMode === "minimal" ? "gap-1.5" : "gap-3"
+          )}
+        >
           {layoutMode === "minimal" ? (
             <section className="flex min-h-0 flex-col rounded-xl bg-white shadow-sm">
               <div className="flex select-none items-start justify-between gap-3 p-3 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:p-2">
-                <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} showPrefix={false} />
+                <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} showPrefix={false} subtleUnderline />
                 <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
                   <DatasetPanel
                     datasets={datasets}

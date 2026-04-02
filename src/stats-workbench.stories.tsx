@@ -208,15 +208,15 @@ type Story = StoryObj<typeof meta>;
 
 export const InteractiveTheme: Story = {
   args: {
-    themeMode: "dark",
-    backgroundColor: "#0f172a",
-    textColor: "#e2e8f0",
-    borderColor: "#334155",
-    majorColor: "#34d399",
-    minorColor: "#64748b",
-    warningColor: "#fbbf24",
-    errorColor: "#f87171",
-    infoColor: "#38bdf8"
+    themeMode: "light",
+    backgroundColor: "#ffffff",
+    textColor: "#334155",
+    borderColor: "#e2e8f0",
+    majorColor: "#22c55e",
+    minorColor: "#94a3b8",
+    warningColor: "#f59e0b",
+    errorColor: "#dc2626",
+    infoColor: "#0ea5e9"
   },
 
   render: function Render(args: ThemeArgs, context: { viewMode?: string }) {
