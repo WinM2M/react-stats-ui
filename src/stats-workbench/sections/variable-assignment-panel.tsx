@@ -69,13 +69,40 @@ export function VariableAssignmentPanel({
   const [invalidMessage, setInvalidMessage] = React.useState("");
 
   const handleDoubleClick = (variableName: string) => {
-    for (const role of analysisDef.roles) {
-      if (assignments[role.key].length === 0) {
-        onAssign(variableName, role.key);
-        return;
+    const roles = analysisDef.roles;
+    if (roles.length === 0) return;
+
+    const role = roles[0];
+    if (!role.multi) {
+      for (const r of roles) {
+        if (assignments[r.key].length === 0) {
+          onAssign(variableName, r.key);
+          return;
+        }
       }
+      onAssign(variableName, roles[0].key);
+      return;
     }
-    onAssign(variableName, analysisDef.roles[0].key);
+
+    if (role.key === "variables" || role.key === "items" || role.key === "independentVariables") {
+      onAssign(variableName, role.key);
+      return;
+    }
+
+    const firstRole = roles[0];
+    if (assignments[firstRole.key].length === 0) {
+      onAssign(variableName, firstRole.key);
+      return;
+    }
+    if (roles[1] && assignments[roles[1].key].length === 0) {
+      onAssign(variableName, roles[1].key);
+      return;
+    }
+    if (roles[1]) {
+      onAssign(variableName, roles[1].key);
+      return;
+    }
+    onAssign(variableName, firstRole.key);
   };
 
   return (
@@ -151,9 +178,6 @@ export function VariableAssignmentPanel({
                       activeError ? "border-red-500 bg-red-50" : "border-slate-200"
                     )}
                   >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-slate-700">{role.label}</span>
-                    </div>
                     <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1">
                       {assignments[role.key].length === 0 ? (
                         <div className="px-2 py-3 text-xs text-slate-500">Drop variable here</div>
