@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@winm2m/react-stats-ui.svg)](https://www.npmjs.com/package/@winm2m/react-stats-ui)
 [![license](https://img.shields.io/npm/l/@winm2m/react-stats-ui.svg)](./LICENSE)
-[![CI](https://github.com/WinM2M/react-stats-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/WinM2M/react-stats-ui/actions/workflows/ci.yml)
+[![CI](https://github.com/WinM2M/react-stats-ui/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/WinM2M/react-stats-ui/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
 
 React UI component for browser-based inferential statistics workflows, powered by `@winm2m/inferential-stats-js`.
