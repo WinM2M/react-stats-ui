@@ -12,6 +12,7 @@ export const jaHelpLocale = createBaseLocale({
     interpretation: "結果の解釈ガイド",
     faq: "FAQ",
     references: "参考リンク",
+    apaExample: "例",
     noOptions: "この分析手法は現在のUIで設定可能なオプションがありません。"
   }
 });

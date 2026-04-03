@@ -12,6 +12,7 @@ export const zhHelpLocale = createBaseLocale({
     interpretation: "结果解读指南",
     faq: "常见问题",
     references: "参考链接",
+    apaExample: "示例",
     noOptions: "该分析方法在当前界面中没有可配置选项。"
   }
 });

@@ -12,6 +12,7 @@ export const esHelpLocale = createBaseLocale({
     interpretation: "Guia de interpretacion",
     faq: "Preguntas frecuentes",
     references: "Enlaces de referencia",
+    apaExample: "Ejemplo",
     noOptions: "Este metodo no tiene opciones configurables en la interfaz actual."
   }
 });

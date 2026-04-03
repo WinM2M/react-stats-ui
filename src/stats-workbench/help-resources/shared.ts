@@ -29,7 +29,13 @@ type AnalysisSpec = {
   label: string;
   summary: string;
   purposeKey: string;
-  formula: string;
+  wikipediaTitle: string;
+  formulaLatex: string;
+  apaExample: {
+    title: string;
+    columns: string[];
+    rows: Array<Record<string, string>>;
+  };
   dataTypes: Array<"continuous" | "categorical" | "mixed">;
   dataShapes: Array<"single" | "multi" | "paired" | "grouped" | "matrix" | "crossTable" | "items">;
   optionKeys: string[];
@@ -42,7 +48,17 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Frequencies",
     summary: "counts and proportions of categories",
     purposeKey: "distribution",
-    formula: "p_i = n_i / N",
+    wikipediaTitle: "Frequency_(statistics)",
+    formulaLatex: "f_i=\\frac{n_i}{N}",
+    apaExample: {
+      title: "Frequencies",
+      columns: ["Category", "n", "%", "Cumulative %"],
+      rows: [
+        { Category: "Agree", n: "42", "%": "52.5", "Cumulative %": "52.5" },
+        { Category: "Neutral", n: "24", "%": "30.0", "Cumulative %": "82.5" },
+        { Category: "Disagree", n: "14", "%": "17.5", "Cumulative %": "100.0" }
+      ]
+    },
     dataTypes: ["categorical"],
     dataShapes: ["single"],
     optionKeys: [],
@@ -56,7 +72,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Descriptives",
     summary: "central tendency and variability",
     purposeKey: "summarize",
-    formula: "mean = (sum x_i) / n",
+    wikipediaTitle: "Descriptive_statistics",
+    formulaLatex: "\\bar{x}=\\frac{1}{N}\\sum_{i=1}^{N}x_i",
+    apaExample: {
+      title: "Descriptive Statistics",
+      columns: ["Variable", "N", "M", "SD", "Min", "Max"],
+      rows: [
+        { Variable: "Score", N: "120", M: "73.42", SD: "8.11", Min: "51", Max: "92" },
+        { Variable: "Hours", N: "120", M: "5.37", SD: "1.44", Min: "2", Max: "9" }
+      ]
+    },
     dataTypes: ["continuous"],
     dataShapes: ["multi"],
     optionKeys: [],
@@ -70,7 +95,13 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Crosstabs",
     summary: "association patterns between two categorical variables",
     purposeKey: "association",
-    formula: "chi2 = sum((O_ij - E_ij)^2 / E_ij)",
+    wikipediaTitle: "Contingency_table",
+    formulaLatex: "\\chi^2=\\sum\\frac{(O_{ij}-E_{ij})^2}{E_{ij}}",
+    apaExample: {
+      title: "Chi-Square Test of Independence",
+      columns: ["Statistic", "Value", "df", "p"],
+      rows: [{ Statistic: "Pearson Chi-Square", Value: "9.84", df: "2", p: ".007" }]
+    },
     dataTypes: ["categorical"],
     dataShapes: ["crossTable"],
     optionKeys: [],
@@ -84,7 +115,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Independent-Samples T-Test",
     summary: "mean difference between two independent groups",
     purposeKey: "compareMeans",
-    formula: "t = (x1_bar - x2_bar) / SE",
+    wikipediaTitle: "Student%27s_t-test",
+    formulaLatex: "t=\\frac{\\bar{X}_1-\\bar{X}_2}{S_p\\sqrt{\\frac{1}{n_1}+\\frac{1}{n_2}}}",
+    apaExample: {
+      title: "Independent Samples t Test",
+      columns: ["Group", "N", "M", "SD", "t", "df", "p"],
+      rows: [
+        { Group: "Control", N: "45", M: "68.20", SD: "9.10", t: "2.31", df: "88", p: ".023" },
+        { Group: "Treatment", N: "45", M: "72.85", SD: "9.95", t: "2.31", df: "88", p: ".023" }
+      ]
+    },
     dataTypes: ["continuous", "categorical"],
     dataShapes: ["grouped"],
     optionKeys: ["equalVariance", "group1Value", "group2Value"],
@@ -98,7 +138,13 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Paired-Samples T-Test",
     summary: "mean difference within matched pairs",
     purposeKey: "pairedDifference",
-    formula: "t = d_bar / (s_d / sqrt(n))",
+    wikipediaTitle: "Paired_difference_test",
+    formulaLatex: "t=\\frac{\\bar{D}}{S_D/\\sqrt{n}}",
+    apaExample: {
+      title: "Paired Samples t Test",
+      columns: ["Pair", "M Difference", "SD", "t", "df", "p"],
+      rows: [{ Pair: "Pre - Post", "M Difference": "-4.20", SD: "6.11", t: "-3.54", df: "39", p: ".001" }]
+    },
     dataTypes: ["continuous"],
     dataShapes: ["paired"],
     optionKeys: [],
@@ -112,7 +158,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "One-Way ANOVA",
     summary: "mean differences across three or more groups",
     purposeKey: "compareManyMeans",
-    formula: "F = MS_between / MS_within",
+    wikipediaTitle: "Analysis_of_variance",
+    formulaLatex: "F=\\frac{MS_{between}}{MS_{within}}",
+    apaExample: {
+      title: "One-Way ANOVA",
+      columns: ["Source", "SS", "df", "MS", "F", "p"],
+      rows: [
+        { Source: "Between Groups", SS: "412.83", df: "2", MS: "206.42", F: "5.67", p: ".004" },
+        { Source: "Within Groups", SS: "3204.11", df: "88", MS: "36.41", F: "", p: "" }
+      ]
+    },
     dataTypes: ["continuous", "categorical"],
     dataShapes: ["grouped"],
     optionKeys: [],
@@ -126,7 +181,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Post-hoc Tukey HSD",
     summary: "which group pairs differ after ANOVA",
     purposeKey: "posthoc",
-    formula: "q = (x_i_bar - x_j_bar) / SE",
+    wikipediaTitle: "Tukey%27s_range_test",
+    formulaLatex: "q=\\frac{\\bar{X}_i-\\bar{X}_j}{\\sqrt{MS_W/n}}",
+    apaExample: {
+      title: "Tukey HSD Pairwise Comparisons",
+      columns: ["Comparison", "Mean Difference", "95% CI", "p adj"],
+      rows: [
+        { Comparison: "A - B", "Mean Difference": "2.91", "95% CI": "[0.58, 5.24]", "p adj": ".011" },
+        { Comparison: "A - C", "Mean Difference": "1.04", "95% CI": "[-1.19, 3.27]", "p adj": ".522" }
+      ]
+    },
     dataTypes: ["continuous", "categorical"],
     dataShapes: ["grouped"],
     optionKeys: ["alpha"],
@@ -140,7 +204,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Linear Regression (OLS)",
     summary: "linear relationship between predictors and an outcome",
     purposeKey: "regression",
-    formula: "y = beta0 + beta1*x1 + ... + epsilon",
+    wikipediaTitle: "Linear_regression",
+    formulaLatex: "Y=\\beta_0+\\beta_1X_1+\\cdots+\\beta_pX_p+\\epsilon",
+    apaExample: {
+      title: "Linear Regression Coefficients",
+      columns: ["Predictor", "B", "SE", "t", "p", "95% CI"],
+      rows: [
+        { Predictor: "Intercept", B: "21.34", SE: "4.12", t: "5.18", p: "< .001", "95% CI": "[13.16, 29.52]" },
+        { Predictor: "StudyHours", B: "3.02", SE: "0.64", t: "4.72", p: "< .001", "95% CI": "[1.75, 4.29]" }
+      ]
+    },
     dataTypes: ["continuous", "mixed"],
     dataShapes: ["multi"],
     optionKeys: ["addConstant"],
@@ -154,7 +227,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Binary Logistic Regression",
     summary: "probability of a binary outcome",
     purposeKey: "classification",
-    formula: "log(p/(1-p)) = beta0 + beta1*x1 + ...",
+    wikipediaTitle: "Logistic_regression",
+    formulaLatex: "\\ln\\left(\\frac{p}{1-p}\\right)=\\beta_0+\\beta_1X_1+\\cdots+\\beta_pX_p",
+    apaExample: {
+      title: "Binary Logistic Regression",
+      columns: ["Predictor", "B", "SE", "OR", "z", "p"],
+      rows: [
+        { Predictor: "Age", B: "0.08", SE: "0.03", OR: "1.08", z: "2.67", p: ".008" },
+        { Predictor: "Income", B: "0.41", SE: "0.15", OR: "1.50", z: "2.73", p: ".006" }
+      ]
+    },
     dataTypes: ["mixed"],
     dataShapes: ["multi"],
     optionKeys: ["addConstant"],
@@ -168,7 +250,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Multinomial Logistic Regression",
     summary: "probabilities across multiple outcome categories",
     purposeKey: "multiclass",
-    formula: "log(P(y=k)/P(y=ref)) = beta_k0 + beta_k*x",
+    wikipediaTitle: "Multinomial_logistic_regression",
+    formulaLatex: "\\ln\\left(\\frac{P(Y=k)}{P(Y=K)}\\right)=\\beta_{k0}+\\beta_{k1}X_1+\\cdots+\\beta_{kp}X_p",
+    apaExample: {
+      title: "Multinomial Logistic Regression",
+      columns: ["Outcome (vs Ref)", "Predictor", "B", "SE", "OR", "p"],
+      rows: [
+        { "Outcome (vs Ref)": "Class A", Predictor: "Score", B: "0.25", SE: "0.09", OR: "1.28", p: ".005" },
+        { "Outcome (vs Ref)": "Class B", Predictor: "Score", B: "-0.13", SE: "0.07", OR: "0.88", p: ".061" }
+      ]
+    },
     dataTypes: ["mixed"],
     dataShapes: ["multi"],
     optionKeys: ["referenceCategory"],
@@ -185,7 +276,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "K-Means Clustering",
     summary: "partitions observations into K clusters",
     purposeKey: "clustering",
-    formula: "arg min sum(||x - mu_k||^2)",
+    wikipediaTitle: "K-means_clustering",
+    formulaLatex: "J=\\sum_{j=1}^{K}\\sum_{i\\in C_j}\\|x_i-\\mu_j\\|^2",
+    apaExample: {
+      title: "K-Means Cluster Summary",
+      columns: ["Cluster", "n", "Centroid 1", "Centroid 2", "Within SS"],
+      rows: [
+        { Cluster: "1", n: "34", "Centroid 1": "0.82", "Centroid 2": "-0.14", "Within SS": "41.2" },
+        { Cluster: "2", n: "29", "Centroid 1": "-0.43", "Centroid 2": "0.91", "Within SS": "37.8" }
+      ]
+    },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
     optionKeys: ["k"],
@@ -199,7 +299,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Hierarchical Clustering",
     summary: "nested cluster tree from pairwise distances",
     purposeKey: "hierarchical",
-    formula: "d(A,B) = linkage(distance matrix)",
+    wikipediaTitle: "Hierarchical_clustering",
+    formulaLatex: "\\Delta(A,B)=\\frac{n_An_B}{n_A+n_B}\\|\\bar{x}_A-\\bar{x}_B\\|^2",
+    apaExample: {
+      title: "Hierarchical Clustering Solution",
+      columns: ["Cluster", "n", "Average Distance", "Silhouette"],
+      rows: [
+        { Cluster: "1", n: "31", "Average Distance": "1.44", Silhouette: "0.46" },
+        { Cluster: "2", n: "33", "Average Distance": "1.31", Silhouette: "0.49" }
+      ]
+    },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
     optionKeys: ["method", "metric"],
@@ -213,7 +322,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Exploratory Factor Analysis",
     summary: "latent factors that explain covariance",
     purposeKey: "latentStructure",
-    formula: "x = Lambda*f + epsilon",
+    wikipediaTitle: "Factor_analysis",
+    formulaLatex: "X=\\Lambda F+\\epsilon",
+    apaExample: {
+      title: "Exploratory Factor Loadings",
+      columns: ["Item", "Factor 1", "Factor 2", "Communality"],
+      rows: [
+        { Item: "Q1", "Factor 1": "0.78", "Factor 2": "0.12", Communality: "0.63" },
+        { Item: "Q2", "Factor 1": "0.09", "Factor 2": "0.71", Communality: "0.57" }
+      ]
+    },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
     optionKeys: ["nFactors", "rotation"],
@@ -227,7 +345,16 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Principal Component Analysis",
     summary: "orthogonal components with maximum variance",
     purposeKey: "dimensionReduction",
-    formula: "Z = X * W",
+    wikipediaTitle: "Principal_component_analysis",
+    formulaLatex: "\\mathrm{EVR}_k=\\frac{\\lambda_k}{\\sum_{i=1}^{p}\\lambda_i}",
+    apaExample: {
+      title: "PCA Explained Variance",
+      columns: ["Component", "Eigenvalue", "% Variance", "Cumulative %"],
+      rows: [
+        { Component: "1", Eigenvalue: "3.11", "% Variance": "38.9", "Cumulative %": "38.9" },
+        { Component: "2", Eigenvalue: "1.88", "% Variance": "23.5", "Cumulative %": "62.4" }
+      ]
+    },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
     optionKeys: ["nComponents"],
@@ -241,7 +368,13 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Multidimensional Scaling",
     summary: "low-dimensional embedding from distances",
     purposeKey: "distanceMap",
-    formula: "arg min stress(D, d(X))",
+    wikipediaTitle: "Multidimensional_scaling",
+    formulaLatex: "\\sigma=\\sqrt{\\frac{\\sum_{i<j}(d_{ij}-\\delta_{ij})^2}{\\sum_{i<j}d_{ij}^2}}",
+    apaExample: {
+      title: "MDS Fit Statistics",
+      columns: ["Dimensions", "Stress-1", "RSQ", "Iterations"],
+      rows: [{ Dimensions: "2", "Stress-1": "0.083", RSQ: "0.94", Iterations: "119" }]
+    },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
     optionKeys: ["nComponents"],
@@ -255,7 +388,13 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     label: "Cronbach Alpha",
     summary: "internal consistency of scale items",
     purposeKey: "reliability",
-    formula: "alpha = (k/(k-1)) * (1 - sum(s_i^2)/s_total^2)",
+    wikipediaTitle: "Cronbach%27s_alpha",
+    formulaLatex: "\\alpha=\\frac{K}{K-1}\\left(1-\\frac{\\sum_{i=1}^{K}\\sigma_{Y_i}^2}{\\sigma_X^2}\\right)",
+    apaExample: {
+      title: "Reliability Statistics",
+      columns: ["Scale", "Items", "Cronbach's alpha", "95% CI"],
+      rows: [{ Scale: "Satisfaction", Items: "8", "Cronbach's alpha": "0.86", "95% CI": "[0.81, 0.90]" }]
+    },
     dataTypes: ["continuous", "categorical"],
     dataShapes: ["items"],
     optionKeys: [],
@@ -267,34 +406,10 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
   }
 };
 
-function escapeXml(text: string): string {
-  return text
-    .split("&")
-    .join("&amp;")
-    .split("<")
-    .join("&lt;")
-    .split(">")
-    .join("&gt;")
-    .split('"')
-    .join("&quot;")
-    .split("'")
-    .join("&apos;");
-}
-
-function buildFormulaSvg(label: string, formula: string): string {
-  const title = `${label} formula`;
-  const escapedTitle = escapeXml(title);
-  const escapedFormula = escapeXml(formula);
-
-  return [
-    "<svg xmlns='http://www.w3.org/2000/svg' width='720' height='120' viewBox='0 0 720 120' role='img' aria-labelledby='formulaTitle formulaText'>",
-    `<title id='formulaTitle'>${escapedTitle}</title>`,
-    "<rect x='1' y='1' width='718' height='118' rx='12' fill='#f8fafc' stroke='#cbd5e1'/>",
-    "<text id='formulaText' x='24' y='74' font-family='ui-monospace, SFMono-Regular, Menlo, monospace' font-size='24' fill='#0f172a'>",
-    escapedFormula,
-    "</text>",
-    "</svg>"
-  ].join("");
+function buildFormulaSvgUrl(formulaLatex: string): string {
+  const expression = `\\dpi{170}\\bg_white ${formulaLatex}`;
+  const encoded = encodeURIComponent(expression);
+  return `https://latex.codecogs.com/svg.image?${encoded}`;
 }
 
 export function buildAnalysisHelpResource(localePack: LocalePack): AnalysisHelpResource {
@@ -315,7 +430,9 @@ export function buildAnalysisHelpResource(localePack: LocalePack): AnalysisHelpR
       purpose: localePack.templates.purpose(localePack.purpose[spec.purposeKey] ?? spec.purposeKey),
       formulaTitle: `${spec.label} Formula`,
       formulaAlt: `${spec.label} key formula`,
-      formulaSvg: buildFormulaSvg(spec.label, spec.formula),
+      formulaSvgUrl: buildFormulaSvgUrl(spec.formulaLatex),
+      wikipediaTitle: spec.wikipediaTitle,
+      apaExample: spec.apaExample,
       dataTypes: [...dataTypeLines, ...dataShapeLines],
       options,
       interpretation,

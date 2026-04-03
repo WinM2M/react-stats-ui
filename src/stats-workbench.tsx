@@ -718,6 +718,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   return (
     <Tooltip.Provider delayDuration={80}>
       <div
+        data-stats-workbench-root="true"
         className={cn(
           "relative h-full w-full overflow-hidden text-slate-900",
           className

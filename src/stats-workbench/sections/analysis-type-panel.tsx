@@ -24,6 +24,7 @@ export function AnalysisTypePanel({
   const { t, i18n } = useTranslation();
   const [openList, setOpenList] = React.useState(false);
   const [openHelp, setOpenHelp] = React.useState(false);
+  const [helpMaxHeight, setHelpMaxHeight] = React.useState<number | null>(null);
   const popoverRef = React.useRef<HTMLDivElement>(null);
   const helpUi = React.useMemo(() => getAnalysisHelpUi(i18n.language), [i18n.language]);
   const selectedLabel = t(`analysisKinds.${analysisType}`, { defaultValue: ANALYSIS_DEFS[analysisType].label });
@@ -42,6 +43,34 @@ export function AnalysisTypePanel({
 
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [openList, openHelp]);
+
+  React.useEffect(() => {
+    if (!openHelp) {
+      return;
+    }
+
+    const updateMaxHeight = () => {
+      const anchor = popoverRef.current;
+      if (!anchor) {
+        return;
+      }
+
+      const root = anchor.closest('[data-stats-workbench-root="true"]') as HTMLElement | null;
+      if (!root) {
+        setHelpMaxHeight(null);
+        return;
+      }
+
+      const rootRect = root.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+      const spaceBelow = rootRect.bottom - (anchorRect.bottom + 8);
+      setHelpMaxHeight(Math.max(0, Math.floor(spaceBelow)));
+    };
+
+    updateMaxHeight();
+    window.addEventListener("resize", updateMaxHeight);
+    return () => window.removeEventListener("resize", updateMaxHeight);
+  }, [openHelp]);
 
   return (
     <section className="relative" ref={popoverRef}>
@@ -111,7 +140,12 @@ export function AnalysisTypePanel({
       ) : null}
 
       {openHelp && showHelpButton ? (
-        <AnalysisHelpPopover analysisType={analysisType} language={i18n.language} onClose={() => setOpenHelp(false)} />
+        <AnalysisHelpPopover
+          analysisType={analysisType}
+          language={i18n.language}
+          onClose={() => setOpenHelp(false)}
+          maxHeight={helpMaxHeight}
+        />
       ) : null}
     </section>
   );

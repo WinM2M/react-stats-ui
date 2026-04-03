@@ -15,12 +15,20 @@ export type HelpFaq = {
   answer: string;
 };
 
+export type HelpApaExample = {
+  title: string;
+  columns: string[];
+  rows: Array<Record<string, string>>;
+};
+
 export type AnalysisHelpContent = {
   overview: string;
   purpose: string;
   formulaTitle: string;
   formulaAlt: string;
-  formulaSvg: string;
+  formulaSvgUrl: string;
+  wikipediaTitle: string;
+  apaExample: HelpApaExample;
   dataTypes: string[];
   options: HelpOption[];
   interpretation: string[];
@@ -34,11 +42,16 @@ export type HelpUiText = {
   close: string;
   overview: string;
   purpose: string;
+  wikipediaDefinition: string;
+  wikipediaSourcePrefix: string;
+  wikipediaLoading: string;
+  wikipediaUnavailable: string;
   dataTypes: string;
   options: string;
   interpretation: string;
   faq: string;
   references: string;
+  apaExample: string;
   noOptions: string;
 };
 

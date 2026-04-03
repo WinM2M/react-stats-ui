@@ -12,6 +12,7 @@ export const viHelpLocale = createBaseLocale({
     interpretation: "Huong dan dien giai",
     faq: "FAQ",
     references: "Lien ket tham khao",
+    apaExample: "Vi du",
     noOptions: "Phuong phap nay khong co tuy chon cau hinh trong giao dien hien tai."
   }
 });

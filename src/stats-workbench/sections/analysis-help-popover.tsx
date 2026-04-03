@@ -1,24 +1,72 @@
 import * as React from "react";
 import type { AnalysisKind } from "../types";
 import { getAnalysisHelp, getAnalysisHelpUi } from "../help-resources";
+import { fetchWikipediaSummary } from "../help-resources/wikipedia";
 
 type AnalysisHelpPopoverProps = {
   analysisType: AnalysisKind;
   language: string;
   onClose: () => void;
+  maxHeight?: number | null;
 };
 
-export function AnalysisHelpPopover({ analysisType, language, onClose }: AnalysisHelpPopoverProps) {
+export function AnalysisHelpPopover({ analysisType, language, onClose, maxHeight = null }: AnalysisHelpPopoverProps) {
   const ui = React.useMemo(() => getAnalysisHelpUi(language), [language]);
   const content = React.useMemo(() => getAnalysisHelp(language, analysisType), [language, analysisType]);
-  const formulaDataUri = React.useMemo(
-    () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(content.formulaSvg)}`,
-    [content.formulaSvg]
-  );
+  const [wikiState, setWikiState] = React.useState<{
+    loading: boolean;
+    extract: string;
+    description: string;
+    title: string;
+    pageUrl: string;
+  }>({
+    loading: true,
+    extract: "",
+    description: "",
+    title: "",
+    pageUrl: ""
+  });
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setWikiState({ loading: true, extract: "", description: "", title: "", pageUrl: "" });
+
+    void fetchWikipediaSummary(language, content.wikipediaTitle)
+      .then((summary) => {
+        if (cancelled) {
+          return;
+        }
+        if (!summary) {
+          setWikiState({ loading: false, extract: "", description: "", title: "", pageUrl: "" });
+          return;
+        }
+
+        setWikiState({
+          loading: false,
+          extract: summary.extract,
+          description: summary.description ?? "",
+          title: summary.title,
+          pageUrl: summary.pageUrl
+        });
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setWikiState({ loading: false, extract: "", description: "", title: "", pageUrl: "" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [language, content.wikipediaTitle]);
 
   return (
-    <div className="absolute left-0 top-[calc(100%+0.5rem)] z-30 w-[min(760px,96vw)] rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
-      <div className="max-h-[70vh] overflow-auto pr-1">
+    <div
+      className="absolute left-0 top-[calc(100%+0.5rem)] z-30 w-[min(760px,96vw)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-lg"
+      style={maxHeight !== null ? { maxHeight: `${maxHeight}px` } : { maxHeight: "70vh" }}
+    >
+      <div className="pr-1">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-slate-800">{ui.popoverTitle}</h3>
           <button type="button" onClick={onClose} className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100">
@@ -26,19 +74,25 @@ export function AnalysisHelpPopover({ analysisType, language, onClose }: Analysi
           </button>
         </div>
 
-        <section className="mb-4">
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{ui.overview}</div>
-          <p className="text-sm text-slate-700">{content.overview}</p>
-        </section>
-
-        <section className="mb-4">
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{ui.purpose}</div>
-          <p className="text-sm text-slate-700">{content.purpose}</p>
+        <section className="mb-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+          {wikiState.loading ? <p className="text-sm text-slate-700">{ui.wikipediaLoading}</p> : null}
+          {!wikiState.loading && wikiState.extract ? <p className="text-sm text-slate-700">{wikiState.extract}</p> : null}
+          {!wikiState.loading && !wikiState.extract ? <p className="text-sm text-slate-700">{ui.wikipediaUnavailable}</p> : null}
+          {!wikiState.loading && wikiState.pageUrl ? (
+            <p className="mt-1 text-xs text-slate-600">
+              {ui.wikipediaSourcePrefix}: 
+              <a href={wikiState.pageUrl} target="_blank" rel="noreferrer" className="text-sky-700 underline hover:text-sky-800">
+                Wikipedia ({wikiState.title || "Wikipedia"})
+              </a>
+            </p>
+          ) : null}
         </section>
 
         <section className="mb-4">
           <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{content.formulaTitle}</div>
-          <img src={formulaDataUri} alt={content.formulaAlt} className="w-full rounded-lg border border-slate-200" />
+          <div className="inline-flex max-w-full items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1">
+            <img src={content.formulaSvgUrl} alt={content.formulaAlt} className="h-[3.75rem] w-auto max-w-full" />
+          </div>
         </section>
 
         <section className="mb-4">
@@ -63,6 +117,35 @@ export function AnalysisHelpPopover({ analysisType, language, onClose }: Analysi
           ) : (
             <p className="text-sm text-slate-700">{ui.noOptions}</p>
           )}
+        </section>
+
+        <section className="mb-4">
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{ui.apaExample}</div>
+          <div className="mb-1 text-xs italic text-slate-600">{content.apaExample.title}</div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs text-slate-700">
+              <thead className="border-b border-t border-slate-900">
+                <tr>
+                  {content.apaExample.columns.map((column) => (
+                    <th key={column} className="px-2 py-2 font-semibold">
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="border-b border-slate-900">
+                {content.apaExample.rows.map((row, rowIndex) => (
+                  <tr key={`${content.apaExample.title}-${rowIndex}`}>
+                    {content.apaExample.columns.map((column) => (
+                      <td key={`${column}-${rowIndex}`} className="px-2 py-1.5 align-top">
+                        {row[column] ?? ""}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="mb-4">

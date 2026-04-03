@@ -12,6 +12,7 @@ export const ruHelpLocale = createBaseLocale({
     interpretation: "Как интерпретировать результат",
     faq: "FAQ",
     references: "Ссылки",
+    apaExample: "Пример",
     noOptions: "Для этого метода в текущем интерфейсе нет настраиваемых параметров."
   }
 });

@@ -7,11 +7,16 @@ export const koHelpLocale = createBaseLocale({
     close: "닫기",
     overview: "개요",
     purpose: "목적",
+    wikipediaDefinition: "위키피디아 정의",
+    wikipediaSourcePrefix: "출처",
+    wikipediaLoading: "위키피디아 정의를 불러오는 중...",
+    wikipediaUnavailable: "위키피디아 정의를 불러올 수 없습니다.",
     dataTypes: "데이터 유형 및 형태",
     options: "옵션",
     interpretation: "결과 해석 가이드",
     faq: "자주 묻는 질문",
     references: "참고 링크",
+    apaExample: "예제",
     noOptions: "이 분석은 현재 UI에서 설정 가능한 옵션이 없습니다."
   },
   templates: {

@@ -12,6 +12,7 @@ export const arHelpLocale = createBaseLocale({
     interpretation: "دليل تفسير النتائج",
     faq: "الاسئلة الشائعة",
     references: "روابط مرجعية",
+    apaExample: "مثال",
     noOptions: "لا توجد خيارات قابلة للضبط لهذه الطريقة في الواجهة الحالية."
   }
 });

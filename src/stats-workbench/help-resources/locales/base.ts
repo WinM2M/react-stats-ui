@@ -1,6 +1,8 @@
 import type { LocalePack } from "../shared";
+import type { HelpUiText } from "../types";
 
-type LocaleOverride = Partial<Omit<LocalePack, "templates">> & {
+type LocaleOverride = Partial<Omit<LocalePack, "templates" | "ui">> & {
+  ui?: Partial<HelpUiText>;
   templates?: Partial<Omit<LocalePack["templates"], "faq" | "dataType" | "dataShape">> & {
     faq?: Partial<LocalePack["templates"]["faq"]>;
     dataType?: Partial<LocalePack["templates"]["dataType"]>;
@@ -16,11 +18,16 @@ export function createBaseLocale(overrides: LocaleOverride = {}): LocalePack {
       close: "Close",
       overview: "Overview",
       purpose: "Purpose",
+      wikipediaDefinition: "Wikipedia Definition",
+      wikipediaSourcePrefix: "Source",
+      wikipediaLoading: "Loading definition from Wikipedia...",
+      wikipediaUnavailable: "Wikipedia definition is temporarily unavailable.",
       dataTypes: "Data Types and Shape",
       options: "Options",
       interpretation: "Interpretation Guide",
       faq: "FAQ",
       references: "References",
+      apaExample: "EXAMPLE",
       noOptions: "This method has no configurable options in this UI."
     },
     templates: {
