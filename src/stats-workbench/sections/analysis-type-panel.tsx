@@ -1,6 +1,9 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { CircleHelp } from "lucide-react";
 import { ANALYSIS_DEFS, ANALYSIS_GROUPS } from "../constants";
+import { getAnalysisHelpUi } from "../help-resources";
+import { AnalysisHelpPopover } from "./analysis-help-popover";
 import type { AnalysisKind } from "../types";
 
 type AnalysisTypePanelProps = {
@@ -8,27 +11,37 @@ type AnalysisTypePanelProps = {
   onChange: (next: AnalysisKind) => void;
   showPrefix?: boolean;
   subtleUnderline?: boolean;
+  showHelpButton?: boolean;
 };
 
-export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, subtleUnderline = false }: AnalysisTypePanelProps) {
-  const { t } = useTranslation();
-  const [open, setOpen] = React.useState(false);
+export function AnalysisTypePanel({
+  analysisType,
+  onChange,
+  showPrefix = true,
+  subtleUnderline = false,
+  showHelpButton = true
+}: AnalysisTypePanelProps) {
+  const { t, i18n } = useTranslation();
+  const [openList, setOpenList] = React.useState(false);
+  const [openHelp, setOpenHelp] = React.useState(false);
   const popoverRef = React.useRef<HTMLDivElement>(null);
+  const helpUi = React.useMemo(() => getAnalysisHelpUi(i18n.language), [i18n.language]);
   const selectedLabel = t(`analysisKinds.${analysisType}`, { defaultValue: ANALYSIS_DEFS[analysisType].label });
 
   React.useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
       if (!popoverRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+        setOpenList(false);
+        setOpenHelp(false);
       }
     };
 
-    if (open) {
+    if (openList || openHelp) {
       document.addEventListener("mousedown", onPointerDown);
     }
 
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [open]);
+  }, [openList, openHelp]);
 
   return (
     <section className="relative" ref={popoverRef}>
@@ -36,16 +49,33 @@ export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, s
         {showPrefix ? <span className="relative -top-0.5 text-sm font-semibold text-slate-700">{t("analysis")}:</span> : null}
         <button
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() => {
+            setOpenList((prev) => !prev);
+            setOpenHelp(false);
+          }}
           className={`w-80 truncate bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 hover:bg-slate-50 ${
             subtleUnderline ? "border-b border-slate-300" : "border-b-2 border-black"
           }`}
         >
           {selectedLabel}
         </button>
+        {showHelpButton ? (
+          <button
+            type="button"
+            onClick={() => {
+              setOpenHelp((prev) => !prev);
+              setOpenList(false);
+            }}
+            className="rounded-full p-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            aria-label={helpUi.helpButtonAria}
+            title={helpUi.helpButtonAria}
+          >
+            <CircleHelp className="h-5 w-5" />
+          </button>
+        ) : null}
       </div>
 
-      {open ? (
+      {openList ? (
         <div className="absolute left-0 top-[calc(100%+0.5rem)] z-30 w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
           <div className="max-h-72 overflow-auto">
             {ANALYSIS_GROUPS.map((group) => (
@@ -62,7 +92,7 @@ export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, s
                           type="button"
                           onClick={() => {
                             onChange(value);
-                            setOpen(false);
+                            setOpenList(false);
                           }}
                           className={`w-full rounded-md px-3 py-2 text-left text-sm ${
                             value === analysisType ? "bg-sky-100 text-sky-700" : "text-slate-700 hover:bg-slate-50"
@@ -78,6 +108,10 @@ export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, s
             ))}
           </div>
         </div>
+      ) : null}
+
+      {openHelp && showHelpButton ? (
+        <AnalysisHelpPopover analysisType={analysisType} language={i18n.language} onClose={() => setOpenHelp(false)} />
       ) : null}
     </section>
   );

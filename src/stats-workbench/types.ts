@@ -89,6 +89,7 @@ export type StatsWorkbenchProps = {
   layoutMode?: "full" | "minimal";
   language?: SupportedLanguage;
   showDatasetPopover?: boolean;
+  showAnalysisHelpButton?: boolean;
   minimalAutoShowResultEnabled?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
