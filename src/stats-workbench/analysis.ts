@@ -1,5 +1,5 @@
 import { InferentialStats } from "@winm2m/inferential-stats-js";
-import { ANALYSIS_DEFS } from "./constants";
+import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./constants";
 import i18next from "i18next";
 import type { AnalysisKind, AnalysisPayload, PayloadInfo, RoleKey, VariableMeta } from "./types";
 
@@ -296,4 +296,20 @@ export async function executeDefaultAnalysis(payload: AnalysisPayload): Promise<
     sdk,
     payload.input
   );
+}
+
+export async function executeExternalAnalysis(
+  methodName: AnalysisKind,
+  data: Record<string, unknown>[],
+  input: Record<string, unknown> = {}
+): Promise<unknown> {
+  const payload: AnalysisPayload = {
+    analysisType: methodName,
+    method: methodName,
+    input: { ...input, data },
+    options: {},
+    assignments: EMPTY_ASSIGNMENTS
+  };
+
+  return await executeDefaultAnalysis(payload);
 }

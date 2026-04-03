@@ -1,9 +1,11 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { PanelBottom, PanelBottomOpen } from "lucide-react";
 import * as React from "react";
 import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
 import { useTranslation } from "react-i18next";
 import {
   ensureWorkerInitialized,
+  executeExternalAnalysis,
   executeDefaultAnalysis,
   getPayload,
   validateForRole
@@ -16,11 +18,14 @@ import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
 import { WorkerSignalIndicator } from "./stats-workbench/sections/worker-signal-indicator";
 import { workbenchI18n, type SupportedLanguage } from "./stats-workbench/i18n";
+import { buildTableData, copyApaTablesToClipboard } from "./stats-workbench/result-utils";
 import type {
-  AnalysisPayload,
   AnalysisKind,
+  AnalysisPayload,
   Dataset,
+  ExternalDataInput,
   RoleKey,
+  StatsWorkbenchControl,
   StatsWorkbenchProps,
   VariableMeta
 } from "./stats-workbench/types";
@@ -39,14 +44,50 @@ function normalizeInitialAnalysis(kind: string): AnalysisKind {
   return kind as AnalysisKind;
 }
 
+function inferVariableType(values: unknown[]): "continuous" | "nominal" | "unknown" {
+  const nonEmpty = values.filter((v) => v !== null && v !== undefined && String(v).trim() !== "").slice(0, 50);
+  if (nonEmpty.length === 0) {
+    return "unknown";
+  }
+
+  const isContinuous = nonEmpty.every((v) => {
+    if (typeof v === "number") {
+      return Number.isFinite(v);
+    }
+    if (typeof v === "string") {
+      const parsed = Number(v);
+      return Number.isFinite(parsed) && v.trim() !== "";
+    }
+    return false;
+  });
+
+  return isContinuous ? "continuous" : "nominal";
+}
+
+function buildColumns(rows: Record<string, unknown>[]): VariableMeta[] {
+  const keySet = new Set<string>();
+  for (const row of rows) {
+    Object.keys(row).forEach((key) => keySet.add(key));
+  }
+
+  return Array.from(keySet)
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({
+      name,
+      type: inferVariableType(rows.map((row) => row[name]))
+    }));
+}
+
 export type {
   AnalysisDef,
   AnalysisKind,
   AnalysisPayload,
   AnalysisResult,
   Dataset,
+  ExternalDataInput,
   PayloadInfo,
   RoleKey,
+  StatsWorkbenchControl,
   StatsWorkbenchProps,
   VariableMeta,
   VariableType
@@ -54,7 +95,7 @@ export type {
 
 export type { SupportedLanguage } from "./stats-workbench/i18n";
 
-export function StatsWorkbench({
+export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkbenchProps>(function StatsWorkbench({
   className,
   style,
   initialAnalysis = "frequencies",
@@ -62,11 +103,12 @@ export function StatsWorkbench({
   language = "en",
   analysisExecutor,
   onResult
-}: StatsWorkbenchProps) {
+}: StatsWorkbenchProps, ref) {
   const { t } = useTranslation();
   const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
   const MINIMAL_AUTO_SHOW_STORAGE_KEY = "stats-workbench.minimalAutoShowResult";
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
+  const [injectedDataset, setInjectedDataset] = React.useState<Dataset | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string | null>(null);
   const [analysisType, setAnalysisType] = React.useState<AnalysisKind>(normalizeInitialAnalysis(initialAnalysis));
   const [assignments, setAssignments] = React.useState<Record<RoleKey, string[]>>(EMPTY_ASSIGNMENTS);
@@ -191,9 +233,9 @@ export function StatsWorkbench({
     setSelectedAvailable(null);
     setError("");
     setResult(null);
-  }, [analysisType, selectedDatasetId]);
+  }, [analysisType, injectedDataset?.id, selectedDatasetId]);
 
-  const selectedDataset = datasets.find((d) => d.id === selectedDatasetId) ?? null;
+  const selectedDataset = injectedDataset ?? datasets.find((d) => d.id === selectedDatasetId) ?? null;
   const assignedNames = new Set<string>(Object.values(assignments).flat());
   const availableVariables = (selectedDataset?.columns ?? []).filter((column) => !assignedNames.has(column.name));
   const analysisDef = ANALYSIS_DEFS[analysisType];
@@ -233,6 +275,94 @@ export function StatsWorkbench({
   const previousOptionsRef = React.useRef(options);
   const previousAnalysisTypeRef = React.useRef(analysisType);
   const previousDatasetIdRef = React.useRef<string | null>(selectedDatasetId);
+
+  const injectData = React.useCallback((data: ExternalDataInput) => {
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const columns = data.columns ?? buildColumns(rows);
+    setInjectedDataset({
+      id: data.id ?? `external-${Date.now()}`,
+      name: data.name ?? "Injected dataset",
+      createdAt: Date.now(),
+      rows,
+      columns
+    });
+    setError("");
+  }, []);
+
+  const clearInjectedData = React.useCallback(() => {
+    setInjectedDataset(null);
+  }, []);
+
+  const executeExternalMethod = React.useCallback(
+    async (method: AnalysisKind, input: Record<string, unknown> = {}) => {
+      const currentData = injectedDataset?.rows ?? [];
+      if (currentData.length === 0) {
+        throw new Error("No injected dataset found. Call injectData first.");
+      }
+
+      const payload: AnalysisPayload = {
+        analysisType: method,
+        method,
+        input: { ...input, data: currentData },
+        options: {},
+        assignments: EMPTY_ASSIGNMENTS
+      };
+      const output = await executeExternalAnalysis(method, currentData, input);
+      setResult(output);
+      onResult?.({ payload, result: output });
+      setError("");
+      if (layoutMode === "minimal") {
+        setShowMinimalResult(true);
+      }
+      return output;
+    },
+    [injectedDataset?.rows, layoutMode, onResult]
+  );
+
+  const copyApaTable = React.useCallback(async () => {
+    const tables = buildTableData(result);
+    return await copyApaTablesToClipboard(tables);
+  }, [result]);
+
+  React.useImperativeHandle(
+    ref,
+    (): StatsWorkbenchControl => ({
+      injectData,
+      clearInjectedData,
+      executeAnalysis: (method, input = {}) => executeExternalMethod(method, input),
+      runFrequencies: (input = {}) => executeExternalMethod("frequencies", input),
+      runDescriptives: (input = {}) => executeExternalMethod("descriptives", input),
+      runCrosstabs: (input = {}) => executeExternalMethod("crosstabs", input),
+      runTtestIndependent: (input = {}) => executeExternalMethod("ttestIndependent", input),
+      runTtestPaired: (input = {}) => executeExternalMethod("ttestPaired", input),
+      runAnovaOneway: (input = {}) => executeExternalMethod("anovaOneway", input),
+      runPosthocTukey: (input = {}) => executeExternalMethod("posthocTukey", input),
+      runLinearRegression: (input = {}) => executeExternalMethod("linearRegression", input),
+      runLogisticBinary: (input = {}) => executeExternalMethod("logisticBinary", input),
+      runLogisticMultinomial: (input = {}) => executeExternalMethod("logisticMultinomial", input),
+      runKmeans: (input = {}) => executeExternalMethod("kmeans", input),
+      runHierarchicalCluster: (input = {}) => executeExternalMethod("hierarchicalCluster", input),
+      runEfa: (input = {}) => executeExternalMethod("efa", input),
+      runPca: (input = {}) => executeExternalMethod("pca", input),
+      runMds: (input = {}) => executeExternalMethod("mds", input),
+      runCronbachAlpha: (input = {}) => executeExternalMethod("cronbachAlpha", input),
+      setResultVisible: (next: boolean) => {
+        if (layoutMode === "minimal") {
+          setShowMinimalResult(next);
+        }
+      },
+      toggleResultVisible: () => {
+        if (layoutMode !== "minimal") {
+          return true;
+        }
+        const next = !showMinimalResult;
+        setShowMinimalResult(next);
+        return next;
+      },
+      copyApaTable
+    }),
+    [clearInjectedData, copyApaTable, executeExternalMethod, injectData, layoutMode, showMinimalResult]
+  );
 
   const variableByName = React.useMemo(() => {
     const map = new Map<string, VariableMeta>();
@@ -566,6 +696,16 @@ export function StatsWorkbench({
               <div className="flex select-none items-start justify-between gap-3 p-3 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:p-2">
                 <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} showPrefix={false} subtleUnderline />
                 <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShowMinimalResult((prev) => !prev)}
+                    className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    aria-label={showMinimalResult ? t("hideResult") : t("showResult")}
+                    title={showMinimalResult ? t("hideResult") : t("showResult")}
+                  >
+                    {showMinimalResult ? <PanelBottom className="h-3.5 w-3.5" /> : <PanelBottomOpen className="h-3.5 w-3.5" />}
+                    {showMinimalResult ? t("hideResult") : t("showResult")}
+                  </button>
                   <DatasetPanel
                     datasets={datasets}
                     selectedDatasetId={selectedDatasetId}
@@ -733,4 +873,6 @@ export function StatsWorkbench({
       </div>
     </Tooltip.Provider>
   );
-}
+});
+
+StatsWorkbench.displayName = "StatsWorkbench";

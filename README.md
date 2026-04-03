@@ -26,6 +26,7 @@ Peer dependencies:
 - Auto-run queue execution when inputs change (analysis, role assignment, dataset, options).
 - Worker lifecycle UX (signal indicator, loading state, error state, initial blocking overlay).
 - Result area with APA table rendering, JSON toggle, payload toggle, and formatted clipboard copy.
+- Imperative external control API via React ref (runtime data injection, result panel visibility, APA clipboard copy, direct analysis calls).
 - Two layout modes:
   - `full`: split control/result with resizable vertical divider
   - `minimal`: compact flow with slide-up result panel
@@ -76,6 +77,76 @@ export function App() {
 - `analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>`
 - `onResult?: (result: AnalysisResult) => void`
 
+`StatsWorkbench` ref (`StatsWorkbenchControl`):
+
+- `injectData({ rows, columns?, id?, name? })`
+  - Injects runtime analysis data without writing to IndexedDB.
+  - If `columns` is omitted, variable metadata is inferred from `rows`.
+- `clearInjectedData()`
+- `executeAnalysis(method, inputWithoutData?)`
+- `runFrequencies(inputWithoutData?)`
+- `runDescriptives(inputWithoutData?)`
+- `runCrosstabs(inputWithoutData?)`
+- `runTtestIndependent(inputWithoutData?)`
+- `runTtestPaired(inputWithoutData?)`
+- `runAnovaOneway(inputWithoutData?)`
+- `runPosthocTukey(inputWithoutData?)`
+- `runLinearRegression(inputWithoutData?)`
+- `runLogisticBinary(inputWithoutData?)`
+- `runLogisticMultinomial(inputWithoutData?)`
+- `runKmeans(inputWithoutData?)`
+- `runHierarchicalCluster(inputWithoutData?)`
+- `runEfa(inputWithoutData?)`
+- `runPca(inputWithoutData?)`
+- `runMds(inputWithoutData?)`
+- `runCronbachAlpha(inputWithoutData?)`
+  - All 16 async wrappers call `@winm2m/inferential-stats-js` and always inject previously provided runtime data as `data`.
+- `setResultVisible(next)` (minimal layout)
+- `toggleResultVisible()` (minimal layout)
+- `copyApaTable()`
+
+Example:
+
+```tsx
+import * as React from "react";
+import { StatsWorkbench, type StatsWorkbenchControl } from "@winm2m/react-stats-ui";
+
+export function App() {
+  const workbenchRef = React.useRef<StatsWorkbenchControl>(null);
+
+  const runExternal = async () => {
+    workbenchRef.current?.injectData({
+      name: "runtime-dataset",
+      rows: [
+        { score: 10, group: "A" },
+        { score: 12, group: "A" },
+        { score: 14, group: "B" },
+        { score: 15, group: "B" }
+      ]
+    });
+
+    await workbenchRef.current?.runTtestIndependent({
+      variable: "score",
+      groupVariable: "group",
+      group1Value: "A",
+      group2Value: "B",
+      equalVariance: true
+    });
+
+    await workbenchRef.current?.copyApaTable();
+  };
+
+  return (
+    <>
+      <button onClick={() => void runExternal()}>Run external t-test</button>
+      <div style={{ width: "100vw", height: "90vh" }}>
+        <StatsWorkbench ref={workbenchRef} layoutMode="minimal" />
+      </div>
+    </>
+  );
+}
+```
+
 ## Internationalization
 
 The workbench includes built-in i18n via `i18next` + `react-i18next`.
@@ -107,6 +178,8 @@ Exports:
 - `StatsWorkbenchProps`
 - `AnalysisPayload`
 - `AnalysisResult`
+- `ExternalDataInput`
+- `StatsWorkbenchControl`
 
 ## Execution behavior
 
@@ -114,6 +187,7 @@ Exports:
 - Input changes are queued and processed sequentially.
 - While running, duplicate execution is blocked.
 - In `minimal` mode, result view is a slide-up panel.
+- In `minimal` mode, result panel can be shown/hidden by UI toggle or external control.
 - In `minimal` mode, multi-item role updates (for multi roles like `variables`/`independentVariables`) use a manual Play trigger shown in Role Assignment when execution is valid.
 
 ## Result behavior
