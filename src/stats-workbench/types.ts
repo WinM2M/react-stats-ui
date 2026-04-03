@@ -45,12 +45,47 @@ export type AnalysisResult = {
   result: unknown;
 };
 
+export type ExternalDataInput = {
+  rows: Record<string, unknown>[];
+  columns?: VariableMeta[];
+  id?: string;
+  name?: string;
+};
+
+export type ExternalAnalysisInput = Omit<Record<string, unknown>, "data">;
+
+export type StatsWorkbenchControl = {
+  injectData: (data: ExternalDataInput) => void;
+  clearInjectedData: () => void;
+  executeAnalysis: (method: AnalysisKind, input?: ExternalAnalysisInput) => Promise<unknown>;
+  runFrequencies: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runDescriptives: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runCrosstabs: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runTtestIndependent: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runTtestPaired: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runAnovaOneway: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runPosthocTukey: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runLinearRegression: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runLogisticBinary: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runLogisticMultinomial: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runKmeans: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runHierarchicalCluster: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runEfa: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runPca: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runMds: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  runCronbachAlpha: (input?: ExternalAnalysisInput) => Promise<unknown>;
+  setResultVisible: (next: boolean) => void;
+  toggleResultVisible: () => boolean;
+  copyApaTable: () => Promise<boolean>;
+};
+
 export type StatsWorkbenchProps = {
   className?: string;
   style?: React.CSSProperties;
   initialAnalysis?: AnalysisKind;
   layoutMode?: "full" | "minimal";
   language?: SupportedLanguage;
+  showDatasetPopover?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
 };
