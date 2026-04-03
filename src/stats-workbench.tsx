@@ -1,5 +1,4 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { PanelBottom, PanelBottomOpen } from "lucide-react";
 import * as React from "react";
 import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
 import { useTranslation } from "react-i18next";
@@ -696,16 +695,6 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
               <div className="flex select-none items-start justify-between gap-3 p-3 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:p-2">
                 <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} showPrefix={false} subtleUnderline />
                 <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => setShowMinimalResult((prev) => !prev)}
-                    className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                    aria-label={showMinimalResult ? t("hideResult") : t("showResult")}
-                    title={showMinimalResult ? t("hideResult") : t("showResult")}
-                  >
-                    {showMinimalResult ? <PanelBottom className="h-3.5 w-3.5" /> : <PanelBottomOpen className="h-3.5 w-3.5" />}
-                    {showMinimalResult ? t("hideResult") : t("showResult")}
-                  </button>
                   <DatasetPanel
                     datasets={datasets}
                     selectedDatasetId={selectedDatasetId}
