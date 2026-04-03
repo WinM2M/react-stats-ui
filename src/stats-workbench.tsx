@@ -100,6 +100,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   initialAnalysis = "frequencies",
   layoutMode = "full",
   language = "en",
+  showDatasetPopover = true,
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps, ref) {
@@ -695,18 +696,20 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
               <div className="flex select-none items-start justify-between gap-3 p-3 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:p-2">
                 <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} showPrefix={false} subtleUnderline />
                 <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
-                  <DatasetPanel
-                    datasets={datasets}
-                    selectedDatasetId={selectedDatasetId}
-                    selectedDatasetName={selectedDatasetName}
-                    borderlessButton
-                    onSelect={setSelectedDatasetId}
-                    onDelete={(id) => void handleDeleteDataset(id)}
-                    onUploadClick={() => fileInputRef.current?.click()}
-                    onDropFile={handleDropFile}
-                    fileInputRef={fileInputRef}
-                    onFileInput={handleFileInput}
-                  />
+                  {showDatasetPopover ? (
+                    <DatasetPanel
+                      datasets={datasets}
+                      selectedDatasetId={selectedDatasetId}
+                      selectedDatasetName={selectedDatasetName}
+                      borderlessButton
+                      onSelect={setSelectedDatasetId}
+                      onDelete={(id) => void handleDeleteDataset(id)}
+                      onUploadClick={() => fileInputRef.current?.click()}
+                      onDropFile={handleDropFile}
+                      fileInputRef={fileInputRef}
+                      onFileInput={handleFileInput}
+                    />
+                  ) : null}
                   <WorkerSignalIndicator
                     isRunning={isRunning}
                     connectionState={workerConnectionState}
@@ -771,17 +774,19 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
             <>
               <div className="flex select-none flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[640px]:p-2">
                 <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} />
-                <DatasetPanel
-                  datasets={datasets}
-                  selectedDatasetId={selectedDatasetId}
-                  selectedDatasetName={selectedDatasetName}
-                  onSelect={setSelectedDatasetId}
-                  onDelete={(id) => void handleDeleteDataset(id)}
-                  onUploadClick={() => fileInputRef.current?.click()}
-                  onDropFile={handleDropFile}
-                  fileInputRef={fileInputRef}
-                  onFileInput={handleFileInput}
-                />
+                {showDatasetPopover ? (
+                  <DatasetPanel
+                    datasets={datasets}
+                    selectedDatasetId={selectedDatasetId}
+                    selectedDatasetName={selectedDatasetName}
+                    onSelect={setSelectedDatasetId}
+                    onDelete={(id) => void handleDeleteDataset(id)}
+                    onUploadClick={() => fileInputRef.current?.click()}
+                    onDropFile={handleDropFile}
+                    fileInputRef={fileInputRef}
+                    onFileInput={handleFileInput}
+                  />
+                ) : null}
                 <WorkerSignalIndicator
                   isRunning={isRunning}
                   connectionState={workerConnectionState}

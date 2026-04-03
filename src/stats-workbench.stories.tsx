@@ -8,6 +8,7 @@ import type { AnalysisPayload, StatsWorkbenchControl } from "./stats-workbench";
 
 type ThemeArgs = {
   language: "en" | "ar" | "zh" | "fr" | "ru" | "es" | "ko" | "ja" | "vi";
+  showDatasetPopover: boolean;
   themeMode: "light" | "dark" | "custom";
   backgroundColor: string;
   backgroundTransparent: boolean;
@@ -166,7 +167,13 @@ function StoryTemplate({ compactHeight = false, ...args }: ThemeArgs & { compact
       style={{ backgroundColor: args.backgroundTransparent ? "transparent" : args.backgroundColor }}
     >
       <style>{css}</style>
-      <StatsWorkbench className="h-full w-full rounded-xl" layoutMode={args.layoutMode} language={args.language} analysisExecutor={mockAnalysisExecutor} />
+      <StatsWorkbench
+        className="h-full w-full rounded-xl"
+        layoutMode={args.layoutMode}
+        language={args.language}
+        showDatasetPopover={args.showDatasetPopover}
+        analysisExecutor={mockAnalysisExecutor}
+      />
     </div>
   );
 }
@@ -245,6 +252,7 @@ function ExternalControlHarness(args: ThemeArgs) {
         className="h-[calc(100%-2rem)] w-full rounded-xl"
         layoutMode="minimal"
         language={args.language}
+        showDatasetPopover={false}
         analysisExecutor={mockAnalysisExecutor}
         onResult={(result) => action("onResult")(result)}
       />
@@ -259,6 +267,7 @@ const meta = {
   args: {
     themeMode: "light",
     language: "en",
+    showDatasetPopover: true,
     backgroundColor: "#ffffff",
     backgroundTransparent: false,
     textColor: "#334155",
@@ -274,6 +283,7 @@ const meta = {
   argTypes: {
     layoutMode: { control: { type: "inline-radio" }, options: ["full", "minimal"], name: "Section Layout" },
     language: { control: { type: "select" }, options: ["en", "ar", "zh", "fr", "ru", "es", "ko", "ja", "vi"], name: "Language" },
+    showDatasetPopover: { control: "boolean", name: "Show Dataset Popover" },
     themeMode: { control: { type: "inline-radio" }, options: ["light", "dark", "custom"], name: "Theme" },
     backgroundColor: { control: "color", name: "Background" },
     backgroundTransparent: { control: "boolean", name: "Background Transparent" },

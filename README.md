@@ -74,6 +74,7 @@ export function App() {
 - `initialAnalysis?: AnalysisKind` (default: `"frequencies"`)
 - `layoutMode?: "full" | "minimal"` (default: `"full"`)
 - `language?: "en" | "ar" | "zh" | "fr" | "ru" | "es" | "ko" | "ja" | "vi"` (default: `"en"`)
+- `showDatasetPopover?: boolean` (default: `true`)
 - `analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>`
 - `onResult?: (result: AnalysisResult) => void`
 
