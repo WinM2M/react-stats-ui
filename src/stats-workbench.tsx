@@ -235,7 +235,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     setSelectedAvailable(null);
     setError("");
     setResult(null);
-  }, [analysisType, injectedDataset?.id, selectedDatasetId]);
+    if (layoutMode === "minimal") {
+      setShowMinimalResult(false);
+      setShowResultAfterManualRun(false);
+    }
+  }, [analysisType, injectedDataset?.id, layoutMode, selectedDatasetId]);
 
   const selectedDataset = injectedDataset ?? datasets.find((d) => d.id === selectedDatasetId) ?? null;
   const assignedNames = new Set<string>(Object.values(assignments).flat());
