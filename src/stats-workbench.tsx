@@ -306,7 +306,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         options: {},
         assignments: EMPTY_ASSIGNMENTS
       };
-      const output = await executeExternalAnalysis(method, currentData, input);
+      const output = analysisExecutor ? await analysisExecutor(payload) : await executeExternalAnalysis(method, currentData, input);
       setResult(output);
       onResult?.({ payload, result: output });
       setError("");
@@ -315,7 +315,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       }
       return output;
     },
-    [injectedDataset?.rows, layoutMode, onResult]
+    [analysisExecutor, injectedDataset?.rows, layoutMode, onResult]
   );
 
   const copyApaTable = React.useCallback(async () => {

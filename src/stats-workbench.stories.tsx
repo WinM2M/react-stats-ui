@@ -1,8 +1,10 @@
+import { action } from "@storybook/addon-actions";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useArgs } from "@storybook/preview-api";
+import { userEvent, within } from "@storybook/test";
 import * as React from "react";
 import { StatsWorkbench } from "./stats-workbench";
-import type { AnalysisPayload } from "./stats-workbench";
+import type { AnalysisPayload, StatsWorkbenchControl } from "./stats-workbench";
 
 type ThemeArgs = {
   language: "en" | "ar" | "zh" | "fr" | "ru" | "es" | "ko" | "ja" | "vi";
@@ -148,7 +150,7 @@ async function mockAnalysisExecutor(payload: AnalysisPayload): Promise<unknown> 
   };
 }
 
-function StoryTemplate({ compactHeight, ...args }: ThemeArgs & { compactHeight: boolean }) {
+function StoryTemplate({ compactHeight = false, ...args }: ThemeArgs & { compactHeight?: boolean }) {
   const css = React.useMemo(() => createThemeCss(args), [args]);
 
   return (
@@ -165,6 +167,87 @@ function StoryTemplate({ compactHeight, ...args }: ThemeArgs & { compactHeight: 
     >
       <style>{css}</style>
       <StatsWorkbench className="h-full w-full rounded-xl" layoutMode={args.layoutMode} language={args.language} analysisExecutor={mockAnalysisExecutor} />
+    </div>
+  );
+}
+
+function ExternalControlHarness(args: ThemeArgs) {
+  const ref = React.useRef<StatsWorkbenchControl>(null);
+  const [status, setStatus] = React.useState("idle");
+
+  const injectedRows = React.useMemo(
+    () => [
+      { score: 10, group: "A", x1: 1.2, x2: 4.1 },
+      { score: 12, group: "A", x1: 1.4, x2: 3.9 },
+      { score: 15, group: "B", x1: 2.1, x2: 3.2 },
+      { score: 16, group: "B", x1: 2.4, x2: 2.8 }
+    ],
+    []
+  );
+
+  const handleInject = () => {
+    ref.current?.injectData({ name: "story-injected", rows: injectedRows });
+    action("external.injectData")({ rows: injectedRows.length });
+    setStatus("data injected");
+  };
+
+  const handleRunTtest = async () => {
+    setStatus("running t-test");
+    try {
+      const result = await ref.current?.runTtestIndependent({
+        variable: "score",
+        groupVariable: "group",
+        group1Value: "A",
+        group2Value: "B",
+        equalVariance: true
+      });
+      action("external.runTtestIndependent")(result);
+      setStatus("t-test completed");
+    } catch (error) {
+      action("external.runTtestIndependent.error")(error);
+      setStatus("t-test failed");
+    }
+  };
+
+  const handleToggleResult = () => {
+    const next = ref.current?.toggleResultVisible();
+    action("external.toggleResultVisible")({ visible: next });
+    setStatus(`result visible: ${String(next)}`);
+  };
+
+  const handleCopyApa = async () => {
+    const copied = await ref.current?.copyApaTable();
+    action("external.copyApaTable")({ copied });
+    setStatus(copied ? "apa copied" : "copy failed");
+  };
+
+  return (
+    <div className="sb-theme-workbench h-screen min-h-[760px] w-full bg-slate-100 p-4 max-[640px]:p-2" data-layout-mode="minimal" data-sections-rounded={String(args.sectionRounded)}>
+      <style>{createThemeCss(args)}</style>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <button type="button" className="rounded border border-slate-300 bg-white px-2 py-1 text-xs" onClick={handleInject}>
+          Inject Data
+        </button>
+        <button type="button" className="rounded border border-slate-300 bg-white px-2 py-1 text-xs" onClick={() => void handleRunTtest()}>
+          Run T-Test
+        </button>
+        <button type="button" className="rounded border border-slate-300 bg-white px-2 py-1 text-xs" onClick={handleToggleResult}>
+          Toggle Result
+        </button>
+        <button type="button" className="rounded border border-slate-300 bg-white px-2 py-1 text-xs" onClick={() => void handleCopyApa()}>
+          Copy APA
+        </button>
+        <span className="text-xs text-slate-600">Status: {status}</span>
+      </div>
+
+      <StatsWorkbench
+        ref={ref}
+        className="h-[calc(100%-2rem)] w-full rounded-xl"
+        layoutMode="minimal"
+        language={args.language}
+        analysisExecutor={mockAnalysisExecutor}
+        onResult={(result) => action("onResult")(result)}
+      />
     </div>
   );
 }
@@ -260,5 +343,37 @@ export const InteractiveTheme: Story = {
     }, [args.themeMode, args.backgroundColor, args.textColor, args.borderColor, args.majorColor, args.minorColor, args.warningColor, args.errorColor, args.infoColor, updateArgs]);
 
     return <StoryTemplate {...args} compactHeight={context.viewMode === "docs"} />;
+  }
+};
+
+export const ExternalControlInteractions: Story = {
+  name: "External Control Interactions",
+  args: {
+    themeMode: "light",
+    backgroundColor: "#ffffff",
+    textColor: "#334155",
+    borderColor: "#e2e8f0",
+    majorColor: "#22c55e",
+    minorColor: "#94a3b8",
+    warningColor: "#f59e0b",
+    errorColor: "#dc2626",
+    infoColor: "#0ea5e9",
+    layoutMode: "minimal"
+  },
+  render: (args: ThemeArgs) => <ExternalControlHarness {...args} />,
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Inject runtime data", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "Inject Data" }));
+    });
+
+    await step("Run external t-test wrapper", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "Run T-Test" }));
+    });
+
+    await step("Toggle minimal result panel", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "Toggle Result" }));
+    });
   }
 };
