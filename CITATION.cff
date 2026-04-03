@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+title: "@winm2m/react-stats-ui"
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+license: MIT
+authors:
+  - family-names: Kwon
+    given-names: Youngjune
+    email: yjkwon@winm2m.com
+repository-code: "https://github.com/WinM2M/react-stats-ui"
+url: "https://github.com/WinM2M/react-stats-ui"
+version: 0.5.0
+date-released: 2026-04-03

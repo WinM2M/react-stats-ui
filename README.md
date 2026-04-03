@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@winm2m/react-stats-ui.svg)](https://www.npmjs.com/package/@winm2m/react-stats-ui)
 [![license](https://img.shields.io/npm/l/@winm2m/react-stats-ui.svg)](./LICENSE)
+[![CI](https://github.com/WinM2M/react-stats-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/WinM2M/react-stats-ui/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
 
 React UI component for browser-based inferential statistics workflows, powered by `@winm2m/inferential-stats-js`.
@@ -218,7 +219,11 @@ Scripts:
 ```bash
 npm run storybook
 npm run build-storybook
+npm run test
+npm run test:ci
 ```
+
+CI runs `typecheck`, `test:ci`, and `build` automatically on push/PR via `.github/workflows/ci.yml`.
 
 Story file: `src/stats-workbench.stories.tsx`
 
@@ -248,3 +253,8 @@ Theme behavior:
 - Internal UI uses Radix primitives and `lucide-react` icons.
 - Worker URL can be controlled via `window.__WINM2M_INFERENTIAL_WORKER_URL__`.
 - The component is designed to fill the parent container.
+
+## Project metadata
+
+- Contribution guide: `CONTRIBUTING.md`
+- Citation metadata: `CITATION.cff`
