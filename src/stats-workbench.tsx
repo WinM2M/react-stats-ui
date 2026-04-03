@@ -101,6 +101,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   layoutMode = "full",
   language = "en",
   showDatasetPopover = true,
+  minimalAutoShowResultEnabled = true,
   analysisExecutor,
   onResult
 }: StatsWorkbenchProps, ref) {
@@ -134,6 +135,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   );
   const [workerProgress, setWorkerProgress] = React.useState<number | null>(null);
   const [activeLanguage, setActiveLanguage] = React.useState<SupportedLanguage>(language);
+  const effectiveMinimalAutoShowResult = minimalAutoShowResultEnabled ? minimalAutoShowResult : false;
   const [options, setOptions] = React.useState<Record<string, unknown>>({
     equalVariance: true,
     addConstant: true,
@@ -359,9 +361,34 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         setShowMinimalResult(next);
         return next;
       },
+      setAutoShowResult: (next: boolean) => {
+        if (!minimalAutoShowResultEnabled) {
+          return;
+        }
+        setMinimalAutoShowResult(next);
+      },
+      toggleAutoShowResult: () => {
+        if (!minimalAutoShowResultEnabled) {
+          return false;
+        }
+        const next = !minimalAutoShowResult;
+        setMinimalAutoShowResult(next);
+        return next;
+      },
+      getAutoShowResult: () => effectiveMinimalAutoShowResult,
       copyApaTable
     }),
-    [clearInjectedData, copyApaTable, executeExternalMethod, injectData, layoutMode, showMinimalResult]
+    [
+      clearInjectedData,
+      copyApaTable,
+      effectiveMinimalAutoShowResult,
+      executeExternalMethod,
+      injectData,
+      layoutMode,
+      minimalAutoShowResult,
+      minimalAutoShowResultEnabled,
+      showMinimalResult
+    ]
   );
 
   const variableByName = React.useMemo(() => {
@@ -503,7 +530,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       return;
     }
 
-    if (layoutMode === "minimal" && !minimalAutoShowResult) {
+    if (layoutMode === "minimal" && !effectiveMinimalAutoShowResult) {
       setShowManualRunAction(true);
       return;
     }
@@ -518,7 +545,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     autoRunKey,
     enqueueAnalysis,
     layoutMode,
-    minimalAutoShowResult,
+    effectiveMinimalAutoShowResult,
     options,
     payloadInfo,
     selectedDatasetId,
@@ -541,15 +568,19 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       return;
     }
 
-    if (layoutMode === "minimal" && (minimalAutoShowResult || showResultAfterManualRun)) {
+    if (layoutMode === "minimal" && (effectiveMinimalAutoShowResult || showResultAfterManualRun)) {
       setShowMinimalResult(true);
       setShowResultAfterManualRun(false);
     }
 
     previousRunningRef.current = isRunning;
-  }, [isRunning, layoutMode, minimalAutoShowResult, showResultAfterManualRun]);
+  }, [effectiveMinimalAutoShowResult, isRunning, layoutMode, showResultAfterManualRun]);
 
   React.useEffect(() => {
+    if (!minimalAutoShowResultEnabled) {
+      setMinimalAutoShowResult(false);
+      return;
+    }
     if (typeof window === "undefined") {
       return;
     }
@@ -559,14 +590,17 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       return;
     }
     setMinimalAutoShowResult(saved !== "false");
-  }, []);
+  }, [minimalAutoShowResultEnabled]);
 
   React.useEffect(() => {
+    if (!minimalAutoShowResultEnabled) {
+      return;
+    }
     if (typeof window === "undefined") {
       return;
     }
     window.localStorage.setItem(MINIMAL_AUTO_SHOW_STORAGE_KEY, String(minimalAutoShowResult));
-  }, [minimalAutoShowResult]);
+  }, [minimalAutoShowResult, minimalAutoShowResultEnabled]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
@@ -593,14 +627,14 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   }, [topPanelHeight]);
 
   React.useEffect(() => {
-    if (layoutMode === "minimal" && !minimalAutoShowResult && workerReady && payloadInfo.canRun) {
+    if (layoutMode === "minimal" && !effectiveMinimalAutoShowResult && workerReady && payloadInfo.canRun) {
       setShowManualRunAction(true);
       return;
     }
-    if (layoutMode !== "minimal" || minimalAutoShowResult || !payloadInfo.canRun) {
+    if (layoutMode !== "minimal" || effectiveMinimalAutoShowResult || !payloadInfo.canRun) {
       setShowManualRunAction(false);
     }
-  }, [layoutMode, minimalAutoShowResult, payloadInfo.canRun, workerReady]);
+  }, [effectiveMinimalAutoShowResult, layoutMode, payloadInfo.canRun, workerReady]);
 
   React.useEffect(() => {
     if (!isResizingPanels) {
@@ -763,8 +797,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       workerProgress={workerProgress}
                       minimalChrome
                       onCloseResult={() => setShowMinimalResult(false)}
-                      autoShowResult={minimalAutoShowResult}
-                      onAutoShowResultChange={setMinimalAutoShowResult}
+                      autoShowResult={effectiveMinimalAutoShowResult}
+                      onAutoShowResultChange={minimalAutoShowResultEnabled ? setMinimalAutoShowResult : undefined}
                     />
                   </div>
                 </div>

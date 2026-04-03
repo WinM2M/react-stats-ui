@@ -9,6 +9,7 @@ import type { AnalysisPayload, StatsWorkbenchControl } from "./stats-workbench";
 type ThemeArgs = {
   language: "en" | "ar" | "zh" | "fr" | "ru" | "es" | "ko" | "ja" | "vi";
   showDatasetPopover: boolean;
+  minimalAutoShowResultEnabled: boolean;
   themeMode: "light" | "dark" | "custom";
   backgroundColor: string;
   backgroundTransparent: boolean;
@@ -172,6 +173,7 @@ function StoryTemplate({ compactHeight = false, ...args }: ThemeArgs & { compact
         layoutMode={args.layoutMode}
         language={args.language}
         showDatasetPopover={args.showDatasetPopover}
+        minimalAutoShowResultEnabled={args.minimalAutoShowResultEnabled}
         analysisExecutor={mockAnalysisExecutor}
       />
     </div>
@@ -253,6 +255,7 @@ function ExternalControlHarness(args: ThemeArgs) {
         layoutMode="minimal"
         language={args.language}
         showDatasetPopover={false}
+        minimalAutoShowResultEnabled={args.minimalAutoShowResultEnabled}
         analysisExecutor={mockAnalysisExecutor}
         onResult={(result) => action("onResult")(result)}
       />
@@ -268,6 +271,7 @@ const meta = {
     themeMode: "light",
     language: "en",
     showDatasetPopover: true,
+    minimalAutoShowResultEnabled: true,
     backgroundColor: "#ffffff",
     backgroundTransparent: false,
     textColor: "#334155",
@@ -284,6 +288,7 @@ const meta = {
     layoutMode: { control: { type: "inline-radio" }, options: ["full", "minimal"], name: "Section Layout" },
     language: { control: { type: "select" }, options: ["en", "ar", "zh", "fr", "ru", "es", "ko", "ja", "vi"], name: "Language" },
     showDatasetPopover: { control: "boolean", name: "Show Dataset Popover" },
+    minimalAutoShowResultEnabled: { control: "boolean", name: "Enable Auto Show Result" },
     themeMode: { control: { type: "inline-radio" }, options: ["light", "dark", "custom"], name: "Theme" },
     backgroundColor: { control: "color", name: "Background" },
     backgroundTransparent: { control: "boolean", name: "Background Transparent" },

@@ -88,4 +88,47 @@ describe("StatsWorkbench external control", () => {
     await waitFor(() => expect(ref.current).not.toBeNull());
     await expect(ref.current?.runFrequencies({ variable: "x" })).rejects.toThrow("No injected dataset found");
   });
+
+  it("allows external control of minimal auto-show result state", async () => {
+    window.localStorage.removeItem("stats-workbench.minimalAutoShowResult");
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(<StatsWorkbench ref={ref} analysisExecutor={async () => ({})} layoutMode="minimal" showDatasetPopover={false} />);
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    expect(ref.current?.getAutoShowResult()).toBe(true);
+
+    act(() => {
+      ref.current?.setAutoShowResult(false);
+    });
+    expect(ref.current?.getAutoShowResult()).toBe(false);
+
+    let next = true;
+    act(() => {
+      next = ref.current?.toggleAutoShowResult() ?? false;
+    });
+    expect(next).toBe(true);
+    expect(ref.current?.getAutoShowResult()).toBe(true);
+  });
+
+  it("hides auto-show switch when minimalAutoShowResultEnabled is false", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        minimalAutoShowResultEnabled={false}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    expect(ref.current?.getAutoShowResult()).toBe(false);
+
+    act(() => {
+      ref.current?.setResultVisible(true);
+    });
+
+    expect(screen.queryByText("Auto show result")).toBeNull();
+  });
 });

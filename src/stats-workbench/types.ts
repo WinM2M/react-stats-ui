@@ -76,6 +76,9 @@ export type StatsWorkbenchControl = {
   runCronbachAlpha: (input?: ExternalAnalysisInput) => Promise<unknown>;
   setResultVisible: (next: boolean) => void;
   toggleResultVisible: () => boolean;
+  setAutoShowResult: (next: boolean) => void;
+  toggleAutoShowResult: () => boolean;
+  getAutoShowResult: () => boolean;
   copyApaTable: () => Promise<boolean>;
 };
 
@@ -86,6 +89,7 @@ export type StatsWorkbenchProps = {
   layoutMode?: "full" | "minimal";
   language?: SupportedLanguage;
   showDatasetPopover?: boolean;
+  minimalAutoShowResultEnabled?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
 };

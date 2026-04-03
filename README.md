@@ -76,6 +76,8 @@ export function App() {
 - `layoutMode?: "full" | "minimal"` (default: `"full"`)
 - `language?: "en" | "ar" | "zh" | "fr" | "ru" | "es" | "ko" | "ja" | "vi"` (default: `"en"`)
 - `showDatasetPopover?: boolean` (default: `true`)
+- `minimalAutoShowResultEnabled?: boolean` (default: `true`)
+  - When `false` in minimal layout, auto-show is disabled and the `Auto show result` switch is hidden.
 - `analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>`
 - `onResult?: (result: AnalysisResult) => void`
 
@@ -105,6 +107,9 @@ export function App() {
   - All 16 async wrappers call `@winm2m/inferential-stats-js` and always inject previously provided runtime data as `data`.
 - `setResultVisible(next)` (minimal layout)
 - `toggleResultVisible()` (minimal layout)
+- `setAutoShowResult(next)`
+- `toggleAutoShowResult()`
+- `getAutoShowResult()`
 - `copyApaTable()`
 
 Example:
