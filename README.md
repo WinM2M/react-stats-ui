@@ -21,7 +21,7 @@ Peer dependencies:
 ## What the component provides
 
 - Dataset management with IndexedDB (import XLSX, select/delete dataset, drag-drop upload zone).
-- Analysis selection popover with current analysis display.
+- Analysis selection popover with current analysis display, grouped into 6 categories.
 - Variable assignment UI with drag/drop, double-click assignment, and role-aware validation.
 - 16 built-in analysis types (t-test, ANOVA, regression, clustering, factor/component methods, etc.).
 - Auto-run queue execution when inputs change (analysis, role assignment, dataset, options).

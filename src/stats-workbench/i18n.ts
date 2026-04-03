@@ -101,6 +101,14 @@ const common = {
   error: "Error",
   standby: "Standby",
   language: "Language",
+  analysisGroups: {
+    descriptive: "Descriptive Statistics",
+    compareMeans: "Compare Means",
+    regression: "Regression",
+    classify: "Classify",
+    dimensionReduction: "Dimension Reduction",
+    scale: "Scale"
+  },
   roles: {
     variable: "Variable",
     variables: "Variables",

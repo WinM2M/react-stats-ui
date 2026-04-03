@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { ANALYSIS_DEFS } from "../constants";
+import { ANALYSIS_DEFS, ANALYSIS_GROUPS } from "../constants";
 import type { AnalysisKind } from "../types";
 
 type AnalysisTypePanelProps = {
@@ -47,24 +47,36 @@ export function AnalysisTypePanel({ analysisType, onChange, showPrefix = true, s
 
       {open ? (
         <div className="absolute left-0 top-[calc(100%+0.5rem)] z-30 w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
-          <ul className="max-h-64 overflow-auto">
-            {Object.entries(ANALYSIS_DEFS).map(([value, def]) => (
-              <li key={value}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onChange(value as AnalysisKind);
-                    setOpen(false);
-                  }}
-                  className={`w-full rounded-md px-3 py-2 text-left text-sm ${
-                    value === analysisType ? "bg-sky-100 text-sky-700" : "text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                    {t(`analysisKinds.${value}`, { defaultValue: def.label })}
-                </button>
-              </li>
+          <div className="max-h-72 overflow-auto">
+            {ANALYSIS_GROUPS.map((group) => (
+              <section key={group.key} className="mb-2 last:mb-0">
+                <div className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {t(`analysisGroups.${group.key}`)}
+                </div>
+                <ul>
+                  {group.items.map((value) => {
+                    const def = ANALYSIS_DEFS[value];
+                    return (
+                      <li key={value}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChange(value);
+                            setOpen(false);
+                          }}
+                          className={`w-full rounded-md px-3 py-2 text-left text-sm ${
+                            value === analysisType ? "bg-sky-100 text-sky-700" : "text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {t(`analysisKinds.${value}`, { defaultValue: def.label })}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         </div>
       ) : null}
     </section>

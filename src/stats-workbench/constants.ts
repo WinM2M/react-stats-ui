@@ -1,5 +1,35 @@
 import type { AnalysisDef, AnalysisKind, RoleKey } from "./types";
 
+export const ANALYSIS_GROUPS: Array<{
+  key: "descriptive" | "compareMeans" | "regression" | "classify" | "dimensionReduction" | "scale";
+  items: AnalysisKind[];
+}> = [
+  {
+    key: "descriptive",
+    items: ["frequencies", "descriptives", "crosstabs"]
+  },
+  {
+    key: "compareMeans",
+    items: ["ttestIndependent", "ttestPaired", "anovaOneway", "posthocTukey"]
+  },
+  {
+    key: "regression",
+    items: ["linearRegression", "logisticBinary", "logisticMultinomial"]
+  },
+  {
+    key: "classify",
+    items: ["kmeans", "hierarchicalCluster"]
+  },
+  {
+    key: "dimensionReduction",
+    items: ["efa", "pca"]
+  },
+  {
+    key: "scale",
+    items: ["mds", "cronbachAlpha"]
+  }
+];
+
 export const ANALYSIS_DEFS: Record<AnalysisKind, AnalysisDef> = {
   frequencies: {
     label: "Frequencies",
