@@ -1,6 +1,8 @@
 import type * as React from "react";
 import type { SupportedLanguage } from "./i18n";
 
+export const VARIABLE_DRAG_DATA_FORMAT = "application/x.winm2m-variable";
+
 export type VariableType = "continuous" | "nominal" | "unknown";
 export type RoleKey =
   | "variable"
@@ -80,6 +82,9 @@ export type StatsWorkbenchControl = {
   toggleAutoShowResult: () => boolean;
   getAutoShowResult: () => boolean;
   copyApaTable: () => Promise<boolean>;
+  assignVariableToRole: (variableName: string, role: RoleKey) => boolean;
+  assignVariableToBestRole: (variableName: string) => boolean;
+  handleExternalVariableDrop: (item: VariableDragItem, role?: RoleKey) => boolean;
 };
 
 export type StatsWorkbenchProps = {
@@ -93,6 +98,7 @@ export type StatsWorkbenchProps = {
   minimalAutoShowResultEnabled?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
+  hideInternalVariableList?: boolean;
 };
 
 export type Dataset = {
@@ -106,6 +112,15 @@ export type Dataset = {
 export type VariableMeta = {
   name: string;
   type: VariableType;
+};
+
+export type VariableDragItem = {
+  variableName: string;
+  variableType?: VariableType;
+  datasetId?: string | null;
+  datasetName?: string | null;
+  source?: "stats-workbench" | "external";
+  meta?: Record<string, unknown>;
 };
 
 export type AnalysisDef = {

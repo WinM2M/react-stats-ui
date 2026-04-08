@@ -26,7 +26,8 @@ import type {
   RoleKey,
   StatsWorkbenchControl,
   StatsWorkbenchProps,
-  VariableMeta
+  VariableMeta,
+  VariableDragItem
 } from "./stats-workbench/types";
 import { cn } from "./stats-workbench/utils";
 
@@ -89,7 +90,8 @@ export type {
   StatsWorkbenchControl,
   StatsWorkbenchProps,
   VariableMeta,
-  VariableType
+  VariableType,
+  VariableDragItem
 } from "./stats-workbench/types";
 
 export type { SupportedLanguage } from "./stats-workbench/i18n";
@@ -104,7 +106,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   showAnalysisHelpButton = true,
   minimalAutoShowResultEnabled = true,
   analysisExecutor,
-  onResult
+  onResult,
+  hideInternalVariableList = false
 }: StatsWorkbenchProps, ref) {
   const { t } = useTranslation();
   const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
@@ -331,6 +334,84 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     return await copyApaTablesToClipboard(tables);
   }, [result]);
 
+  const variableByName = React.useMemo(() => {
+    const map = new Map<string, VariableMeta>();
+    (selectedDataset?.columns ?? []).forEach((column) => map.set(column.name, column));
+    return map;
+  }, [selectedDataset]);
+
+  const assignVariableToRole = React.useCallback(
+    (variableName: string, role: RoleKey) => {
+      const variable = variableByName.get(variableName);
+      if (!variable) {
+        return false;
+      }
+      if (validateForRole(analysisType, role, variable)) {
+        return false;
+      }
+
+      setAssignments((prev) => {
+        const next = Object.fromEntries(
+          Object.entries(prev).map(([key, vars]) => [
+            key,
+            (vars as string[]).filter((value) => value !== variableName)
+          ])
+        ) as Record<RoleKey, string[]>;
+        const roleDef = analysisDef.roles.find((r) => r.key === role);
+        if (!roleDef) {
+          return next;
+        }
+        next[role] = roleDef.multi ? [...next[role], variableName] : [variableName];
+        return next;
+      });
+      setSelectedAvailable(null);
+      return true;
+    },
+    [analysisDef.roles, analysisType, variableByName]
+  );
+
+  const assignVariableToBestRole = React.useCallback(
+    (variableName: string) => {
+      const roles = analysisDef.roles;
+      if (roles.length === 0) {
+        return false;
+      }
+
+      const singleRoles = roles.filter((role) => !role.multi);
+      for (const role of singleRoles) {
+        if ((assignments[role.key] ?? []).length === 0) {
+          return assignVariableToRole(variableName, role.key);
+        }
+      }
+
+      const multiRoles = roles.filter((role) => role.multi);
+      if (multiRoles.length > 0) {
+        return assignVariableToRole(variableName, multiRoles[0].key);
+      }
+
+      const fallback = singleRoles[singleRoles.length - 1];
+      if (fallback) {
+        return assignVariableToRole(variableName, fallback.key);
+      }
+
+      return false;
+    },
+    [analysisDef.roles, assignments, assignVariableToRole]
+  );
+
+  const handleExternalVariableDrop = React.useCallback(
+    (item: VariableDragItem, role?: RoleKey) => {
+      if (!item || !item.variableName) {
+        return false;
+      }
+      if (role) {
+        return assignVariableToRole(item.variableName, role);
+      }
+      return assignVariableToBestRole(item.variableName);
+    },
+    [assignVariableToBestRole, assignVariableToRole]
+  );
+
   React.useImperativeHandle(
     ref,
     (): StatsWorkbenchControl => ({
@@ -381,13 +462,19 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         return next;
       },
       getAutoShowResult: () => effectiveMinimalAutoShowResult,
-      copyApaTable
+      copyApaTable,
+      assignVariableToRole,
+      assignVariableToBestRole,
+      handleExternalVariableDrop
     }),
     [
       clearInjectedData,
       copyApaTable,
       effectiveMinimalAutoShowResult,
       executeExternalMethod,
+      assignVariableToBestRole,
+      assignVariableToRole,
+      handleExternalVariableDrop,
       injectData,
       layoutMode,
       minimalAutoShowResult,
@@ -396,40 +483,6 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     ]
   );
 
-  const variableByName = React.useMemo(() => {
-    const map = new Map<string, VariableMeta>();
-    (selectedDataset?.columns ?? []).forEach((column) => map.set(column.name, column));
-    return map;
-  }, [selectedDataset]);
-
-  const assignVariableToRole = React.useCallback(
-    (variableName: string, role: RoleKey) => {
-      const variable = variableByName.get(variableName);
-      if (!variable) {
-        return;
-      }
-      if (validateForRole(analysisType, role, variable)) {
-        return;
-      }
-
-      setAssignments((prev) => {
-        const next = Object.fromEntries(
-          Object.entries(prev).map(([key, vars]) => [
-            key,
-            (vars as string[]).filter((value) => value !== variableName)
-          ])
-        ) as Record<RoleKey, string[]>;
-        const roleDef = analysisDef.roles.find((r) => r.key === role);
-        if (!roleDef) {
-          return next;
-        }
-        next[role] = roleDef.multi ? [...next[role], variableName] : [variableName];
-        return next;
-      });
-      setSelectedAvailable(null);
-    },
-    [analysisDef.roles, analysisType, variableByName]
-  );
 
   const removeFromRole = React.useCallback((role: RoleKey, variableName: string) => {
     setAssignments((prev) => ({ ...prev, [role]: prev[role].filter((v) => v !== variableName) }));
@@ -788,6 +841,10 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       borderlessSections
                       showManualRunAction={showManualRunAction}
                       onManualRunAction={requestRunAnalysisFromManual}
+                      showVariableList={!hideInternalVariableList}
+                      variableListDatasetId={selectedDataset?.id ?? null}
+                      variableListDatasetName={selectedDataset?.name ?? null}
+                      onAvailableVariableActivate={assignVariableToBestRole}
                     />
                   </div>
 
@@ -868,6 +925,10 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   onOptionsChange={setOptions}
                   hasOptions={hasOptions}
                   groupCandidates={groupCandidates}
+                  showVariableList={!hideInternalVariableList}
+                  variableListDatasetId={selectedDataset?.id ?? null}
+                  variableListDatasetName={selectedDataset?.name ?? null}
+                  onAvailableVariableActivate={assignVariableToBestRole}
                 />
 
                 <div

@@ -3,10 +3,12 @@ import { Play, X } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { validateForRole } from "../analysis";
-import type { AnalysisDef, AnalysisKind, RoleKey, VariableMeta } from "../types";
+import type { AnalysisDef, AnalysisKind, RoleKey, VariableMeta, VariableDragItem } from "../types";
+import { VARIABLE_DRAG_DATA_FORMAT } from "../types";
 import { AnalysisOptionsPanel } from "./analysis-options-panel";
 import { cn } from "../utils";
 import { RoleTag } from "../ui/role-tag";
+import { SharedVariableList } from "../ui/shared-variable-list";
 
 type VariableAssignmentPanelProps = {
   analysisType: AnalysisKind;
@@ -27,38 +29,23 @@ type VariableAssignmentPanelProps = {
   borderlessSections?: boolean;
   showManualRunAction?: boolean;
   onManualRunAction?: () => void;
+  variableListDatasetId?: string | null;
+  variableListDatasetName?: string | null;
+  showVariableList?: boolean;
+  onAvailableVariableActivate?: (variableName: string) => void;
 };
 
-const VariableCard = ({
-  name,
-  type,
-  isSelected,
-  onClick,
-  onDoubleClick,
-  isDragging
-}: {
-  name: string;
-  type: VariableType;
-  isSelected?: boolean;
-  onClick?: () => void;
-  onDoubleClick?: () => void;
-  isDragging?: boolean;
-}) => (
-  <div
-    onClick={onClick}
-    onDoubleClick={onDoubleClick}
-    className={cn(
-      "flex cursor-grab items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm transition",
-      isSelected ? "ring-2 ring-sky-500 border-sky-500" : "hover:border-slate-300 hover:shadow-md",
-      isDragging && "opacity-50"
-    )}
-  >
-    <RoleTag type={type} />
-    <span className="truncate text-sm font-medium text-slate-700">{name}</span>
-  </div>
-);
-
-type VariableType = VariableMeta["type"];
+const parseDragPayload = (event: React.DragEvent): VariableDragItem | null => {
+  const raw = event.dataTransfer?.getData(VARIABLE_DRAG_DATA_FORMAT);
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as VariableDragItem;
+  } catch {
+    return null;
+  }
+};
 
 export function VariableAssignmentPanel({
   analysisType,
@@ -78,89 +65,86 @@ export function VariableAssignmentPanel({
   groupCandidates,
   borderlessSections = false,
   showManualRunAction = false,
-  onManualRunAction
+  onManualRunAction,
+  variableListDatasetId,
+  variableListDatasetName,
+  showVariableList = true,
+  onAvailableVariableActivate
 }: VariableAssignmentPanelProps) {
   const { t } = useTranslation();
-  const [dragVariable, setDragVariable] = React.useState<string | null>(null);
+  const [dragPayload, setDragPayload] = React.useState<VariableDragItem | null>(null);
   const [invalidRole, setInvalidRole] = React.useState<RoleKey | null>(null);
   const [invalidMessage, setInvalidMessage] = React.useState("");
-  const lastTouchTapRef = React.useRef<{ name: string; at: number } | null>(null);
 
-  const handleDoubleClick = (variableName: string) => {
-    const roles = analysisDef.roles;
-    if (roles.length === 0) {
-      return;
-    }
+  const resolveDragPayload = React.useCallback(
+    (event: React.DragEvent): VariableDragItem | null => parseDragPayload(event) ?? dragPayload,
+    [dragPayload]
+  );
 
-    const singleRoles = roles.filter((role) => !role.multi);
-    const multiRoles = roles.filter((role) => role.multi);
-
-    for (const role of singleRoles) {
-      if (assignments[role.key].length === 0) {
-        onAssign(variableName, role.key);
+  const handleAvailableActivate = React.useCallback(
+    (variableName: string) => {
+      if (onAvailableVariableActivate) {
+        onAvailableVariableActivate(variableName);
         return;
       }
-    }
 
-    if (multiRoles.length > 0) {
-      onAssign(variableName, multiRoles[0].key);
-      return;
-    }
+      const roles = analysisDef.roles;
+      if (roles.length === 0) {
+        return;
+      }
 
-    onAssign(variableName, singleRoles[singleRoles.length - 1].key);
-  };
+      const singleRoles = roles.filter((role) => !role.multi);
+      const multiRoles = roles.filter((role) => role.multi);
+
+      for (const role of singleRoles) {
+        if ((assignments[role.key] ?? []).length === 0) {
+          onAssign(variableName, role.key);
+          return;
+        }
+      }
+
+      if (multiRoles.length > 0) {
+        onAssign(variableName, multiRoles[0].key);
+        return;
+      }
+
+      if (singleRoles.length > 0) {
+        onAssign(variableName, singleRoles[singleRoles.length - 1].key);
+      }
+    },
+    [analysisDef.roles, assignments, onAssign, onAvailableVariableActivate]
+  );
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr] max-[640px]:gap-2">
-      <div
-        className={cn(
-          "flex min-h-0 select-none flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
-          borderlessSections ? "" : "border border-slate-200"
-        )}
-      >
-        <div className="mb-2 text-sm font-semibold">{t("variables")}</div>
-        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200">
-          {availableVariables.length === 0 ? (
-            <div className="p-3 text-sm text-slate-500">{t("noAvailableVariables")}</div>
-          ) : (
-            <ul className="space-y-2 p-2">
-              {availableVariables.map((variable) => (
-                <li
-                  key={variable.name}
-                  draggable
-                  onDragStart={() => setDragVariable(variable.name)}
-                  onDragEnd={() => {
-                    setDragVariable(null);
-                    setInvalidRole(null);
-                  }}
-                  onClick={() => onSelectAvailable(variable.name)}
-                  onPointerUp={(event) => {
-                    if (event.pointerType !== "touch" && event.pointerType !== "pen") {
-                      return;
-                    }
-                    const now = Date.now();
-                    const lastTap = lastTouchTapRef.current;
-                    if (lastTap && lastTap.name === variable.name && now - lastTap.at < 320) {
-                      handleDoubleClick(variable.name);
-                      lastTouchTapRef.current = null;
-                      return;
-                    }
-                    lastTouchTapRef.current = { name: variable.name, at: now };
-                  }}
-                >
-                  <VariableCard
-                    name={variable.name}
-                    type={variable.type}
-                    isSelected={selectedAvailable === variable.name}
-                    onClick={() => onSelectAvailable(variable.name)}
-                    onDoubleClick={() => handleDoubleClick(variable.name)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+    <div
+      className={cn(
+        "grid h-full min-h-0 grid-cols-1 gap-3 max-[640px]:gap-2",
+        showVariableList ? "sm:grid-cols-[1fr_2fr]" : "sm:grid-cols-1"
+      )}
+    >
+      {showVariableList ? (
+        <SharedVariableList
+          variables={availableVariables}
+          heading={t("variables")}
+          emptyLabel={t("noAvailableVariables")}
+          selectedName={selectedAvailable}
+          onSelect={(name) => onSelectAvailable(name)}
+          onDoubleClick={handleAvailableActivate}
+          datasetId={variableListDatasetId}
+          datasetName={variableListDatasetName}
+          borderless={borderlessSections}
+          onDragStart={(payload) => {
+            setDragPayload(payload);
+            setInvalidRole(null);
+            setInvalidMessage("");
+          }}
+          onDragEnd={() => {
+            setDragPayload(null);
+            setInvalidRole(null);
+            setInvalidMessage("");
+          }}
+        />
+      ) : null}
 
       <div
         className="flex min-h-0 flex-col gap-3 sm:grid sm:transition-all sm:duration-300"
@@ -198,11 +182,16 @@ export function VariableAssignmentPanel({
                     <div
                       onDragOver={(event) => {
                         event.preventDefault();
-                        if (!dragVariable) {
+                        const payload = resolveDragPayload(event);
+                        if (!payload) {
+                          setInvalidRole(null);
+                          setInvalidMessage("");
                           return;
                         }
-                        const variable = variableByName.get(dragVariable);
+                        const variable = payload.variableName ? variableByName.get(payload.variableName) : null;
                         if (!variable) {
+                          setInvalidRole(null);
+                          setInvalidMessage("");
                           return;
                         }
                         const msg = validateForRole(analysisType, role.key, variable);
@@ -213,13 +202,20 @@ export function VariableAssignmentPanel({
                           setInvalidRole(null);
                           setInvalidMessage("");
                         }
-                      }}
+                       }}
                       onDrop={(event) => {
                         event.preventDefault();
-                        if (!dragVariable) {
+                        const payload = resolveDragPayload(event);
+                        if (!payload || !payload.variableName) {
                           return;
                         }
-                        onAssign(dragVariable, role.key);
+                        if (!variableByName.has(payload.variableName)) {
+                          return;
+                        }
+                        onAssign(payload.variableName, role.key);
+                        setDragPayload(null);
+                        setInvalidRole(null);
+                        setInvalidMessage("");
                       }}
                       onClick={() => {
                         if (selectedAvailable) {
