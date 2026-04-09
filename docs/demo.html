@@ -45,7 +45,7 @@
       const params = new URLSearchParams(window.location.search);
       const useDevBuild = params.get("dev") === "true";
       const packageSpecifier = useDevBuild ? "/dist/index.js" : "@winm2m/react-stats-ui";
-      window.__WINM2M_INFERENTIAL_WORKER_URL__ = "https://cdn.jsdelivr.net/npm/@winm2m/inferential-stats-js@1.5.0/dist/stats-worker.js";
+      window.__WINM2M_INFERENTIAL_WORKER_URL__ = "https://cdn.jsdelivr.net/npm/@winm2m/inferential-stats-js/dist/stats-worker.js";
       const { StatsWorkbench } = await import(packageSpecifier);
 
       function App() {
