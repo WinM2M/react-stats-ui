@@ -18,6 +18,21 @@ Peer dependencies:
 - `react` `^18.2.0 || ^19.0.0`
 - `react-dom` `^18.2.0 || ^19.0.0`
 
+### Tailwind CSS 설정
+
+본 패키지를 애플리케이션에 `import`하여 사용할 때 Tailwind CSS를 함께 사용한다면, `tailwind.config.js`의 `content` 옵션에 패키지의 빌드 산출물을 포함시켜야 스타일이 정상적으로 적용됩니다.
+
+```js
+// tailwind.config.js
+export default {
+  content: [
+    /* ... other paths ... */,
+    "./node_modules/@winm2m/react-stats-ui/dist/**/*.{js,ts,tsx}"
+  ],
+  // ...
+};
+```
+
 ## What the component provides
 
 - Dataset management with IndexedDB (import XLSX, select/delete dataset, drag-drop upload zone).
