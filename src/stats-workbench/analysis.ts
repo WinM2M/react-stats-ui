@@ -28,7 +28,7 @@ export function resolveWorkerUrl(): string {
   if (typeof fromGlobal === "string" && fromGlobal.length > 0) {
     return fromGlobal;
   }
-  return "https://cdn.jsdelivr.net/npm/@winm2m/inferential-stats-js@1.0.0/dist/stats-worker.js";
+  return "https://cdn.jsdelivr.net/npm/@winm2m/inferential-stats-js@1.5.0/dist/stats-worker.js";
 }
 
 function toNumber(value: unknown, fallback: number): number {
