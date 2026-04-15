@@ -1,7 +1,7 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import * as React from "react";
 import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
-import { useTranslation } from "react-i18next";
+import { useTranslation, I18nextProvider } from "react-i18next";
 import {
   ensureWorkerInitialized,
   executeExternalAnalysis,
@@ -769,6 +769,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const selectedDatasetName = selectedDataset?.name ?? t("noDatasetSelected");
 
   return (
+    <I18nextProvider i18n={workbenchI18n}>
     <Tooltip.Provider delayDuration={80}>
       <div
         data-stats-workbench-root="true"
@@ -973,6 +974,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         ) : null}
       </div>
     </Tooltip.Provider>
+    </I18nextProvider>
   );
 });
 

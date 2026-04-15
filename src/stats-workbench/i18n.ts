@@ -418,7 +418,13 @@ const resources = {
   }
 };
 
-export const workbenchI18n = i18next;
+/**
+ * Isolated i18next instance for the stats workbench.
+ * Using createInstance() prevents collisions with the host app's
+ * global i18next singleton when both share the same module
+ * (e.g. after Vite resolve.dedupe).
+ */
+export const workbenchI18n = i18next.createInstance();
 
 void workbenchI18n.use(initReactI18next).init({
   resources,

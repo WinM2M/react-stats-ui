@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { CircleHelp } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { ANALYSIS_DEFS, ANALYSIS_GROUPS } from "../constants";
 import { getAnalysisHelpUi } from "../help-resources";
 import { AnalysisHelpPopover } from "./analysis-help-popover";
@@ -99,7 +99,7 @@ export function AnalysisTypePanel({
             aria-label={helpUi.helpButtonAria}
             title={helpUi.helpButtonAria}
           >
-            <CircleHelp className="h-5 w-5" />
+            <HelpCircle className="h-5 w-5" />
           </button>
         ) : null}
       </div>

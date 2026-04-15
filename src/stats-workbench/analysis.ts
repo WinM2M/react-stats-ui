@@ -1,6 +1,6 @@
 import { InferentialStats } from "@winm2m/inferential-stats-js";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./constants";
-import i18next from "i18next";
+import { workbenchI18n } from "./i18n";
 import type { AnalysisKind, AnalysisPayload, PayloadInfo, RoleKey, VariableMeta } from "./types";
 
 const continuousRoles: Partial<Record<AnalysisKind, RoleKey[]>> = {
@@ -70,7 +70,7 @@ function getInputForAnalysis(
     if (values.length < 2) {
       return {
         input: { data },
-        reason: i18next.t("groupNeedsTwoValues"),
+        reason: workbenchI18n.t("groupNeedsTwoValues"),
         meta: { groupCandidates: values }
       };
     }
@@ -201,7 +201,7 @@ function getInputForAnalysis(
 export function validateForRole(kind: AnalysisKind, role: RoleKey, variable: VariableMeta): string | null {
   const requiresContinuous = continuousRoles[kind]?.includes(role) ?? false;
   if (requiresContinuous && variable.type !== "continuous") {
-    return i18next.t("onlyContinuousAllowed");
+    return workbenchI18n.t("onlyContinuousAllowed");
   }
   return null;
 }
@@ -219,14 +219,14 @@ export function getPayload(
       return {
         payload: { analysisType, method: analysisType, input: { data: [] }, options, assignments },
         canRun: false,
-        reason: i18next.t("setRoleReason", { role: i18next.t(`roles.${role.key}`, { defaultValue: role.label }) })
+        reason: workbenchI18n.t("setRoleReason", { role: workbenchI18n.t(`roles.${role.key}`, { defaultValue: role.label }) })
       };
     }
     if (role.minItems && selected.length < role.minItems) {
       return {
         payload: { analysisType, method: analysisType, input: { data: [] }, options, assignments },
         canRun: false,
-        reason: i18next.t("setMinItemsReason", { count: role.minItems, role: i18next.t(`roles.${role.key}`, { defaultValue: role.label }) })
+        reason: workbenchI18n.t("setMinItemsReason", { count: role.minItems, role: workbenchI18n.t(`roles.${role.key}`, { defaultValue: role.label }) })
       };
     }
   }
@@ -235,7 +235,7 @@ export function getPayload(
     return {
       payload: { analysisType, method: analysisType, input: { data: [] }, options, assignments },
       canRun: false,
-      reason: i18next.t("noRowsReason")
+      reason: workbenchI18n.t("noRowsReason")
     };
   }
 
@@ -290,7 +290,7 @@ export async function executeDefaultAnalysis(payload: AnalysisPayload): Promise<
   const sdk = await getSdkInstance();
   const method = (sdk as unknown as Record<string, unknown>)[payload.method];
   if (typeof method !== "function") {
-    throw new Error(i18next.t("methodUnavailable", { method: payload.method }));
+    throw new Error(workbenchI18n.t("methodUnavailable", { method: payload.method }));
   }
   return await (method as (this: InferentialStats, input: Record<string, unknown>) => Promise<unknown>).call(
     sdk,
