@@ -147,7 +147,7 @@ export function VariableAssignmentPanel({
       ) : null}
 
       <div
-        className="flex min-h-0 flex-col gap-3 sm:grid sm:transition-all sm:duration-300"
+        className="flex h-full min-h-0 flex-col gap-3 sm:grid sm:transition-all sm:duration-300"
         style={{
           gridTemplateColumns: hasOptions ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr) 0px",
           columnGap: hasOptions ? "0.75rem" : "0"
@@ -173,7 +173,7 @@ export function VariableAssignmentPanel({
               </button>
             ) : null}
           </div>
-          <div className="grid min-h-0 flex-1 auto-rows-fr gap-2">
+          <div className="grid min-h-0 flex-1 auto-rows-fr gap-2 max-[768px]:flex-none max-[768px]:auto-rows-auto">
             {analysisDef.roles.map((role) => {
               const activeError = invalidRole === role.key ? invalidMessage : "";
               return (
@@ -223,11 +223,11 @@ export function VariableAssignmentPanel({
                         }
                       }}
                       className={cn(
-                        "flex h-full min-h-0 flex-col rounded-lg border p-2 transition",
+                        "flex h-full min-h-0 flex-col rounded-lg border p-2 transition max-[768px]:h-auto",
                         activeError ? "border-red-500 bg-red-50" : "border-slate-200"
                       )}
                     >
-                      <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1">
+                      <div className="min-h-0 flex-1 overflow-auto rounded border border-dashed border-slate-200 p-1 max-[768px]:min-h-[2.25rem] max-[768px]:flex-none max-[768px]:overflow-visible">
                         {assignments[role.key].length === 0 ? (
                           <div className="px-2 py-3 text-xs text-slate-500">{t(`roles.${role.key}`, { defaultValue: role.label })}</div>
                         ) : (

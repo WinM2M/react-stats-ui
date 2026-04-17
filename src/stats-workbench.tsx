@@ -130,6 +130,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
   const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
   const [isResizingPanels, setIsResizingPanels] = React.useState(false);
+  const [isCompactViewport, setIsCompactViewport] = React.useState(false);
   const [workerConnectionState, setWorkerConnectionState] = React.useState<
     "disconnected" | "connecting" | "ready" | "error" | "external"
   >(analysisExecutor ? "external" : "disconnected");
@@ -707,7 +708,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
 
       const rect = container.getBoundingClientRect();
       const dividerHeight = 8;
-      const minPanelHeight = 220;
+      const minPanelHeight = isCompactViewport ? 120 : 220;
       const maxTop = rect.height - minPanelHeight - dividerHeight;
       const nextTop = Math.max(minPanelHeight, Math.min(event.clientY - rect.top, maxTop));
       setTopPanelHeight(nextTop);
@@ -724,7 +725,35 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [isResizingPanels]);
+  }, [isCompactViewport, isResizingPanels]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const updateViewport = () => {
+      setIsCompactViewport(window.innerWidth <= 768);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  React.useEffect(() => {
+    const container = panelsRef.current;
+    if (!container || topPanelHeight === null) {
+      return;
+    }
+    const dividerHeight = 8;
+    const minPanelHeight = isCompactViewport ? 120 : 220;
+    const maxTop = Math.max(minPanelHeight, container.getBoundingClientRect().height - minPanelHeight - dividerHeight);
+    const clamped = Math.max(minPanelHeight, Math.min(topPanelHeight, maxTop));
+    if (clamped !== topPanelHeight) {
+      setTopPanelHeight(clamped);
+    }
+  }, [isCompactViewport, topPanelHeight]);
 
   const importDatasetFile = React.useCallback(
     async (file: File) => {
@@ -767,6 +796,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   };
 
   const selectedDatasetName = selectedDataset?.name ?? t("noDatasetSelected");
+  const minPanelHeight = isCompactViewport ? 120 : 220;
 
   return (
     <I18nextProvider i18n={workbenchI18n}>
@@ -906,8 +936,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                 style={{
                   rowGap: "0.5rem",
                   gridTemplateRows: topPanelHeight
-                    ? `${topPanelHeight}px 8px minmax(220px, 1fr)`
-                    : "minmax(220px, 1fr) 8px minmax(220px, 1fr)"
+                    ? `${topPanelHeight}px 8px minmax(${minPanelHeight}px, 1fr)`
+                    : `minmax(${minPanelHeight}px, 1fr) 8px minmax(${minPanelHeight}px, 1fr)`
                 }}
               >
                 <VariableAssignmentPanel
