@@ -1,4 +1,5 @@
 import * as React from "react";
+import { X } from "lucide-react";
 import { cn } from "../utils";
 import { RoleTag } from "./role-tag";
 import type { VariableDragItem, VariableMeta } from "../types";
@@ -11,11 +12,13 @@ type VariableCardProps = {
   type: VariableType;
   isSelected?: boolean;
   isDragging?: boolean;
+  isDerived?: boolean;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  onDelete?: () => void;
 };
 
-const VariableCard = ({ name, type, isSelected, isDragging, onClick, onDoubleClick }: VariableCardProps) => (
+const VariableCard = ({ name, type, isSelected, isDragging, isDerived, onClick, onDoubleClick, onDelete }: VariableCardProps) => (
   <div
     onClick={onClick}
     onDoubleClick={onDoubleClick}
@@ -27,6 +30,19 @@ const VariableCard = ({ name, type, isSelected, isDragging, onClick, onDoubleCli
   >
     <RoleTag type={type} />
     <span className="truncate text-sm font-medium text-slate-700">{name}</span>
+    {isDerived && onDelete ? (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        className="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-100 hover:text-red-500"
+        aria-label={`Delete ${name}`}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    ) : null}
   </div>
 );
 
@@ -44,6 +60,8 @@ export type SharedVariableListProps = {
   borderless?: boolean;
   onDragStart?: (payload: VariableDragItem) => void;
   onDragEnd?: () => void;
+  derivedNames?: Set<string>;
+  onDeleteVariable?: (name: string) => void;
 };
 
 export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariableListProps>(function SharedVariableList(
@@ -60,7 +78,9 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     contentClassName,
     borderless = false,
     onDragStart,
-    onDragEnd
+    onDragEnd,
+    derivedNames,
+    onDeleteVariable
   },
   ref
 ) {
@@ -134,8 +154,10 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
                   type={variable.type}
                   isSelected={selectedName === variable.name}
                   isDragging={draggingName === variable.name}
+                  isDerived={derivedNames?.has(variable.name)}
                   onClick={() => onSelect?.(variable.name)}
                   onDoubleClick={() => onDoubleClick?.(variable.name)}
+                  onDelete={onDeleteVariable ? () => onDeleteVariable(variable.name) : undefined}
                 />
               </li>
             ))}
