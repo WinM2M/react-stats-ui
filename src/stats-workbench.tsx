@@ -405,10 +405,24 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       if (!item || !item.variableName) {
         return false;
       }
+      const names = item.variableNames && item.variableNames.length > 0
+        ? item.variableNames
+        : [item.variableName];
+      let applied = false;
       if (role) {
-        return assignVariableToRole(item.variableName, role);
+        names.forEach((name) => {
+          if (assignVariableToRole(name, role)) {
+            applied = true;
+          }
+        });
+        return applied;
       }
-      return assignVariableToBestRole(item.variableName);
+      names.forEach((name) => {
+        if (assignVariableToBestRole(name)) {
+          applied = true;
+        }
+      });
+      return applied;
     },
     [assignVariableToBestRole, assignVariableToRole]
   );

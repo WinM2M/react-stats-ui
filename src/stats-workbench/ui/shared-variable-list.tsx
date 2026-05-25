@@ -51,6 +51,8 @@ export type SharedVariableListProps = {
   heading?: React.ReactNode;
   emptyLabel?: React.ReactNode;
   selectedName?: string | null;
+  selectedNames?: string[];
+  onSelectionChange?: (names: string[]) => void;
   onSelect?: (name: string) => void;
   onDoubleClick?: (name: string) => void;
   datasetId?: string | null;
@@ -62,6 +64,7 @@ export type SharedVariableListProps = {
   onDragEnd?: () => void;
   derivedNames?: Set<string>;
   onDeleteVariable?: (name: string) => void;
+  secondaryLabelByName?: Record<string, string>;
 };
 
 export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariableListProps>(function SharedVariableList(
@@ -70,6 +73,8 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     heading,
     emptyLabel = null,
     selectedName = null,
+    selectedNames,
+    onSelectionChange,
     onSelect,
     onDoubleClick,
     datasetId,
@@ -80,16 +85,29 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     onDragStart,
     onDragEnd,
     derivedNames,
-    onDeleteVariable
+    onDeleteVariable,
+    secondaryLabelByName
   },
   ref
 ) {
   const [draggingName, setDraggingName] = React.useState<string | null>(null);
   const lastTouchTapRef = React.useRef<{ name: string; at: number } | null>(null);
+  const anchorIndexRef = React.useRef<number | null>(null);
+
+  const selectedNameSet = React.useMemo(() => {
+    if (selectedNames && selectedNames.length > 0) {
+      return new Set(selectedNames);
+    }
+    return selectedName ? new Set([selectedName]) : new Set<string>();
+  }, [selectedName, selectedNames]);
 
   const handleDragStart = (event: React.DragEvent, variable: VariableMeta) => {
+    const multiNames = selectedNameSet.has(variable.name)
+      ? variables.map((entry) => entry.name).filter((name) => selectedNameSet.has(name))
+      : [variable.name];
     const payload: VariableDragItem = {
       variableName: variable.name,
+      variableNames: multiNames,
       variableType: variable.type,
       datasetId: datasetId ?? null,
       datasetName: datasetName ?? null,
@@ -106,6 +124,45 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     onDragStart?.(payload);
     setDraggingName(variable.name);
   };
+
+  const handleItemClick = React.useCallback(
+    (event: React.MouseEvent, variableName: string, index: number) => {
+      const supportsMultiSelection = typeof onSelectionChange === "function";
+      if (!supportsMultiSelection) {
+        onSelect?.(variableName);
+        anchorIndexRef.current = index;
+        return;
+      }
+
+      const current = selectedNames ?? [];
+      const isRangeSelect = event.shiftKey;
+      const isToggleSelect = event.metaKey || event.ctrlKey;
+      let next: string[] = [];
+
+      if (isRangeSelect && variables.length > 0) {
+        const fallbackAnchor = anchorIndexRef.current ?? variables.findIndex((item) => item.name === (current[0] ?? ""));
+        const anchor = fallbackAnchor >= 0 ? fallbackAnchor : index;
+        const [start, end] = anchor <= index ? [anchor, index] : [index, anchor];
+        const range = variables.slice(start, end + 1).map((item) => item.name);
+        if (isToggleSelect) {
+          next = Array.from(new Set([...current, ...range]));
+        } else {
+          next = range;
+        }
+      } else if (isToggleSelect) {
+        next = current.includes(variableName)
+          ? current.filter((name) => name !== variableName)
+          : [...current, variableName];
+      } else {
+        next = [variableName];
+      }
+
+      anchorIndexRef.current = index;
+      onSelectionChange(next);
+      onSelect?.(variableName);
+    },
+    [onSelect, onSelectionChange, selectedNames, variables]
+  );
 
   const handleDragEnd = () => {
     onDragEnd?.();
@@ -127,13 +184,13 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
           <div className="p-3 text-sm text-slate-500">{emptyLabel}</div>
         ) : (
           <ul className="space-y-2 p-2">
-            {variables.map((variable) => (
+            {variables.map((variable, index) => (
               <li
                 key={variable.name}
                 draggable
                 onDragStart={(event) => handleDragStart(event, variable)}
                 onDragEnd={handleDragEnd}
-                onClick={() => onSelect?.(variable.name)}
+                onClick={(event) => handleItemClick(event, variable.name, index)}
                 onDoubleClick={() => onDoubleClick?.(variable.name)}
                 onPointerUp={(event) => {
                   if (event.pointerType !== "touch" && event.pointerType !== "pen") {
@@ -149,18 +206,23 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
                   lastTouchTapRef.current = { name: variable.name, at: now };
                 }}
               >
-                <VariableCard
-                  name={variable.name}
-                  type={variable.type}
-                  isSelected={selectedName === variable.name}
-                  isDragging={draggingName === variable.name}
-                  isDerived={derivedNames?.has(variable.name)}
-                  onClick={() => onSelect?.(variable.name)}
-                  onDoubleClick={() => onDoubleClick?.(variable.name)}
-                  onDelete={onDeleteVariable ? () => onDeleteVariable(variable.name) : undefined}
-                />
-              </li>
-            ))}
+                  <VariableCard
+                    name={variable.name}
+                    type={variable.type}
+                    isSelected={selectedNameSet.has(variable.name)}
+                    isDragging={draggingName === variable.name}
+                    isDerived={derivedNames?.has(variable.name)}
+                    onClick={undefined}
+                    onDoubleClick={() => onDoubleClick?.(variable.name)}
+                    onDelete={onDeleteVariable ? () => onDeleteVariable(variable.name) : undefined}
+                  />
+                  {secondaryLabelByName?.[variable.name] ? (
+                    <div className="mt-1 px-2 text-[11px] text-slate-500" title={secondaryLabelByName[variable.name]}>
+                      <span className="block truncate">{secondaryLabelByName[variable.name]}</span>
+                    </div>
+                  ) : null}
+                </li>
+              ))}
           </ul>
         )}
       </div>

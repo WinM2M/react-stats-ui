@@ -209,10 +209,15 @@ export function VariableAssignmentPanel({
                         if (!payload || !payload.variableName) {
                           return;
                         }
-                        if (!variableByName.has(payload.variableName)) {
-                          return;
-                        }
-                        onAssign(payload.variableName, role.key);
+                        const names = payload.variableNames && payload.variableNames.length > 0
+                          ? payload.variableNames
+                          : [payload.variableName];
+                        names.forEach((name) => {
+                          if (!variableByName.has(name)) {
+                            return;
+                          }
+                          onAssign(name, role.key);
+                        });
                         setDragPayload(null);
                         setInvalidRole(null);
                         setInvalidMessage("");

@@ -116,6 +116,7 @@ export type VariableMeta = {
 
 export type VariableDragItem = {
   variableName: string;
+  variableNames?: string[];
   variableType?: VariableType;
   datasetId?: string | null;
   datasetName?: string | null;
