@@ -134,12 +134,6 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {analysisType === "efa" && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">{t("optionsNumberFactors")}</label>
-            <SelectBox
-              value={String(options.nFactors ?? 2)}
-              onChange={(value) => updateOption("nFactors", Number(value))}
-              items={[2, 3, 4, 5, 6].map((n) => ({ value: String(n), label: String(n) }))}
-            />
             <label className="text-xs font-medium text-slate-600">{t("optionsRotation")}</label>
             <SelectBox
               value={String(options.rotation ?? "varimax")}

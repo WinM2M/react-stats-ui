@@ -334,7 +334,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
-    optionKeys: ["nFactors", "rotation"],
+    optionKeys: ["rotation"],
     interpretationKeys: ["factorLoading", "communalities"],
     references: [
       { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },

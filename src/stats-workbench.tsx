@@ -148,7 +148,6 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     k: 3,
     method: "ward",
     metric: "euclidean",
-    nFactors: 2,
     rotation: "varimax",
     nComponents: 2,
     maxIterations: 300,

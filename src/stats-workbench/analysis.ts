@@ -161,7 +161,6 @@ function getInputForAnalysis(
       input: {
         data,
         variables: assignments.variables,
-        nFactors: toNumber(options.nFactors, 2),
         rotation: options.rotation ?? "varimax",
         method: options.factorMethod ?? "minres"
       }
