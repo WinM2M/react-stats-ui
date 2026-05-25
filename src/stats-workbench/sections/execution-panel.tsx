@@ -74,28 +74,35 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
     <div className="mb-4 overflow-x-auto">
       <div className="mb-1 text-xs font-semibold text-slate-700">{t("tableLabel", { index: index + 1 })}</div>
       <div className="mb-2 text-xs italic text-slate-600">{translatedTitle}</div>
-      <table className="w-full border-collapse text-left text-xs text-slate-700">
-        <thead className="border-b border-t border-slate-900">
-          <tr>
-            {translatedColumns.map((column) => (
-              <th key={column} className="px-2 py-2 font-semibold">
-                {column}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="border-b border-slate-900">
-          {table.rows.map((row, rowIndex) => (
-            <tr key={`${table.title}-${rowIndex}`}>
-              {table.columns.map((column) => (
-                <td key={`${table.title}-${rowIndex}-${column}`} className="px-2 py-1.5 align-top">
-                  {formatApaCell(row[column])}
-                </td>
+      {/* Use w-auto so the table only consumes the horizontal space its
+          content needs.  Wrapping in an inline-block container keeps the
+          underlying flex/grid parent from stretching the table to the full
+          available width while still allowing horizontal scroll for wide
+          tables. */}
+      <div className="inline-block max-w-full align-top">
+        <table className="w-auto border-collapse text-left text-xs text-slate-700">
+          <thead className="border-b border-t border-slate-900">
+            <tr>
+              {translatedColumns.map((column) => (
+                <th key={column} className="whitespace-nowrap px-3 py-2 font-semibold">
+                  {column}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="border-b border-slate-900">
+            {table.rows.map((row, rowIndex) => (
+              <tr key={`${table.title}-${rowIndex}`}>
+                {table.columns.map((column) => (
+                  <td key={`${table.title}-${rowIndex}-${column}`} className="whitespace-nowrap px-3 py-1.5 align-top">
+                    {formatApaCell(row[column])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

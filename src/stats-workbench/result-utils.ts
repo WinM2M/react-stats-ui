@@ -8,89 +8,140 @@ function buildPcaTables(objectPayload: Record<string, unknown>): TableData[] {
   const explainedVarianceRatio = Array.isArray(objectPayload.explainedVarianceRatio)
     ? (objectPayload.explainedVarianceRatio as number[])
     : [];
-  const cumulativeVarianceRatio = Array.isArray(objectPayload.cumulativeVarianceRatio)
-    ? (objectPayload.cumulativeVarianceRatio as number[])
-    : [];
   const eigenvalues = Array.isArray(objectPayload.eigenvalues) ? (objectPayload.eigenvalues as number[]) : [];
   const nComponents = typeof objectPayload.nComponents === "number" ? objectPayload.nComponents : explainedVarianceRatio.length;
+  const variablesOrder = Array.isArray(objectPayload.variables)
+    ? (objectPayload.variables as unknown[]).map((item) => String(item))
+    : [];
 
   const tables: TableData[] = [];
 
-  if (explainedVarianceRatio.length > 0 || eigenvalues.length > 0) {
-    const rowCount = Math.max(explainedVarianceRatio.length, eigenvalues.length, cumulativeVarianceRatio.length, nComponents || 0);
-    const rows = Array.from({ length: rowCount }).map((_, index) => ({
-      component: index + 1,
-      eigenvalue: eigenvalues[index] ?? null,
-      variance: typeof explainedVarianceRatio[index] === "number" ? explainedVarianceRatio[index] * 100 : null,
-      cumulativeVariance: typeof cumulativeVarianceRatio[index] === "number" ? cumulativeVarianceRatio[index] * 100 : null
-    }));
-
-    tables.push({
-      title: "Eigenvalues",
-      columns: ["component", "eigenvalue", "variance", "cumulativeVariance"],
-      rows
-    });
-  }
-
+  // Communalities table (Initial = 1.000 by convention, Extraction from payload)
   if (objectPayload.communalities && typeof objectPayload.communalities === "object" && !Array.isArray(objectPayload.communalities)) {
-    const rows = Object.entries(objectPayload.communalities as Record<string, unknown>).map(([variable, communality]) => ({
+    const commRecord = objectPayload.communalities as Record<string, unknown>;
+    const orderedVars = variablesOrder.length > 0 ? variablesOrder : Object.keys(commRecord);
+    const rows = orderedVars.map((variable) => ({
       variable,
-      communality
+      initial: 1,
+      extraction: commRecord[variable] ?? null
     }));
 
     tables.push({
       title: "Communalities",
-      columns: ["variable", "communality"],
+      columns: ["variable", "initial", "extraction"],
       rows
     });
   }
 
+  // Total Variance Explained (SPSS-style: Initial / Extraction / Rotation sums of squared loadings)
+  const totalVariance = objectPayload.totalVarianceExplained && typeof objectPayload.totalVarianceExplained === "object"
+    ? (objectPayload.totalVarianceExplained as Record<string, unknown>)
+    : null;
+
+  if (totalVariance) {
+    const initial = Array.isArray(totalVariance.initial) ? (totalVariance.initial as Array<Record<string, unknown>>) : [];
+    const extraction = Array.isArray(totalVariance.extraction) ? (totalVariance.extraction as Array<Record<string, unknown>>) : [];
+    const rotation = Array.isArray(totalVariance.rotation) ? (totalVariance.rotation as Array<Record<string, unknown>>) : [];
+    const hasRotation = rotation.length > 0;
+
+    const rowCount = initial.length;
+    const rows = Array.from({ length: rowCount }).map((_, index) => {
+      const init = initial[index] ?? {};
+      const ext = extraction[index] ?? null;
+      const rot = hasRotation ? rotation[index] ?? null : null;
+      const row: Record<string, unknown> = {
+        component: init.component ?? index + 1,
+        initialEigenvalue: init.eigenvalue ?? null,
+        initialVariancePercent: init.variancePercent ?? null,
+        initialCumulativePercent: init.cumulativePercent ?? null,
+        extractionEigenvalue: ext ? ext.eigenvalue ?? null : null,
+        extractionVariancePercent: ext ? ext.variancePercent ?? null : null,
+        extractionCumulativePercent: ext ? ext.cumulativePercent ?? null : null
+      };
+      if (hasRotation) {
+        row.rotationEigenvalue = rot ? rot.eigenvalue ?? null : null;
+        row.rotationVariancePercent = rot ? rot.variancePercent ?? null : null;
+        row.rotationCumulativePercent = rot ? rot.cumulativePercent ?? null : null;
+      }
+      return row;
+    });
+
+    const columns = [
+      "component",
+      "initialEigenvalue",
+      "initialVariancePercent",
+      "initialCumulativePercent",
+      "extractionEigenvalue",
+      "extractionVariancePercent",
+      "extractionCumulativePercent",
+      ...(hasRotation
+        ? ["rotationEigenvalue", "rotationVariancePercent", "rotationCumulativePercent"]
+        : [])
+    ];
+
+    tables.push({
+      title: "Total Variance Explained",
+      columns,
+      rows
+    });
+  } else if (explainedVarianceRatio.length > 0 || eigenvalues.length > 0) {
+    // Legacy fallback when Python did not return totalVarianceExplained
+    const cumulativeVarianceRatio = Array.isArray(objectPayload.cumulativeVarianceRatio)
+      ? (objectPayload.cumulativeVarianceRatio as number[])
+      : [];
+    const rowCount = Math.max(explainedVarianceRatio.length, eigenvalues.length, cumulativeVarianceRatio.length, nComponents || 0);
+    const rows = Array.from({ length: rowCount }).map((_, index) => ({
+      component: index + 1,
+      eigenvalue: eigenvalues[index] ?? null,
+      variancePercent: typeof explainedVarianceRatio[index] === "number" ? explainedVarianceRatio[index] * 100 : null,
+      cumulativePercent: typeof cumulativeVarianceRatio[index] === "number" ? cumulativeVarianceRatio[index] * 100 : null
+    }));
+
+    tables.push({
+      title: "Total Variance Explained",
+      columns: ["component", "eigenvalue", "variancePercent", "cumulativePercent"],
+      rows
+    });
+  }
+
+  // Component Matrix: only the selected (kept) components, first column = variable name
+  const componentCount = typeof nComponents === "number" && nComponents > 0 ? nComponents : 0;
+  const loadingColumns = Array.from({ length: componentCount }).map((_, idx) => `component${idx + 1}`);
+
   const sortedLoadings = Array.isArray(objectPayload.sortedLoadings)
     ? (objectPayload.sortedLoadings as Array<Record<string, unknown>>)
     : [];
-  if (sortedLoadings.length > 0) {
-    const maxComponents = sortedLoadings.reduce((max, item) => {
-      const loadings = Array.isArray(item.loadings) ? (item.loadings as unknown[]) : [];
-      return Math.max(max, loadings.length);
-    }, 0);
+  const sortBySize = objectPayload.sortBySize !== false;
+  const rotation = typeof objectPayload.rotation === "string" ? objectPayload.rotation : "none";
+  const matrixTitle = rotation === "varimax" ? "Rotated Component Matrix" : "Component Matrix";
 
-    const loadingColumns = Array.from({ length: maxComponents }).map((_, idx) => `component${idx + 1}`);
+  if (sortBySize && sortedLoadings.length > 0 && loadingColumns.length > 0) {
     const rows = sortedLoadings.map((item) => {
-      const row: Record<string, unknown> = {
-        variable: item.variable ?? "",
-        dominantComponent: item.dominantComponent,
-        dominantLoading: item.dominantLoading
-      };
+      const row: Record<string, unknown> = { variable: item.variable ?? "" };
       const loadings = Array.isArray(item.loadings) ? (item.loadings as unknown[]) : [];
       loadingColumns.forEach((column, index) => {
         row[column] = loadings[index] ?? null;
       });
       return row;
     });
-
     tables.push({
-      title: "Rotated Component Matrix",
-      columns: ["variable", "dominantComponent", "dominantLoading", ...loadingColumns],
+      title: matrixTitle,
+      columns: ["variable", ...loadingColumns],
       rows
     });
   } else if (objectPayload.loadings && typeof objectPayload.loadings === "object" && !Array.isArray(objectPayload.loadings)) {
-    const loadingsEntries = Object.entries(objectPayload.loadings as Record<string, unknown>);
-    const maxComponents = loadingsEntries.reduce((max, [, loading]) => {
-      const values = Array.isArray(loading) ? (loading as unknown[]) : [];
-      return Math.max(max, values.length);
-    }, 0);
-    const loadingColumns = Array.from({ length: maxComponents }).map((_, idx) => `component${idx + 1}`);
-    const rows = loadingsEntries.map(([variable, loading]) => {
+    const loadingsRecord = objectPayload.loadings as Record<string, unknown>;
+    const orderedVars = variablesOrder.length > 0 ? variablesOrder : Object.keys(loadingsRecord);
+    const rows = orderedVars.map((variable) => {
       const row: Record<string, unknown> = { variable };
-      const values = Array.isArray(loading) ? (loading as unknown[]) : [];
+      const values = Array.isArray(loadingsRecord[variable]) ? (loadingsRecord[variable] as unknown[]) : [];
       loadingColumns.forEach((column, index) => {
         row[column] = values[index] ?? null;
       });
       return row;
     });
-
     tables.push({
-      title: "Rotated Component Matrix",
+      title: matrixTitle,
       columns: ["variable", ...loadingColumns],
       rows
     });
@@ -106,59 +157,79 @@ function buildRegressionTables(objectPayload: Record<string, unknown>): TableDat
     ? (objectPayload.modelSummary as Record<string, unknown>)
     : null;
 
-  const selectedVariables = Array.isArray(objectPayload.selectedVariables)
-    ? (objectPayload.selectedVariables as unknown[]).map((item) => String(item))
-    : [];
+  // Model Summary (SPSS-style: R, R², Adjusted R², Std. Error of the Estimate)
+  const rSquared = modelSummary?.rSquared ?? objectPayload.rSquared;
+  const adjustedRSquared = modelSummary?.adjustedRSquared ?? objectPayload.adjustedRSquared;
+  const rValue = modelSummary?.r
+    ?? (typeof rSquared === "number" && Number.isFinite(rSquared) && rSquared >= 0 ? Math.sqrt(rSquared) : null);
+  const stdErrorOfEstimate = modelSummary?.stdErrorOfEstimate ?? objectPayload.residualStdError ?? null;
 
   tables.push({
     title: "Model Summary",
-    columns: ["rSquared", "adjustedRSquared", "fStatistic", "fPValue", "observations", "method", "selectedVariables"],
+    columns: ["r", "rSquared", "adjustedRSquared", "stdErrorOfEstimate", "durbinWatson"],
     rows: [
       {
-        rSquared: modelSummary?.rSquared ?? objectPayload.rSquared,
-        adjustedRSquared: modelSummary?.adjustedRSquared ?? objectPayload.adjustedRSquared,
-        fStatistic: objectPayload.fStatistic,
-        fPValue: objectPayload.fPValue,
-        observations: objectPayload.observations,
-        method: objectPayload.method,
-        selectedVariables: selectedVariables.join(", ")
+        r: rValue,
+        rSquared,
+        adjustedRSquared,
+        stdErrorOfEstimate,
+        durbinWatson: objectPayload.durbinWatson ?? null
       }
     ]
   });
 
-  const coefficients = Array.isArray(objectPayload.coefficients)
-    ? (objectPayload.coefficients as Array<Record<string, unknown>>)
+  // ANOVA table
+  const anova = objectPayload.anova && typeof objectPayload.anova === "object"
+    ? (objectPayload.anova as Record<string, unknown>)
+    : null;
+  const anovaRows = anova && Array.isArray(anova.rows)
+    ? (anova.rows as Array<Record<string, unknown>>)
     : [];
-  if (coefficients.length > 0) {
-    const rows = coefficients.map((coef) => ({
-      variable: coef.variable,
-      b: coef.coefficient,
-      stdError: coef.stdError,
-      t: coef.tStatistic,
-      p: coef.pValue,
-      ci: Array.isArray(coef.confidenceInterval) ? `[${coef.confidenceInterval[0]}, ${coef.confidenceInterval[1]}]` : "NA"
-    }));
+  if (anovaRows.length > 0) {
+    const dependent = typeof anova?.dependentVariable === "string" ? anova.dependentVariable : "";
+    const titleSuffix = dependent ? ` (Dependent: ${dependent})` : "";
     tables.push({
-      title: "Unstandardized Coefficients",
-      columns: ["variable", "b", "stdError", "t", "p", "ci"],
-      rows
+      title: `ANOVA${titleSuffix}`,
+      columns: ["source", "sumOfSquares", "df", "meanSquare", "fStatistic", "pValue"],
+      rows: anovaRows
     });
   }
 
+  // Coefficients (Unstandardized B + Standardized Beta merged into single SPSS-style table)
+  const coefficients = Array.isArray(objectPayload.coefficients)
+    ? (objectPayload.coefficients as Array<Record<string, unknown>>)
+    : [];
   const standardizedCoefficients = Array.isArray(objectPayload.standardizedCoefficients)
     ? (objectPayload.standardizedCoefficients as Array<Record<string, unknown>>)
     : [];
-  if (standardizedCoefficients.length > 0) {
-    const rows = standardizedCoefficients.map((coef) => ({
-      variable: coef.variable,
-      beta: coef.coefficient,
-      stdError: coef.stdError,
-      t: coef.tStatistic,
-      p: coef.pValue
-    }));
+  if (coefficients.length > 0) {
+    const betaByVariable = new Map<string, number | null>();
+    for (const std of standardizedCoefficients) {
+      const varName = std.variable !== undefined ? String(std.variable) : "";
+      const beta = typeof std.coefficient === "number" ? std.coefficient : null;
+      betaByVariable.set(varName, beta);
+    }
+    const rows = coefficients.map((coef) => {
+      const variableName = coef.variable !== undefined ? String(coef.variable) : "";
+      const isConstant = variableName === "const" || variableName === "(Constant)";
+      // For the constant term beta is not defined; render as an empty string
+      // (rather than "NA") to match SPSS coefficient table convention where
+      // the intercept row's standardised column is left blank.
+      const beta: number | string = isConstant ? "" : betaByVariable.get(variableName) ?? "";
+      const ci = Array.isArray(coef.confidenceInterval) ? coef.confidenceInterval : null;
+      return {
+        variable: isConstant ? "(Constant)" : variableName,
+        b: coef.coefficient,
+        stdError: coef.stdError,
+        beta,
+        t: coef.tStatistic,
+        p: coef.pValue,
+        ci: ci ? `[${formatApaValue(ci[0])}, ${formatApaValue(ci[1])}]` : "NA"
+      };
+    });
     tables.push({
-      title: "Standardized Coefficients",
-      columns: ["variable", "beta", "stdError", "t", "p"],
+      title: "Coefficients",
+      columns: ["variable", "b", "stdError", "beta", "t", "p", "ci"],
       rows
     });
   }
@@ -168,9 +239,26 @@ function buildRegressionTables(objectPayload: Record<string, unknown>): TableDat
     : [];
   if (multicollinearity.length > 0) {
     tables.push({
-      title: "Multicollinearity",
+      title: "Collinearity Statistics",
       columns: ["variable", "tolerance", "vif"],
       rows: multicollinearity
+    });
+  }
+
+  // Method / selected variables footnote-style summary
+  const selectedVariables = Array.isArray(objectPayload.selectedVariables)
+    ? (objectPayload.selectedVariables as unknown[]).map((item) => String(item))
+    : [];
+  if (selectedVariables.length > 0 || objectPayload.method) {
+    tables.push({
+      title: "Method",
+      columns: ["statistic", "value"],
+      rows: [
+        { statistic: "method", value: objectPayload.method ?? "enter" },
+        { statistic: "selectedVariables", value: selectedVariables.join(", ") },
+        { statistic: "observations", value: objectPayload.observations ?? null },
+        { statistic: "degreesOfFreedom", value: objectPayload.degreesOfFreedom ?? null }
+      ]
     });
   }
 
@@ -182,11 +270,13 @@ function formatApaValue(value: unknown): string {
     if (!Number.isFinite(value)) {
       return "NA";
     }
-    if (Math.abs(value) >= 1000 || (Math.abs(value) > 0 && Math.abs(value) < 0.001)) {
-      return value.toExponential(3);
-    }
-    const truncated = value < 0 ? Math.ceil(value * 1000) / 1000 : Math.floor(value * 1000) / 1000;
-    return truncated.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+    // Round-half-away-from-zero to 3 decimals.  JS Math.round uses
+    // round-half-up which behaves asymmetrically for negative .5 ties, so
+    // we apply the sign manually.
+    const sign = value < 0 ? -1 : 1;
+    const rounded = sign * Math.round(Math.abs(value) * 1000) / 1000;
+    const safe = Object.is(rounded, -0) ? 0 : rounded;
+    return safe.toFixed(3);
   }
   if (typeof value === "boolean") {
     return value ? "True" : "False";
@@ -195,7 +285,7 @@ function formatApaValue(value: unknown): string {
     return "NA";
   }
   if (Array.isArray(value)) {
-    return value.join(", ");
+    return value.map((item) => formatApaValue(item)).join(", ");
   }
   if (typeof value === "object") {
     return JSON.stringify(value);
@@ -228,7 +318,7 @@ export function buildTableData(raw: unknown): TableData[] {
     "rSquared" in objectPayload &&
     "adjustedRSquared" in objectPayload &&
     "coefficients" in objectPayload &&
-    ("modelSummary" in objectPayload || "standardizedCoefficients" in objectPayload || "multicollinearity" in objectPayload);
+    ("modelSummary" in objectPayload || "anova" in objectPayload || "standardizedCoefficients" in objectPayload || "multicollinearity" in objectPayload);
 
   if (isRegressionPayload) {
     const regressionTables = buildRegressionTables(objectPayload);

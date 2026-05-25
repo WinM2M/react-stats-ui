@@ -15,46 +15,173 @@ describe("result-utils", () => {
     expect(tables[0].columns).toEqual(["statistic", "value"]);
   });
 
-  it("formats APA values consistently", () => {
-    expect(formatApaCell(12.34)).toBe("12.34");
-    expect(formatApaCell(0.00001)).toBe("1.000e-5");
-    expect(formatApaCell(null)).toBe("NA");
-    expect(formatApaCell(true)).toBe("True");
-  });
-
-  describe("3-digit truncation", () => {
-    it("truncates positive numbers toward zero (not rounding)", () => {
-      // 0.12349 → 0.123 (truncated, NOT rounded to 0.123)
+  describe("formatApaCell — 3-digit rounding (uniform rule)", () => {
+    it("renders all finite numbers with exactly 3 decimal places, half-up rounded", () => {
+      expect(formatApaCell(12.3456)).toBe("12.346");
       expect(formatApaCell(0.12349)).toBe("0.123");
-      // 0.99999 → 0.999 (truncated, NOT rounded to 1.000)
-      expect(formatApaCell(0.99999)).toBe("0.999");
-      // 1.23456 → 1.234
-      expect(formatApaCell(1.23456)).toBe("1.234");
+      expect(formatApaCell(0.12350)).toBe("0.124");
+      expect(formatApaCell(0.99999)).toBe("1.000");
+      expect(formatApaCell(1.23456)).toBe("1.235");
+      expect(formatApaCell(-1.99949)).toBe("-1.999");
+      expect(formatApaCell(-1.99950)).toBe("-2.000");
     });
 
-    it("truncates negative numbers toward zero", () => {
-      // -0.12349 → -0.123 (toward zero, not -0.124)
-      expect(formatApaCell(-0.12349)).toBe("-0.123");
-      expect(formatApaCell(-1.99999)).toBe("-1.999");
+    it("renders integers and trailing-zero values with .000", () => {
+      expect(formatApaCell(0)).toBe("0.000");
+      expect(formatApaCell(2)).toBe("2.000");
+      expect(formatApaCell(1.5)).toBe("1.500");
     });
 
-    it("strips trailing zeros after decimal", () => {
-      expect(formatApaCell(1.5)).toBe("1.5");
-      expect(formatApaCell(2)).toBe("2");
-      expect(formatApaCell(0)).toBe("0");
+    it("renders large numbers WITHOUT exponential notation", () => {
+      expect(formatApaCell(12345)).toBe("12345.000");
+      expect(formatApaCell(1234.5678)).toBe("1234.568");
     });
 
-    it("uses exponential notation for very small or very large values", () => {
-      // Exponential branch uses JS toExponential(3) which rounds, not truncates.
-      // This is acceptable for extreme magnitudes.
-      expect(formatApaCell(0.0005)).toBe("5.000e-4");
-      expect(formatApaCell(12345)).toBe("1.235e+4");
+    it("renders very small numbers as 0.000 instead of exponential notation", () => {
+      expect(formatApaCell(5.011e-7)).toBe("0.000");
+      expect(formatApaCell(0.00001)).toBe("0.000");
+      expect(formatApaCell(0.0004999)).toBe("0.000");
+      expect(formatApaCell(0.0005)).toBe("0.001");
+      expect(formatApaCell(-0.0005)).toBe("-0.001");
+    });
+
+    it("avoids negative-zero output", () => {
+      expect(formatApaCell(-0.0001)).toBe("0.000");
+    });
+
+    it("handles non-numeric values", () => {
+      expect(formatApaCell(null)).toBe("NA");
+      expect(formatApaCell(undefined)).toBe("NA");
+      expect(formatApaCell(true)).toBe("True");
+      expect(formatApaCell(false)).toBe("False");
+      expect(formatApaCell("text")).toBe("text");
     });
 
     it("handles non-finite numbers as NA", () => {
       expect(formatApaCell(Number.NaN)).toBe("NA");
       expect(formatApaCell(Number.POSITIVE_INFINITY)).toBe("NA");
       expect(formatApaCell(Number.NEGATIVE_INFINITY)).toBe("NA");
+    });
+  });
+
+  describe("PCA tables", () => {
+    const samplePayload = {
+      explainedVarianceRatio: [0.6, 0.3, 0.1],
+      cumulativeVarianceRatio: [0.6, 0.9, 1.0],
+      eigenvalues: [1.8, 0.9, 0.3],
+      loadings: { a: [0.8, 0.1, 0.0], b: [0.1, 0.7, 0.0], c: [0.0, 0.0, 0.5] },
+      communalities: { a: 0.65, b: 0.5, c: 0.25 },
+      sortedLoadings: [
+        { variable: "a", dominantComponent: 1, dominantLoading: 0.8, loadings: [0.8, 0.1, 0.0] },
+        { variable: "b", dominantComponent: 2, dominantLoading: 0.7, loadings: [0.1, 0.7, 0.0] }
+      ],
+      totalVarianceExplained: {
+        initial: [
+          { component: 1, eigenvalue: 1.8, variancePercent: 60, cumulativePercent: 60 },
+          { component: 2, eigenvalue: 0.9, variancePercent: 30, cumulativePercent: 90 },
+          { component: 3, eigenvalue: 0.3, variancePercent: 10, cumulativePercent: 100 }
+        ],
+        extraction: [
+          { component: 1, eigenvalue: 1.8, variancePercent: 60, cumulativePercent: 60 },
+          { component: 2, eigenvalue: 0.9, variancePercent: 30, cumulativePercent: 90 }
+        ],
+        rotation: [
+          { component: 1, eigenvalue: 1.5, variancePercent: 50, cumulativePercent: 50 },
+          { component: 2, eigenvalue: 1.2, variancePercent: 40, cumulativePercent: 90 }
+        ]
+      },
+      rotation: "varimax",
+      sortBySize: true,
+      variables: ["a", "b", "c"],
+      nComponents: 2
+    };
+
+    it("emits Communalities table with variable column and initial/extraction", () => {
+      const tables = buildTableData(samplePayload);
+      const comm = tables.find((t) => t.title === "Communalities");
+      expect(comm).toBeDefined();
+      expect(comm!.columns).toEqual(["variable", "initial", "extraction"]);
+      expect(comm!.rows).toHaveLength(3);
+      expect(comm!.rows[0]).toMatchObject({ variable: "a", initial: 1, extraction: 0.65 });
+    });
+
+    it("emits Total Variance Explained with initial/extraction/rotation columns", () => {
+      const tables = buildTableData(samplePayload);
+      const tve = tables.find((t) => t.title === "Total Variance Explained");
+      expect(tve).toBeDefined();
+      expect(tve!.columns).toContain("initialEigenvalue");
+      expect(tve!.columns).toContain("extractionEigenvalue");
+      expect(tve!.columns).toContain("rotationEigenvalue");
+      expect(tve!.rows).toHaveLength(3);
+    });
+
+    it("emits Rotated Component Matrix with only the selected (kaiser) components", () => {
+      const tables = buildTableData(samplePayload);
+      const matrix = tables.find((t) => t.title === "Rotated Component Matrix");
+      expect(matrix).toBeDefined();
+      expect(matrix!.columns).toEqual(["variable", "component1", "component2"]);
+      expect(matrix!.rows[0]).toMatchObject({ variable: "a" });
+    });
+  });
+
+  describe("Regression tables", () => {
+    const samplePayload = {
+      rSquared: 0.81,
+      adjustedRSquared: 0.79,
+      modelSummary: { r: 0.9, rSquared: 0.81, adjustedRSquared: 0.79, stdErrorOfEstimate: 1.234 },
+      anova: {
+        dependentVariable: "y",
+        rows: [
+          { source: "Regression", sumOfSquares: 100, df: 2, meanSquare: 50, fStatistic: 25, pValue: 0.001 },
+          { source: "Residual", sumOfSquares: 20, df: 10, meanSquare: 2, fStatistic: null, pValue: null },
+          { source: "Total", sumOfSquares: 120, df: 12, meanSquare: null, fStatistic: null, pValue: null }
+        ]
+      },
+      fStatistic: 25,
+      fPValue: 0.001,
+      coefficients: [
+        { variable: "const", coefficient: 1, stdError: 0.5, tStatistic: 2, pValue: 0.05, confidenceInterval: [0, 2] },
+        { variable: "x1", coefficient: 0.5, stdError: 0.1, tStatistic: 5, pValue: 0.001, confidenceInterval: [0.3, 0.7] }
+      ],
+      standardizedCoefficients: [
+        { variable: "const", coefficient: 0, stdError: 0.5, tStatistic: 2, pValue: 0.05, confidenceInterval: [0, 0] },
+        { variable: "x1", coefficient: 0.72, stdError: 0.1, tStatistic: 5, pValue: 0.001, confidenceInterval: [0.5, 0.94] }
+      ],
+      multicollinearity: [{ variable: "x1", tolerance: 1, vif: 1 }],
+      durbinWatson: 2.05,
+      observations: 13,
+      degreesOfFreedom: 10,
+      residualStdError: 1.234,
+      method: "enter"
+    };
+
+    it("emits Model Summary with R, R², Adjusted R², SEE", () => {
+      const tables = buildTableData(samplePayload);
+      const ms = tables.find((t) => t.title === "Model Summary");
+      expect(ms).toBeDefined();
+      expect(ms!.columns).toEqual(["r", "rSquared", "adjustedRSquared", "stdErrorOfEstimate", "durbinWatson"]);
+      expect(ms!.rows[0]).toMatchObject({ r: 0.9, rSquared: 0.81, adjustedRSquared: 0.79, stdErrorOfEstimate: 1.234 });
+    });
+
+    it("emits ANOVA table with dependent variable annotation", () => {
+      const tables = buildTableData(samplePayload);
+      const anova = tables.find((t) => t.title.startsWith("ANOVA"));
+      expect(anova).toBeDefined();
+      expect(anova!.title).toContain("Dependent: y");
+      expect(anova!.columns).toEqual(["source", "sumOfSquares", "df", "meanSquare", "fStatistic", "pValue"]);
+      expect(anova!.rows).toHaveLength(3);
+    });
+
+    it("emits unified Coefficients table including standardized Beta column", () => {
+      const tables = buildTableData(samplePayload);
+      const coef = tables.find((t) => t.title === "Coefficients");
+      expect(coef).toBeDefined();
+      expect(coef!.columns).toEqual(["variable", "b", "stdError", "beta", "t", "p", "ci"]);
+      const constRow = coef!.rows.find((r) => r.variable === "(Constant)");
+      expect(constRow).toBeDefined();
+      expect(constRow!.beta).toBe("");
+      const x1Row = coef!.rows.find((r) => r.variable === "x1");
+      expect(x1Row!.beta).toBe(0.72);
     });
   });
 
