@@ -318,29 +318,6 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
       { label: "Wikipedia: Dendrogram", url: "https://en.wikipedia.org/wiki/Dendrogram" }
     ]
   },
-  efa: {
-    label: "Exploratory Factor Analysis",
-    summary: "latent factors that explain covariance",
-    purposeKey: "latentStructure",
-    wikipediaTitle: "Factor_analysis",
-    formulaLatex: "X=\\Lambda F+\\epsilon",
-    apaExample: {
-      title: "Exploratory Factor Loadings",
-      columns: ["Item", "Factor 1", "Factor 2", "Communality"],
-      rows: [
-        { Item: "Q1", "Factor 1": "0.78", "Factor 2": "0.12", Communality: "0.63" },
-        { Item: "Q2", "Factor 1": "0.09", "Factor 2": "0.71", Communality: "0.57" }
-      ]
-    },
-    dataTypes: ["continuous"],
-    dataShapes: ["matrix"],
-    optionKeys: ["rotation"],
-    interpretationKeys: ["factorLoading", "communalities"],
-    references: [
-      { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
-      { label: "Wikipedia: Factor loading", url: "https://en.wikipedia.org/wiki/Factor_loading" }
-    ]
-  },
   pca: {
     label: "Principal Component Analysis",
     summary: "orthogonal components with maximum variance",
@@ -357,8 +334,8 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
-    optionKeys: ["nComponents"],
-    interpretationKeys: ["explainedVariance", "componentLoading"],
+    optionKeys: ["rotation"],
+    interpretationKeys: ["explainedVariance", "componentLoading", "communalities"],
     references: [
       { label: "Wikipedia: Principal component analysis", url: "https://en.wikipedia.org/wiki/Principal_component_analysis" },
       { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }

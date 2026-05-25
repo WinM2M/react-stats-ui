@@ -22,6 +22,42 @@ describe("result-utils", () => {
     expect(formatApaCell(true)).toBe("True");
   });
 
+  describe("3-digit truncation", () => {
+    it("truncates positive numbers toward zero (not rounding)", () => {
+      // 0.12349 → 0.123 (truncated, NOT rounded to 0.123)
+      expect(formatApaCell(0.12349)).toBe("0.123");
+      // 0.99999 → 0.999 (truncated, NOT rounded to 1.000)
+      expect(formatApaCell(0.99999)).toBe("0.999");
+      // 1.23456 → 1.234
+      expect(formatApaCell(1.23456)).toBe("1.234");
+    });
+
+    it("truncates negative numbers toward zero", () => {
+      // -0.12349 → -0.123 (toward zero, not -0.124)
+      expect(formatApaCell(-0.12349)).toBe("-0.123");
+      expect(formatApaCell(-1.99999)).toBe("-1.999");
+    });
+
+    it("strips trailing zeros after decimal", () => {
+      expect(formatApaCell(1.5)).toBe("1.5");
+      expect(formatApaCell(2)).toBe("2");
+      expect(formatApaCell(0)).toBe("0");
+    });
+
+    it("uses exponential notation for very small or very large values", () => {
+      // Exponential branch uses JS toExponential(3) which rounds, not truncates.
+      // This is acceptable for extreme magnitudes.
+      expect(formatApaCell(0.0005)).toBe("5.000e-4");
+      expect(formatApaCell(12345)).toBe("1.235e+4");
+    });
+
+    it("handles non-finite numbers as NA", () => {
+      expect(formatApaCell(Number.NaN)).toBe("NA");
+      expect(formatApaCell(Number.POSITIVE_INFINITY)).toBe("NA");
+      expect(formatApaCell(Number.NEGATIVE_INFINITY)).toBe("NA");
+    });
+  });
+
   it("copies to clipboard using text fallback", async () => {
     const writeText = jest.fn().mockImplementation(async () => undefined);
     Object.defineProperty(globalThis.navigator, "clipboard", {

@@ -22,7 +22,7 @@ export const ANALYSIS_GROUPS: Array<{
   },
   {
     key: "dimensionReduction",
-    items: ["efa", "pca"]
+    items: ["pca"]
   },
   {
     key: "scale",
@@ -103,10 +103,6 @@ export const ANALYSIS_DEFS: Record<AnalysisKind, AnalysisDef> = {
   },
   hierarchicalCluster: {
     label: "Hierarchical Clustering",
-    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
-  },
-  efa: {
-    label: "Exploratory Factor Analysis",
     roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
   },
   pca: {

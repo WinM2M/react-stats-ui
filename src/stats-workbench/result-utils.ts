@@ -4,6 +4,179 @@ export type TableData = {
   rows: Array<Record<string, unknown>>;
 };
 
+function buildPcaTables(objectPayload: Record<string, unknown>): TableData[] {
+  const explainedVarianceRatio = Array.isArray(objectPayload.explainedVarianceRatio)
+    ? (objectPayload.explainedVarianceRatio as number[])
+    : [];
+  const cumulativeVarianceRatio = Array.isArray(objectPayload.cumulativeVarianceRatio)
+    ? (objectPayload.cumulativeVarianceRatio as number[])
+    : [];
+  const eigenvalues = Array.isArray(objectPayload.eigenvalues) ? (objectPayload.eigenvalues as number[]) : [];
+  const nComponents = typeof objectPayload.nComponents === "number" ? objectPayload.nComponents : explainedVarianceRatio.length;
+
+  const tables: TableData[] = [];
+
+  if (explainedVarianceRatio.length > 0 || eigenvalues.length > 0) {
+    const rowCount = Math.max(explainedVarianceRatio.length, eigenvalues.length, cumulativeVarianceRatio.length, nComponents || 0);
+    const rows = Array.from({ length: rowCount }).map((_, index) => ({
+      component: index + 1,
+      eigenvalue: eigenvalues[index] ?? null,
+      variance: typeof explainedVarianceRatio[index] === "number" ? explainedVarianceRatio[index] * 100 : null,
+      cumulativeVariance: typeof cumulativeVarianceRatio[index] === "number" ? cumulativeVarianceRatio[index] * 100 : null
+    }));
+
+    tables.push({
+      title: "Eigenvalues",
+      columns: ["component", "eigenvalue", "variance", "cumulativeVariance"],
+      rows
+    });
+  }
+
+  if (objectPayload.communalities && typeof objectPayload.communalities === "object" && !Array.isArray(objectPayload.communalities)) {
+    const rows = Object.entries(objectPayload.communalities as Record<string, unknown>).map(([variable, communality]) => ({
+      variable,
+      communality
+    }));
+
+    tables.push({
+      title: "Communalities",
+      columns: ["variable", "communality"],
+      rows
+    });
+  }
+
+  const sortedLoadings = Array.isArray(objectPayload.sortedLoadings)
+    ? (objectPayload.sortedLoadings as Array<Record<string, unknown>>)
+    : [];
+  if (sortedLoadings.length > 0) {
+    const maxComponents = sortedLoadings.reduce((max, item) => {
+      const loadings = Array.isArray(item.loadings) ? (item.loadings as unknown[]) : [];
+      return Math.max(max, loadings.length);
+    }, 0);
+
+    const loadingColumns = Array.from({ length: maxComponents }).map((_, idx) => `component${idx + 1}`);
+    const rows = sortedLoadings.map((item) => {
+      const row: Record<string, unknown> = {
+        variable: item.variable ?? "",
+        dominantComponent: item.dominantComponent,
+        dominantLoading: item.dominantLoading
+      };
+      const loadings = Array.isArray(item.loadings) ? (item.loadings as unknown[]) : [];
+      loadingColumns.forEach((column, index) => {
+        row[column] = loadings[index] ?? null;
+      });
+      return row;
+    });
+
+    tables.push({
+      title: "Rotated Component Matrix",
+      columns: ["variable", "dominantComponent", "dominantLoading", ...loadingColumns],
+      rows
+    });
+  } else if (objectPayload.loadings && typeof objectPayload.loadings === "object" && !Array.isArray(objectPayload.loadings)) {
+    const loadingsEntries = Object.entries(objectPayload.loadings as Record<string, unknown>);
+    const maxComponents = loadingsEntries.reduce((max, [, loading]) => {
+      const values = Array.isArray(loading) ? (loading as unknown[]) : [];
+      return Math.max(max, values.length);
+    }, 0);
+    const loadingColumns = Array.from({ length: maxComponents }).map((_, idx) => `component${idx + 1}`);
+    const rows = loadingsEntries.map(([variable, loading]) => {
+      const row: Record<string, unknown> = { variable };
+      const values = Array.isArray(loading) ? (loading as unknown[]) : [];
+      loadingColumns.forEach((column, index) => {
+        row[column] = values[index] ?? null;
+      });
+      return row;
+    });
+
+    tables.push({
+      title: "Rotated Component Matrix",
+      columns: ["variable", ...loadingColumns],
+      rows
+    });
+  }
+
+  return tables;
+}
+
+function buildRegressionTables(objectPayload: Record<string, unknown>): TableData[] {
+  const tables: TableData[] = [];
+
+  const modelSummary = objectPayload.modelSummary && typeof objectPayload.modelSummary === "object"
+    ? (objectPayload.modelSummary as Record<string, unknown>)
+    : null;
+
+  const selectedVariables = Array.isArray(objectPayload.selectedVariables)
+    ? (objectPayload.selectedVariables as unknown[]).map((item) => String(item))
+    : [];
+
+  tables.push({
+    title: "Model Summary",
+    columns: ["rSquared", "adjustedRSquared", "fStatistic", "fPValue", "observations", "method", "selectedVariables"],
+    rows: [
+      {
+        rSquared: modelSummary?.rSquared ?? objectPayload.rSquared,
+        adjustedRSquared: modelSummary?.adjustedRSquared ?? objectPayload.adjustedRSquared,
+        fStatistic: objectPayload.fStatistic,
+        fPValue: objectPayload.fPValue,
+        observations: objectPayload.observations,
+        method: objectPayload.method,
+        selectedVariables: selectedVariables.join(", ")
+      }
+    ]
+  });
+
+  const coefficients = Array.isArray(objectPayload.coefficients)
+    ? (objectPayload.coefficients as Array<Record<string, unknown>>)
+    : [];
+  if (coefficients.length > 0) {
+    const rows = coefficients.map((coef) => ({
+      variable: coef.variable,
+      b: coef.coefficient,
+      stdError: coef.stdError,
+      t: coef.tStatistic,
+      p: coef.pValue,
+      ci: Array.isArray(coef.confidenceInterval) ? `[${coef.confidenceInterval[0]}, ${coef.confidenceInterval[1]}]` : "NA"
+    }));
+    tables.push({
+      title: "Unstandardized Coefficients",
+      columns: ["variable", "b", "stdError", "t", "p", "ci"],
+      rows
+    });
+  }
+
+  const standardizedCoefficients = Array.isArray(objectPayload.standardizedCoefficients)
+    ? (objectPayload.standardizedCoefficients as Array<Record<string, unknown>>)
+    : [];
+  if (standardizedCoefficients.length > 0) {
+    const rows = standardizedCoefficients.map((coef) => ({
+      variable: coef.variable,
+      beta: coef.coefficient,
+      stdError: coef.stdError,
+      t: coef.tStatistic,
+      p: coef.pValue
+    }));
+    tables.push({
+      title: "Standardized Coefficients",
+      columns: ["variable", "beta", "stdError", "t", "p"],
+      rows
+    });
+  }
+
+  const multicollinearity = Array.isArray(objectPayload.multicollinearity)
+    ? (objectPayload.multicollinearity as Array<Record<string, unknown>>)
+    : [];
+  if (multicollinearity.length > 0) {
+    tables.push({
+      title: "Multicollinearity",
+      columns: ["variable", "tolerance", "vif"],
+      rows: multicollinearity
+    });
+  }
+
+  return tables;
+}
+
 function formatApaValue(value: unknown): string {
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
@@ -12,7 +185,8 @@ function formatApaValue(value: unknown): string {
     if (Math.abs(value) >= 1000 || (Math.abs(value) > 0 && Math.abs(value) < 0.001)) {
       return value.toExponential(3);
     }
-    return value.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+    const truncated = value < 0 ? Math.ceil(value * 1000) / 1000 : Math.floor(value * 1000) / 1000;
+    return truncated.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
   }
   if (typeof value === "boolean") {
     return value ? "True" : "False";
@@ -38,6 +212,31 @@ export function buildTableData(raw: unknown): TableData[] {
   }
 
   const objectPayload = payload as Record<string, unknown>;
+  const isPcaPayload =
+    "explainedVarianceRatio" in objectPayload &&
+    "loadings" in objectPayload &&
+    ("eigenvalues" in objectPayload || "communalities" in objectPayload || "sortedLoadings" in objectPayload);
+
+  if (isPcaPayload) {
+    const pcaTables = buildPcaTables(objectPayload);
+    if (pcaTables.length > 0) {
+      return pcaTables;
+    }
+  }
+
+  const isRegressionPayload =
+    "rSquared" in objectPayload &&
+    "adjustedRSquared" in objectPayload &&
+    "coefficients" in objectPayload &&
+    ("modelSummary" in objectPayload || "standardizedCoefficients" in objectPayload || "multicollinearity" in objectPayload);
+
+  if (isRegressionPayload) {
+    const regressionTables = buildRegressionTables(objectPayload);
+    if (regressionTables.length > 0) {
+      return regressionTables;
+    }
+  }
+
   const tables: TableData[] = [];
 
   for (const [key, value] of Object.entries(objectPayload)) {

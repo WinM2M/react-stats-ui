@@ -29,7 +29,6 @@ export type AnalysisKind =
   | "logisticMultinomial"
   | "kmeans"
   | "hierarchicalCluster"
-  | "efa"
   | "pca"
   | "mds"
   | "cronbachAlpha";
@@ -72,7 +71,6 @@ export type StatsWorkbenchControl = {
   runLogisticMultinomial: (input?: ExternalAnalysisInput) => Promise<unknown>;
   runKmeans: (input?: ExternalAnalysisInput) => Promise<unknown>;
   runHierarchicalCluster: (input?: ExternalAnalysisInput) => Promise<unknown>;
-  runEfa: (input?: ExternalAnalysisInput) => Promise<unknown>;
   runPca: (input?: ExternalAnalysisInput) => Promise<unknown>;
   runMds: (input?: ExternalAnalysisInput) => Promise<unknown>;
   runCronbachAlpha: (input?: ExternalAnalysisInput) => Promise<unknown>;

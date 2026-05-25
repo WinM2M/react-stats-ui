@@ -66,7 +66,6 @@ export function createBaseLocale(overrides: LocaleOverride = {}): LocalePack {
       k: "Clusters (K)",
       method: "Linkage Method",
       metric: "Distance Metric",
-      nFactors: "Number of Factors",
       rotation: "Rotation",
       nComponents: "Number of Components"
     },
@@ -80,7 +79,6 @@ export function createBaseLocale(overrides: LocaleOverride = {}): LocalePack {
       k: "Sets the number of clusters to partition the dataset into.",
       method: "Defines how distances between clusters are merged.",
       metric: "Defines the distance function used between observations.",
-      nFactors: "Defines the number of latent factors to extract.",
       rotation: "Applies rotation to improve factor interpretability.",
       nComponents: "Sets the lower-dimensional component count to keep."
     },

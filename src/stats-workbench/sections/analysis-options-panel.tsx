@@ -79,6 +79,21 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
                 { value: "false", label: t("optionsNo") }
               ]}
             />
+            {analysisType === "linearRegression" ? (
+              <>
+                <label className="text-xs font-medium text-slate-600">{t("optionsRegressionMethod")}</label>
+                <SelectBox
+                  value={String(options.regressionMethod ?? "stepwise")}
+                  onChange={(value) => updateOption("regressionMethod", value)}
+                  items={[
+                    { value: "stepwise", label: t("optionsStepwise") },
+                    { value: "enter", label: t("optionsEnter") },
+                    { value: "forward", label: t("optionsForward") },
+                    { value: "backward", label: t("optionsBackward") }
+                  ]}
+                />
+              </>
+            ) : null}
           </div>
         )}
 
@@ -132,23 +147,27 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
           </div>
         )}
 
-        {analysisType === "efa" && (
+        {analysisType === "pca" && (
           <div className="space-y-2">
             <label className="text-xs font-medium text-slate-600">{t("optionsRotation")}</label>
             <SelectBox
               value={String(options.rotation ?? "varimax")}
               onChange={(value) => updateOption("rotation", value)}
+              items={[{ value: "varimax", label: t("optionsVarimax") }, { value: "none", label: t("optionsNone") }]}
+            />
+            <label className="text-xs font-medium text-slate-600">{t("optionsSortBySize")}</label>
+            <SelectBox
+              value={String(options.sortBySize !== false)}
+              onChange={(value) => updateOption("sortBySize", value === "true")}
               items={[
-                { value: "varimax", label: t("optionsVarimax") },
-                { value: "promax", label: t("optionsPromax") },
-                { value: "oblimin", label: t("optionsOblimin") },
-                { value: "none", label: t("optionsNone") }
+                { value: "true", label: t("optionsYes") },
+                { value: "false", label: t("optionsNo") }
               ]}
             />
           </div>
         )}
 
-        {(analysisType === "pca" || analysisType === "mds") && (
+        {analysisType === "mds" && (
           <div className="space-y-2">
             <label className="text-xs font-medium text-slate-600">{t("optionsNumberComponents")}</label>
             <SelectBox

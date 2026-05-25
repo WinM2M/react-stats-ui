@@ -39,7 +39,7 @@ function normalizeInitialAnalysis(kind: string): AnalysisKind {
     return "linearRegression";
   }
   if (kind === "factor_analysis") {
-    return "efa";
+    return "pca";
   }
   return kind as AnalysisKind;
 }
@@ -149,7 +149,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     method: "ward",
     metric: "euclidean",
     rotation: "varimax",
-    nComponents: 2,
+    sortBySize: true,
+    regressionMethod: "stepwise",
     maxIterations: 300,
     randomState: 42
   });
@@ -260,7 +261,6 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         "logisticMultinomial",
         "kmeans",
         "hierarchicalCluster",
-        "efa",
         "pca",
         "mds"
       ].includes(analysisType),
@@ -444,7 +444,6 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       runLogisticMultinomial: (input = {}) => executeExternalMethod("logisticMultinomial", input),
       runKmeans: (input = {}) => executeExternalMethod("kmeans", input),
       runHierarchicalCluster: (input = {}) => executeExternalMethod("hierarchicalCluster", input),
-      runEfa: (input = {}) => executeExternalMethod("efa", input),
       runPca: (input = {}) => executeExternalMethod("pca", input),
       runMds: (input = {}) => executeExternalMethod("mds", input),
       runCronbachAlpha: (input = {}) => executeExternalMethod("cronbachAlpha", input),

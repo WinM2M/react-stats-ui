@@ -24,10 +24,49 @@ type ExecutionPanelProps = {
 
 function ApaTable({ table, index }: { table: TableData; index: number }) {
   const { t } = useTranslation();
-  const translatedTitle = table.title === "Summary" ? t("summary") : table.title;
+  const translatedTitle =
+    table.title === "Summary"
+      ? t("summary")
+      : table.title === "Eigenvalues"
+        ? t("resultEigenvalues")
+        : table.title === "Communalities"
+          ? t("resultCommunalities")
+          : table.title === "Rotated Component Matrix"
+            ? t("resultRotatedComponentMatrix")
+            : table.title === "Model Summary"
+              ? t("resultModelSummary")
+              : table.title === "Unstandardized Coefficients"
+                ? t("resultUnstandardizedCoefficients")
+                : table.title === "Standardized Coefficients"
+                  ? t("resultStandardizedCoefficients")
+                  : table.title === "Multicollinearity"
+                    ? t("resultMulticollinearity")
+            : table.title;
   const translatedColumns = table.columns.map((column) => {
     if (column === "statistic") return t("statistic");
     if (column === "value") return t("value");
+    if (column === "rSquared") return t("resultRSquared");
+    if (column === "adjustedRSquared") return t("resultAdjustedRSquared");
+    if (column === "fStatistic") return t("resultFStatistic");
+    if (column === "fPValue") return t("resultP");
+    if (column === "observations") return t("resultObservations");
+    if (column === "method") return t("resultMethod");
+    if (column === "selectedVariables") return t("resultSelectedVariables");
+    if (column === "b") return t("resultB");
+    if (column === "beta") return t("resultBeta");
+    if (column === "stdError") return t("resultStdError");
+    if (column === "t") return t("resultT");
+    if (column === "p") return t("resultP");
+    if (column === "ci") return t("resultCI");
+    if (column === "tolerance") return t("resultTolerance");
+    if (column === "vif") return t("resultVIF");
+    if (column === "component") return t("resultComponent");
+    if (column === "eigenvalue") return t("resultEigenvalue");
+    if (column === "variance") return t("resultVariance");
+    if (column === "cumulativeVariance") return t("resultCumulativeVariance");
+    if (column === "dominantComponent") return t("resultDominantComponent");
+    if (column === "dominantLoading") return t("resultLoading");
+    if (column.startsWith("component")) return `${t("resultComponent")} ${column.replace("component", "")}`;
     return column;
   });
 

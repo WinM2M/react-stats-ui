@@ -14,7 +14,6 @@ const continuousRoles: Partial<Record<AnalysisKind, RoleKey[]>> = {
   logisticMultinomial: ["independentVariables"],
   kmeans: ["variables"],
   hierarchicalCluster: ["variables"],
-  efa: ["variables"],
   pca: ["variables"],
   mds: ["variables"],
   cronbachAlpha: ["items"]
@@ -110,7 +109,8 @@ function getInputForAnalysis(
         data,
         dependentVariable: assignments.dependentVariable[0],
         independentVariables: assignments.independentVariables,
-        addConstant: toBoolean(options.addConstant, true)
+        addConstant: toBoolean(options.addConstant, true),
+        method: options.regressionMethod ?? "stepwise"
       }
     };
   }
@@ -156,23 +156,15 @@ function getInputForAnalysis(
       }
     };
   }
-  if (analysisType === "efa") {
-    return {
-      input: {
-        data,
-        variables: assignments.variables,
-        rotation: options.rotation ?? "varimax",
-        method: options.factorMethod ?? "minres"
-      }
-    };
-  }
   if (analysisType === "pca") {
     return {
       input: {
         data,
         variables: assignments.variables,
-        nComponents: toNumber(options.nComponents, 2),
-        standardize: toBoolean(options.standardize, true)
+        nComponents: options.nComponents === "auto" || options.nComponents == null ? undefined : toNumber(options.nComponents, 2),
+        standardize: toBoolean(options.standardize, true),
+        rotation: options.rotation ?? "varimax",
+        sortBySize: toBoolean(options.sortBySize, true)
       }
     };
   }
