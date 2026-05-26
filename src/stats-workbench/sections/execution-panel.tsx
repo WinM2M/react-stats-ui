@@ -41,6 +41,16 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
                   ? t("resultStandardizedCoefficients")
                   : table.title === "Multicollinearity"
                     ? t("resultMulticollinearity")
+            : table.title === "Case Processing Summary"
+              ? t("resultCaseProcessingSummary")
+            : table.title === "Reliability Statistics"
+              ? t("resultReliabilityStatistics")
+            : table.title === "Item Statistics"
+              ? t("resultItemStatistics")
+            : table.title === "Item-Total Statistics"
+              ? t("resultItemTotalStatistics")
+            : table.title === "Scale Statistics"
+              ? t("resultScaleStatistics")
             : table.title;
   const translatedColumns = table.columns.map((column) => {
     if (column === "statistic") return t("statistic");
@@ -66,6 +76,20 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
     if (column === "cumulativeVariance") return t("resultCumulativeVariance");
     if (column === "dominantComponent") return t("resultDominantComponent");
     if (column === "dominantLoading") return t("resultLoading");
+    if (column === "cases") return t("resultCases");
+    if (column === "n") return t("resultObservations");
+    if (column === "percent") return t("resultPercent");
+    if (column === "cronbachAlpha") return t("resultCronbachAlpha");
+    if (column === "nOfItems") return t("resultNOfItems");
+    if (column === "item") return t("resultItem");
+    if (column === "mean") return t("resultMean");
+    if (column === "stdDeviation") return t("resultStdDeviation");
+    if (column === "minimum") return t("resultMinimum");
+    if (column === "maximum") return t("resultMaximum");
+    if (column === "scaleMeanIfItemDeleted") return t("resultScaleMeanIfItemDeleted");
+    if (column === "scaleStdIfItemDeleted") return t("resultScaleStdIfItemDeleted");
+    if (column === "correctedItemTotalCorrelation") return t("resultCorrectedItemTotalCorrelation");
+    if (column === "alphaIfItemDeleted") return t("resultAlphaIfItemDeleted");
     if (column.startsWith("component")) return `${t("resultComponent")} ${column.replace("component", "")}`;
     return column;
   });
@@ -93,11 +117,20 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
           <tbody className="border-b border-slate-900">
             {table.rows.map((row, rowIndex) => (
               <tr key={`${table.title}-${rowIndex}`}>
-                {table.columns.map((column) => (
-                  <td key={`${table.title}-${rowIndex}-${column}`} className="whitespace-nowrap px-3 py-1.5 align-top">
-                    {formatApaCell(row[column])}
-                  </td>
-                ))}
+                {table.columns.map((column) => {
+                  const raw = row[column];
+                  let display: unknown = raw;
+                  if (column === "cases" && typeof raw === "string") {
+                    if (raw === "Valid") display = t("resultValid");
+                    else if (raw === "Excluded") display = t("resultExcluded");
+                    else if (raw === "Total") display = t("resultTotal");
+                  }
+                  return (
+                    <td key={`${table.title}-${rowIndex}-${column}`} className="whitespace-nowrap px-3 py-1.5 align-top">
+                      {formatApaCell(display)}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -162,7 +195,7 @@ export function ExecutionPanel({
   return (
     <div
       className={cn(
-        "flex h-full min-h-0 flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
+        "flex h-full min-h-0 min-w-0 flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
         minimalChrome ? "" : "border border-slate-200"
       )}
     >
@@ -266,11 +299,11 @@ export function ExecutionPanel({
 
       {error ? <div className="mb-2 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">{error}</div> : null}
 
-      <div className="min-h-0 flex-1 overflow-auto rounded border border-slate-200 bg-white p-2">
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto rounded border border-slate-200 bg-white p-2">
         {resultView === "table" ? (
           result ? (
             tables.length > 0 ? (
-              <div>
+              <div className="min-w-0">
                 <div className="mb-2 flex justify-end">
                   <button
                     type="button"

@@ -118,7 +118,7 @@ export function VariableAssignmentPanel({
   return (
     <div
       className={cn(
-        "grid h-full min-h-0 grid-cols-1 gap-3 max-[640px]:gap-2",
+        "grid h-full min-h-0 min-w-0 grid-cols-1 gap-3 max-[640px]:gap-2",
         showVariableList ? "sm:grid-cols-[1fr_2fr]" : "sm:grid-cols-1"
       )}
     >

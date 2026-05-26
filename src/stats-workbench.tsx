@@ -944,7 +944,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
 
               <section
                 ref={panelsRef}
-                className={cn("grid min-h-0", isResizingPanels ? "cursor-row-resize select-none" : "")}
+                className={cn("grid min-h-0 min-w-0", isResizingPanels ? "cursor-row-resize select-none" : "")}
                 style={{
                   rowGap: "0.5rem",
                   gridTemplateRows: topPanelHeight

@@ -150,6 +150,110 @@ function buildPcaTables(objectPayload: Record<string, unknown>): TableData[] {
   return tables;
 }
 
+function buildCronbachTables(objectPayload: Record<string, unknown>): TableData[] {
+  const tables: TableData[] = [];
+
+  // 1) Case Processing Summary
+  const caseProcessingRaw = objectPayload.caseProcessing;
+  if (caseProcessingRaw && typeof caseProcessingRaw === "object" && !Array.isArray(caseProcessingRaw)) {
+    const cp = caseProcessingRaw as Record<string, unknown>;
+    const valid = typeof cp.valid === "number" ? cp.valid : null;
+    const excluded = typeof cp.excluded === "number" ? cp.excluded : null;
+    const total = typeof cp.total === "number" ? cp.total : null;
+    const safeTotal = typeof total === "number" && total > 0 ? total : null;
+    const pct = (n: number | null): number | null =>
+      n !== null && safeTotal !== null ? Number(((n / safeTotal) * 100).toFixed(2)) : null;
+
+    tables.push({
+      title: "Case Processing Summary",
+      columns: ["cases", "n", "percent"],
+      rows: [
+        { cases: "Valid", n: valid, percent: pct(valid) },
+        { cases: "Excluded", n: excluded, percent: pct(excluded) },
+        { cases: "Total", n: total, percent: total !== null ? 100 : null }
+      ]
+    });
+  }
+
+  // 2) Reliability Statistics
+  if (typeof objectPayload.alpha === "number" || typeof objectPayload.nItems === "number") {
+    tables.push({
+      title: "Reliability Statistics",
+      columns: ["cronbachAlpha", "nOfItems"],
+      rows: [
+        {
+          cronbachAlpha: typeof objectPayload.alpha === "number" ? objectPayload.alpha : null,
+          nOfItems: typeof objectPayload.nItems === "number" ? objectPayload.nItems : null
+        }
+      ]
+    });
+  }
+
+  // 3) Item Statistics
+  const itemAnalysis = Array.isArray(objectPayload.itemAnalysis)
+    ? (objectPayload.itemAnalysis as Array<Record<string, unknown>>)
+    : [];
+
+  const nObservations = typeof objectPayload.nObservations === "number" ? objectPayload.nObservations : null;
+
+  if (itemAnalysis.length > 0) {
+    tables.push({
+      title: "Item Statistics",
+      columns: ["item", "mean", "stdDeviation", "n"],
+      rows: itemAnalysis.map((row) => ({
+        item: row.item ?? null,
+        mean: typeof row.itemMean === "number" ? row.itemMean : null,
+        stdDeviation: typeof row.itemStd === "number" ? row.itemStd : null,
+        n: nObservations
+      }))
+    });
+
+    // 4) Item-Total Statistics
+    tables.push({
+      title: "Item-Total Statistics",
+      columns: [
+        "item",
+        "scaleMeanIfItemDeleted",
+        "scaleStdIfItemDeleted",
+        "correctedItemTotalCorrelation",
+        "alphaIfItemDeleted"
+      ],
+      rows: itemAnalysis.map((row) => ({
+        item: row.item ?? null,
+        scaleMeanIfItemDeleted:
+          typeof row.scaleMeanIfItemDeleted === "number" ? row.scaleMeanIfItemDeleted : null,
+        scaleStdIfItemDeleted:
+          typeof row.scaleStdIfItemDeleted === "number" ? row.scaleStdIfItemDeleted : null,
+        correctedItemTotalCorrelation:
+          typeof row.correctedItemTotalCorrelation === "number" ? row.correctedItemTotalCorrelation : null,
+        alphaIfItemDeleted:
+          typeof row.alphaIfItemDeleted === "number" ? row.alphaIfItemDeleted : null
+      }))
+    });
+  }
+
+  // 5) Scale Statistics
+  const scaleStatsRaw = objectPayload.scaleStatistics;
+  if (scaleStatsRaw && typeof scaleStatsRaw === "object" && !Array.isArray(scaleStatsRaw)) {
+    const ss = scaleStatsRaw as Record<string, unknown>;
+    tables.push({
+      title: "Scale Statistics",
+      columns: ["nOfItems", "minimum", "maximum", "mean", "stdDeviation"],
+      rows: [
+        {
+          nOfItems: typeof ss.nItems === "number" ? ss.nItems : null,
+          minimum: typeof ss.minimum === "number" ? ss.minimum : null,
+          maximum: typeof ss.maximum === "number" ? ss.maximum : null,
+          mean: typeof ss.mean === "number" ? ss.mean : null,
+          stdDeviation: typeof ss.std === "number" ? ss.std : null
+        }
+      ]
+    });
+  }
+
+  return tables;
+}
+
 function buildRegressionTables(objectPayload: Record<string, unknown>): TableData[] {
   const tables: TableData[] = [];
 
@@ -324,6 +428,22 @@ export function buildTableData(raw: unknown): TableData[] {
     const regressionTables = buildRegressionTables(objectPayload);
     if (regressionTables.length > 0) {
       return regressionTables;
+    }
+  }
+
+  const isCronbachPayload =
+    "alpha" in objectPayload &&
+    "itemAnalysis" in objectPayload &&
+    Array.isArray((objectPayload as { itemAnalysis?: unknown }).itemAnalysis) &&
+    ("standardizedAlpha" in objectPayload ||
+      "interItemCorrelationMean" in objectPayload ||
+      "caseProcessing" in objectPayload ||
+      "scaleStatistics" in objectPayload);
+
+  if (isCronbachPayload) {
+    const cronbachTables = buildCronbachTables(objectPayload);
+    if (cronbachTables.length > 0) {
+      return cronbachTables;
     }
   }
 
