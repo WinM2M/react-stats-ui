@@ -502,6 +502,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     setSelectedAssigned((prev) => ({ ...prev, [role]: undefined }));
   }, []);
 
+  const resetAssignments = React.useCallback(() => {
+    setAssignments(EMPTY_ASSIGNMENTS);
+    setSelectedAssigned({});
+  }, []);
+
   const executeAnalysisPayload = React.useCallback(
     async (payload: AnalysisPayload) => {
       if (!workerReady) {
@@ -884,6 +889,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       borderlessSections
                       showManualRunAction={showManualRunAction}
                       onManualRunAction={requestRunAnalysisFromManual}
+                      onResetAssignments={resetAssignments}
                       showVariableList={!hideInternalVariableList}
                       variableListDatasetId={selectedDataset?.id ?? null}
                       variableListDatasetName={selectedDataset?.name ?? null}
@@ -968,6 +974,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   onOptionsChange={setOptions}
                   hasOptions={hasOptions}
                   groupCandidates={groupCandidates}
+                  onResetAssignments={resetAssignments}
                   showVariableList={!hideInternalVariableList}
                   variableListDatasetId={selectedDataset?.id ?? null}
                   variableListDatasetName={selectedDataset?.name ?? null}

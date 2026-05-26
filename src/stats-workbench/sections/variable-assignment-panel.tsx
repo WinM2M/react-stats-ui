@@ -1,5 +1,5 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Play, X } from "lucide-react";
+import { Play, RotateCcw, X } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { validateForRole } from "../analysis";
@@ -29,6 +29,7 @@ type VariableAssignmentPanelProps = {
   borderlessSections?: boolean;
   showManualRunAction?: boolean;
   onManualRunAction?: () => void;
+  onResetAssignments?: () => void;
   variableListDatasetId?: string | null;
   variableListDatasetName?: string | null;
   showVariableList?: boolean;
@@ -66,6 +67,7 @@ export function VariableAssignmentPanel({
   borderlessSections = false,
   showManualRunAction = false,
   onManualRunAction,
+  onResetAssignments,
   variableListDatasetId,
   variableListDatasetName,
   showVariableList = true,
@@ -161,17 +163,36 @@ export function VariableAssignmentPanel({
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-sm font-semibold">{t("roleAssignment")}</span>
-            {showManualRunAction ? (
-              <button
-                type="button"
-                onClick={onManualRunAction}
-                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50"
-                aria-label={t("runAnalysis")}
-                title={t("runAnalysis")}
-              >
-                <Play className="h-3.5 w-3.5 animate-pulse" />
-              </button>
-            ) : null}
+            <div className="flex items-center gap-1">
+              {onResetAssignments ? (() => {
+                const hasAssignments = analysisDef.roles.some(
+                  (role) => (assignments[role.key] ?? []).length > 0
+                );
+                return (
+                  <button
+                    type="button"
+                    onClick={onResetAssignments}
+                    disabled={!hasAssignments}
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+                    aria-label={t("resetAssignments", { defaultValue: "Reset variable assignments" })}
+                    title={t("resetAssignments", { defaultValue: "Reset variable assignments" })}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                );
+              })() : null}
+              {showManualRunAction ? (
+                <button
+                  type="button"
+                  onClick={onManualRunAction}
+                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+                  aria-label={t("runAnalysis")}
+                  title={t("runAnalysis")}
+                >
+                  <Play className="h-3.5 w-3.5 animate-pulse" />
+                </button>
+              ) : null}
+            </div>
           </div>
           <div className="grid min-h-0 flex-1 auto-rows-fr gap-2 max-[768px]:flex-none max-[768px]:auto-rows-auto">
             {analysisDef.roles.map((role) => {
