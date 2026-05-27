@@ -505,7 +505,14 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const resetAssignments = React.useCallback(() => {
     setAssignments(EMPTY_ASSIGNMENTS);
     setSelectedAssigned({});
-  }, []);
+    setError("");
+    setResult(null);
+    setShowPayload(false);
+    if (layoutMode === "minimal") {
+      setShowMinimalResult(false);
+      setShowResultAfterManualRun(false);
+    }
+  }, [layoutMode]);
 
   const executeAnalysisPayload = React.useCallback(
     async (payload: AnalysisPayload) => {
