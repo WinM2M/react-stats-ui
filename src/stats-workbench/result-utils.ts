@@ -397,6 +397,319 @@ function formatApaValue(value: unknown): string {
   return String(value);
 }
 
+const num = (value: unknown): number | null => (typeof value === "number" ? value : null);
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+
+const asRecordArray = (value: unknown): Array<Record<string, unknown>> =>
+  Array.isArray(value) && value.every((item) => item && typeof item === "object" && !Array.isArray(item))
+    ? (value as Array<Record<string, unknown>>)
+    : [];
+
+/**
+ * Crosstabulation plus the chi-square test.
+ *
+ * The generic fallback below only emits arrays and nested objects, so for this payload it
+ * rendered the cell table and silently dropped chiSquare, degreesOfFreedom, pValue and
+ * cramersV — every number the test actually reports.
+ */
+function buildCrosstabsTables(objectPayload: Record<string, unknown>): TableData[] {
+  const tables: TableData[] = [];
+  const cells = asRecordArray(objectPayload.table);
+  const rowVariable = typeof objectPayload.rowVariable === "string" ? objectPayload.rowVariable : "row";
+  const colVariable = typeof objectPayload.colVariable === "string" ? objectPayload.colVariable : "column";
+
+  if (cells.length > 0) {
+    tables.push({
+      title: "Crosstabulation",
+      columns: [rowVariable, colVariable, "observed", "expected", "percentOfRow", "percentOfColumn", "percentOfTotal"],
+      rows: cells.map((cell) => ({
+        [rowVariable]: cell.row ?? null,
+        [colVariable]: cell.col ?? null,
+        observed: num(cell.observed),
+        expected: num(cell.expected),
+        percentOfRow: num(cell.rowPercentage),
+        percentOfColumn: num(cell.colPercentage),
+        percentOfTotal: num(cell.totalPercentage)
+      }))
+    });
+  }
+
+  const chiSquare = num(objectPayload.chiSquare);
+  if (chiSquare !== null) {
+    const observedTotal = cells.reduce((sum, cell) => sum + (num(cell.observed) ?? 0), 0);
+    const minExpected = cells.reduce<number | null>((lowest, cell) => {
+      const expected = num(cell.expected);
+      if (expected === null) return lowest;
+      return lowest === null || expected < lowest ? expected : lowest;
+    }, null);
+    const belowFive = cells.filter((cell) => (num(cell.expected) ?? Infinity) < 5).length;
+
+    tables.push({
+      title: "Chi-Square Tests",
+      columns: ["test", "value", "df", "asymptoticSignificance"],
+      rows: [
+        {
+          test: "Pearson Chi-Square",
+          value: chiSquare,
+          df: num(objectPayload.degreesOfFreedom),
+          asymptoticSignificance: num(objectPayload.pValue)
+        },
+        {
+          test: "N of Valid Cases",
+          value: cells.length > 0 ? observedTotal : null,
+          df: null,
+          asymptoticSignificance: null
+        }
+      ]
+    });
+
+    // SPSS prints this note under the table, and it is the assumption people skip.
+    if (cells.length > 0 && minExpected !== null) {
+      tables.push({
+        title: "Symmetric Measures",
+        columns: ["measure", "value", "cellsWithExpectedCountBelow5", "minimumExpectedCount"],
+        rows: [
+          {
+            measure: "Cramér's V",
+            value: num(objectPayload.cramersV),
+            cellsWithExpectedCountBelow5: belowFive,
+            minimumExpectedCount: minExpected
+          }
+        ]
+      });
+    }
+  }
+
+  return tables;
+}
+
+const T_TEST_COLUMNS = [
+  "assumption",
+  "t",
+  "df",
+  "significanceTwoTailed",
+  "meanDifference",
+  "lower95",
+  "upper95"
+];
+
+const tTestRow = (assumption: string, source: Record<string, unknown>): Record<string, unknown> => {
+  const ci = Array.isArray(source.confidenceInterval) ? (source.confidenceInterval as unknown[]) : [];
+  return {
+    assumption,
+    t: num(source.tStatistic),
+    df: num(source.degreesOfFreedom),
+    significanceTwoTailed: num(source.pValue),
+    meanDifference: num(source.meanDifference),
+    lower95: num(ci[0]),
+    upper95: num(ci[1])
+  };
+};
+
+/** Independent samples t-test: group statistics, Levene's test, and both variance rows. */
+function buildIndependentTTestTables(objectPayload: Record<string, unknown>): TableData[] {
+  const equal = asRecord(objectPayload.equalVariance);
+  const unequal = asRecord(objectPayload.unequalVariance);
+  const levene = asRecord(objectPayload.leveneTest);
+  const stats = equal ?? unequal;
+  const tables: TableData[] = [];
+
+  if (stats) {
+    tables.push({
+      title: "Group Statistics",
+      columns: ["group", "n", "mean", "stdDeviation"],
+      rows: [
+        { group: "Group 1", n: num(stats.group1N), mean: num(stats.group1Mean), stdDeviation: num(stats.group1Std) },
+        { group: "Group 2", n: num(stats.group2N), mean: num(stats.group2Mean), stdDeviation: num(stats.group2Std) }
+      ]
+    });
+  }
+
+  if (levene) {
+    tables.push({
+      title: "Levene's Test for Equality of Variances",
+      columns: ["f", "significance", "conclusion"],
+      rows: [
+        {
+          f: num(levene.statistic),
+          significance: num(levene.pValue),
+          conclusion: levene.equalVariance === false ? "Equal variances not assumed" : "Equal variances assumed"
+        }
+      ]
+    });
+  }
+
+  const rows: Array<Record<string, unknown>> = [];
+  if (equal) rows.push(tTestRow("Equal variances assumed", equal));
+  if (unequal) rows.push(tTestRow("Equal variances not assumed", unequal));
+  if (rows.length > 0) {
+    tables.push({ title: "Independent Samples Test", columns: T_TEST_COLUMNS, rows });
+  }
+
+  return tables;
+}
+
+/** Paired samples t-test. */
+function buildPairedTTestTables(objectPayload: Record<string, unknown>): TableData[] {
+  const ci = Array.isArray(objectPayload.confidenceInterval) ? (objectPayload.confidenceInterval as unknown[]) : [];
+  return [
+    {
+      title: "Paired Samples Statistics",
+      columns: ["pair", "mean", "n"],
+      rows: [
+        { pair: "Variable 1", mean: num(objectPayload.mean1), n: num(objectPayload.n) },
+        { pair: "Variable 2", mean: num(objectPayload.mean2), n: num(objectPayload.n) }
+      ]
+    },
+    {
+      title: "Paired Samples Test",
+      columns: ["meanDifference", "stdDeviation", "lower95", "upper95", "t", "df", "significanceTwoTailed"],
+      rows: [
+        {
+          meanDifference: num(objectPayload.meanDifference),
+          stdDeviation: num(objectPayload.stdDifference),
+          lower95: num(ci[0]),
+          upper95: num(ci[1]),
+          t: num(objectPayload.tStatistic),
+          df: num(objectPayload.degreesOfFreedom),
+          significanceTwoTailed: num(objectPayload.pValue)
+        }
+      ]
+    }
+  ];
+}
+
+/** One-way ANOVA: descriptives per group plus the sums-of-squares table. */
+function buildAnovaTables(objectPayload: Record<string, unknown>): TableData[] {
+  const tables: TableData[] = [];
+  const groupStats = asRecordArray(objectPayload.groupStats);
+
+  if (groupStats.length > 0) {
+    tables.push({
+      title: "Descriptives",
+      columns: ["group", "n", "mean", "stdDeviation"],
+      rows: groupStats.map((group) => ({
+        group: group.group ?? null,
+        n: num(group.n),
+        mean: num(group.mean),
+        stdDeviation: num(group.std)
+      }))
+    });
+  }
+
+  const dfBetween = num(objectPayload.degreesOfFreedomBetween);
+  const dfWithin = num(objectPayload.degreesOfFreedomWithin);
+  const ssBetween = num(objectPayload.sumOfSquaresBetween);
+  const ssWithin = num(objectPayload.sumOfSquaresWithin);
+
+  tables.push({
+    title: "ANOVA",
+    columns: ["source", "sumOfSquares", "df", "meanSquare", "f", "significance"],
+    rows: [
+      {
+        source: "Between Groups",
+        sumOfSquares: ssBetween,
+        df: dfBetween,
+        meanSquare: num(objectPayload.meanSquareBetween),
+        f: num(objectPayload.fStatistic),
+        significance: num(objectPayload.pValue)
+      },
+      {
+        source: "Within Groups",
+        sumOfSquares: ssWithin,
+        df: dfWithin,
+        meanSquare: num(objectPayload.meanSquareWithin),
+        f: null,
+        significance: null
+      },
+      {
+        source: "Total",
+        sumOfSquares: ssBetween !== null && ssWithin !== null ? ssBetween + ssWithin : null,
+        df: dfBetween !== null && dfWithin !== null ? dfBetween + dfWithin : null,
+        meanSquare: null,
+        f: null,
+        significance: null
+      }
+    ]
+  });
+
+  const etaSquared = num(objectPayload.etaSquared);
+  if (etaSquared !== null) {
+    tables.push({
+      title: "Effect Size",
+      columns: ["measure", "value"],
+      rows: [{ measure: "Eta-squared", value: etaSquared }]
+    });
+  }
+
+  return tables;
+}
+
+/** Tukey HSD pairwise comparisons. */
+function buildPostHocTables(objectPayload: Record<string, unknown>): TableData[] {
+  const comparisons = asRecordArray(objectPayload.comparisons);
+  if (comparisons.length === 0) return [];
+
+  const alpha = num(objectPayload.alpha);
+  return [
+    {
+      title: alpha !== null ? `Multiple Comparisons (Tukey HSD, alpha = ${alpha})` : "Multiple Comparisons (Tukey HSD)",
+      columns: ["group1", "group2", "meanDifference", "significance", "lower95", "upper95", "significantDifference"],
+      rows: comparisons.map((row) => ({
+        group1: row.group1 ?? null,
+        group2: row.group2 ?? null,
+        meanDifference: num(row.meanDifference),
+        significance: num(row.pValue),
+        lower95: num(row.lowerCI),
+        upper95: num(row.upperCI),
+        significantDifference: row.reject === true
+      }))
+    }
+  ];
+}
+
+/** Descriptives and frequencies already rendered; these only give them SPSS titles. */
+function buildDescriptivesTables(objectPayload: Record<string, unknown>): TableData[] {
+  const stats = asRecordArray(objectPayload.statistics);
+  if (stats.length === 0) return [];
+  return [
+    {
+      title: "Descriptive Statistics",
+      columns: ["variable", "n", "minimum", "maximum", "mean", "stdDeviation", "skewness", "kurtosis"],
+      rows: stats.map((row) => ({
+        variable: row.variable ?? null,
+        n: num(row.count),
+        minimum: num(row.min),
+        maximum: num(row.max),
+        mean: num(row.mean),
+        stdDeviation: num(row.std),
+        skewness: num(row.skewness),
+        kurtosis: num(row.kurtosis)
+      }))
+    }
+  ];
+}
+
+function buildFrequenciesTables(objectPayload: Record<string, unknown>): TableData[] {
+  const items = asRecordArray(objectPayload.frequencies);
+  if (items.length === 0) return [];
+  const variable = typeof objectPayload.variable === "string" ? objectPayload.variable : "value";
+  return [
+    {
+      title: `Frequencies — ${variable}`,
+      columns: [variable, "frequency", "percent", "cumulativePercent"],
+      rows: items.map((row) => ({
+        [variable]: row.value ?? null,
+        frequency: num(row.count),
+        percent: num(row.percentage),
+        cumulativePercent: num(row.cumulativePercentage)
+      }))
+    }
+  ];
+}
+
 export function buildTableData(raw: unknown): TableData[] {
   const result = raw as { success?: boolean; data?: unknown } | null;
   const payload = result && typeof result === "object" && "data" in result ? result.data : raw;
@@ -445,6 +758,36 @@ export function buildTableData(raw: unknown): TableData[] {
     if (cronbachTables.length > 0) {
       return cronbachTables;
     }
+  }
+
+  // Shape-matched builders. Each guard names fields unique to that analysis so a payload
+  // can only take one branch; anything unmatched still falls through to the generic dump
+  // below, which is what every other analysis relied on before these existed.
+  const matched =
+    ("chiSquare" in objectPayload && "table" in objectPayload && "cramersV" in objectPayload
+      ? buildCrosstabsTables(objectPayload)
+      : null) ??
+    ("leveneTest" in objectPayload && "equalVariance" in objectPayload && "unequalVariance" in objectPayload
+      ? buildIndependentTTestTables(objectPayload)
+      : null) ??
+    ("mean1" in objectPayload && "mean2" in objectPayload && "stdDifference" in objectPayload
+      ? buildPairedTTestTables(objectPayload)
+      : null) ??
+    ("fStatistic" in objectPayload && "groupStats" in objectPayload && "sumOfSquaresBetween" in objectPayload
+      ? buildAnovaTables(objectPayload)
+      : null) ??
+    ("comparisons" in objectPayload && "alpha" in objectPayload && !("itemAnalysis" in objectPayload)
+      ? buildPostHocTables(objectPayload)
+      : null) ??
+    ("statistics" in objectPayload && asRecordArray(objectPayload.statistics).some((row) => "skewness" in row)
+      ? buildDescriptivesTables(objectPayload)
+      : null) ??
+    ("frequencies" in objectPayload && "totalCount" in objectPayload
+      ? buildFrequenciesTables(objectPayload)
+      : null);
+
+  if (matched && matched.length > 0) {
+    return matched;
   }
 
   const tables: TableData[] = [];

@@ -310,14 +310,29 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         throw new Error("No injected dataset found. Call injectData first.");
       }
 
+      // An external caller names its variables in `input` under the same keys the roles
+      // use, so mirror them into the assignment state. Without this the role panel stays
+      // empty and warns "Set Row Variable." directly above a result it just computed.
+      const externalAssignments = { ...EMPTY_ASSIGNMENTS };
+      ANALYSIS_DEFS[method].roles.forEach((roleDef) => {
+        const value = input[roleDef.key];
+        if (typeof value === "string" && value !== "") {
+          externalAssignments[roleDef.key] = [value];
+        } else if (Array.isArray(value)) {
+          externalAssignments[roleDef.key] = value.filter((item): item is string => typeof item === "string");
+        }
+      });
+
       const payload: AnalysisPayload = {
         analysisType: method,
         method,
         input: { ...input, data: currentData },
         options: {},
-        assignments: EMPTY_ASSIGNMENTS
+        assignments: externalAssignments
       };
       const output = analysisExecutor ? await analysisExecutor(payload) : await executeExternalAnalysis(method, currentData, input);
+      setAnalysisType(method);
+      setAssignments(externalAssignments);
       setResult(output);
       onResult?.({ payload, result: output });
       setError("");

@@ -313,3 +313,179 @@ describe("result-utils", () => {
     await expect(copyApaTablesToClipboard([])).resolves.toBe(false);
   });
 });
+
+describe("buildTableData — per-analysis tables", () => {
+  // Real output from @winm2m/inferential-stats-js 1.8.0 for a 2x2 table of
+  // 45/55 and 25/75. scipy applies Yates' correction at 2x2, hence 7.934.
+  const crosstabsPayload = {
+    rowVariable: "row",
+    colVariable: "column",
+    rowLabels: ["Flow A", "Flow B"],
+    colLabels: ["Did not", "Upgraded"],
+    table: [
+      { row: "Flow A", col: "Did not", observed: 55, expected: 65, rowPercentage: 55, colPercentage: 42.308, totalPercentage: 27.5 },
+      { row: "Flow A", col: "Upgraded", observed: 45, expected: 35, rowPercentage: 45, colPercentage: 64.286, totalPercentage: 22.5 },
+      { row: "Flow B", col: "Did not", observed: 75, expected: 65, rowPercentage: 75, colPercentage: 57.692, totalPercentage: 37.5 },
+      { row: "Flow B", col: "Upgraded", observed: 25, expected: 35, rowPercentage: 25, colPercentage: 35.714, totalPercentage: 12.5 }
+    ],
+    chiSquare: 7.934066,
+    degreesOfFreedom: 1,
+    pValue: 0.004855,
+    cramersV: 0.199249
+  };
+
+  it("keeps the chi-square statistics that the generic fallback dropped", () => {
+    const tables = buildTableData(crosstabsPayload);
+    const titles = tables.map((table) => table.title);
+    expect(titles).toEqual(["Crosstabulation", "Chi-Square Tests", "Symmetric Measures"]);
+
+    const chi = tables[1].rows[0];
+    expect(chi.value).toBeCloseTo(7.934066, 6);
+    expect(chi.df).toBe(1);
+    expect(chi.asymptoticSignificance).toBeCloseTo(0.004855, 6);
+    expect(tables[1].rows[1]).toMatchObject({ test: "N of Valid Cases", value: 200 });
+  });
+
+  it("reports the expected-count assumption alongside the effect size", () => {
+    const tables = buildTableData(crosstabsPayload);
+    expect(tables[2].rows[0]).toMatchObject({
+      measure: "Cramér's V",
+      cellsWithExpectedCountBelow5: 0,
+      minimumExpectedCount: 35
+    });
+  });
+
+  it("counts the cells that violate the expected-count rule", () => {
+    const tables = buildTableData({
+      ...crosstabsPayload,
+      table: [
+        { row: "A", col: "X", observed: 2, expected: 1.5 },
+        { row: "A", col: "Y", observed: 8, expected: 8.5 },
+        { row: "B", col: "X", observed: 1, expected: 1.5 },
+        { row: "B", col: "Y", observed: 9, expected: 8.5 }
+      ]
+    });
+    expect(tables[2].rows[0]).toMatchObject({ cellsWithExpectedCountBelow5: 2, minimumExpectedCount: 1.5 });
+  });
+
+  it("labels both variance assumptions of an independent t-test", () => {
+    const tables = buildTableData({
+      leveneTest: { statistic: 0.0252, pValue: 0.8755, equalVariance: true },
+      equalVariance: {
+        tStatistic: 5.5648, degreesOfFreedom: 14, pValue: 0.0000747, meanDifference: 8.125,
+        confidenceInterval: [4.9942, 11.2558],
+        group1Mean: 42.375, group1Std: 3.0208, group1N: 8,
+        group2Mean: 34.25, group2Std: 2.8158, group2N: 8
+      },
+      unequalVariance: {
+        tStatistic: 5.5648, degreesOfFreedom: 13.9306, pValue: 0.0000754, meanDifference: 8.125,
+        confidenceInterval: [4.9924, 11.2576],
+        group1Mean: 42.375, group1Std: 3.0208, group1N: 8,
+        group2Mean: 34.25, group2Std: 2.8158, group2N: 8
+      }
+    });
+
+    expect(tables.map((table) => table.title)).toEqual([
+      "Group Statistics",
+      "Levene's Test for Equality of Variances",
+      "Independent Samples Test"
+    ]);
+    expect(tables[0].rows).toHaveLength(2);
+    expect(tables[1].rows[0]).toMatchObject({ conclusion: "Equal variances assumed" });
+    expect(tables[2].rows.map((row) => row.assumption)).toEqual([
+      "Equal variances assumed",
+      "Equal variances not assumed"
+    ]);
+    expect(tables[2].rows[0]).toMatchObject({ lower95: 4.9942, upper95: 11.2558 });
+  });
+
+  it("follows Levene's verdict when the variances differ", () => {
+    const tables = buildTableData({
+      leveneTest: { statistic: 9.1, pValue: 0.004, equalVariance: false },
+      equalVariance: { tStatistic: 1, degreesOfFreedom: 10, pValue: 0.3, meanDifference: 1, confidenceInterval: [0, 2] },
+      unequalVariance: { tStatistic: 1.2, degreesOfFreedom: 7.4, pValue: 0.26, meanDifference: 1, confidenceInterval: [0, 2] }
+    });
+    expect(tables[1].rows[0]).toMatchObject({ conclusion: "Equal variances not assumed" });
+  });
+
+  it("builds the paired samples tables", () => {
+    const tables = buildTableData({
+      tStatistic: -3.2, degreesOfFreedom: 19, pValue: 0.0047,
+      meanDifference: -1.85, stdDifference: 2.58, confidenceInterval: [-3.06, -0.64],
+      mean1: 4.2, mean2: 6.05, n: 20
+    });
+    expect(tables.map((table) => table.title)).toEqual(["Paired Samples Statistics", "Paired Samples Test"]);
+    expect(tables[1].rows[0]).toMatchObject({ t: -3.2, df: 19, meanDifference: -1.85 });
+  });
+
+  it("builds an ANOVA table that totals its own sums of squares", () => {
+    const tables = buildTableData({
+      fStatistic: 12.4, pValue: 0.0002,
+      degreesOfFreedomBetween: 2, degreesOfFreedomWithin: 27,
+      sumOfSquaresBetween: 240.5, sumOfSquaresWithin: 261.8,
+      meanSquareBetween: 120.25, meanSquareWithin: 9.7,
+      etaSquared: 0.479,
+      groupStats: [
+        { group: "A", n: 10, mean: 5.1, std: 3.2 },
+        { group: "B", n: 10, mean: 8.4, std: 3.0 },
+        { group: "C", n: 10, mean: 11.9, std: 3.1 }
+      ]
+    });
+
+    expect(tables.map((table) => table.title)).toEqual(["Descriptives", "ANOVA", "Effect Size"]);
+    const total = tables[1].rows[2];
+    expect(total).toMatchObject({ source: "Total", df: 29 });
+    expect(total.sumOfSquares).toBeCloseTo(502.3, 6);
+  });
+
+  it("builds Tukey comparisons and names the alpha", () => {
+    const tables = buildTableData({
+      alpha: 0.05,
+      comparisons: [
+        { group1: "A", group2: "B", meanDifference: -3.3, pValue: 0.04, lowerCI: -6.5, upperCI: -0.1, reject: true },
+        { group1: "A", group2: "C", meanDifference: -6.8, pValue: 0.0001, lowerCI: -10, upperCI: -3.6, reject: true }
+      ]
+    });
+    expect(tables).toHaveLength(1);
+    expect(tables[0].title).toContain("Tukey HSD");
+    expect(tables[0].title).toContain("0.05");
+    expect(tables[0].rows[0]).toMatchObject({ group1: "A", group2: "B", significantDifference: true });
+  });
+
+  it("titles descriptives and frequencies instead of dumping raw keys", () => {
+    const descriptives = buildTableData({
+      statistics: [
+        { variable: "score", count: 30, mean: 7.2, std: 2.1, min: 2, max: 10, q25: 6, q50: 7, q75: 9, skewness: -0.4, kurtosis: 0.1 }
+      ]
+    });
+    expect(descriptives[0].title).toBe("Descriptive Statistics");
+    expect(descriptives[0].rows[0]).toMatchObject({ variable: "score", n: 30, minimum: 2, maximum: 10 });
+
+    const frequencies = buildTableData({
+      variable: "grade",
+      totalCount: 40,
+      frequencies: [
+        { value: "A", count: 12, percentage: 30, cumulativePercentage: 30 },
+        { value: "B", count: 28, percentage: 70, cumulativePercentage: 100 }
+      ]
+    });
+    expect(frequencies[0].title).toBe("Frequencies — grade");
+    expect(frequencies[0].columns[0]).toBe("grade");
+    expect(frequencies[0].rows[1]).toMatchObject({ grade: "B", frequency: 28, cumulativePercent: 100 });
+  });
+
+  it("leaves unrecognised payloads on the generic path", () => {
+    const tables = buildTableData({ somethingNew: { statistic: 1, value: 2 } });
+    expect(tables[0].title).toBe("somethingNew");
+  });
+
+  it("does not mistake a Cronbach payload for a post-hoc one", () => {
+    const tables = buildTableData({
+      alpha: 0.87,
+      nItems: 4,
+      itemAnalysis: [{ item: "q1", itemMean: 3.1, itemStd: 0.9 }],
+      scaleStatistics: { nItems: 4, minimum: 4, maximum: 20, mean: 12.4, std: 3.1 }
+    });
+    expect(tables.map((table) => table.title)).toContain("Reliability Statistics");
+  });
+});
