@@ -41,9 +41,41 @@ export type AnalysisPayload = {
   assignments: Record<RoleKey, string[]>;
 };
 
+/**
+ * How a failed run should be read by whoever is logging it.
+ *
+ * Only two values, deliberately. The engine reports failures as free-form strings,
+ * so the one distinction we can draw honestly is "the environment broke" versus
+ * "the analysis itself refused". Inventing finer buckets from message matching
+ * would be guesswork that looks like data.
+ */
+export type AnalysisFailureKind =
+  /** Worker init, script fetch, SDK not ready — not the user's doing. */
+  | "SYSTEM"
+  /** The analysis ran and rejected: bad roles, too few cases, no convergence. */
+  | "STATS";
+
+export type AnalysisFailure = {
+  /** Untranslated, straight from the thrower. Translate at the point of display. */
+  message: string;
+  kind: AnalysisFailureKind;
+  /** Stable slug for logs and aggregation. Never translated. */
+  code: string;
+};
+
 export type AnalysisResult = {
   payload: AnalysisPayload;
+  /** Undefined when `error` is set. */
   result: unknown;
+  /**
+   * Present only when the run failed.
+   *
+   * Failures are reported through the same callback as successes on purpose — an
+   * embedder recording a learning log needs "tried and failed" and "never tried"
+   * to be different things, and a callback that only fires on success cannot tell
+   * them apart.
+   */
+  error?: AnalysisFailure;
 };
 
 export type ExternalDataInput = {
@@ -130,6 +162,13 @@ export type StatsWorkbenchProps = {
   minimalAutoShowResultEnabled?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
+  /**
+   * Fires when the analysis help popover is opened, not when it is closed.
+   *
+   * An embedder tracking what a learner consulted needs the open event; the panel
+   * otherwise keeps that entirely to itself.
+   */
+  onHelpOpen?: (analysisType: AnalysisKind) => void;
   hideInternalVariableList?: boolean;
 };
 

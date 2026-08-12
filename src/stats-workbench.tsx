@@ -10,6 +10,7 @@ import {
   validateForRole
 } from "./stats-workbench/analysis";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./stats-workbench/constants";
+import { classifyAnalysisFailure } from "./stats-workbench/failure";
 import { getDatasets, parseXlsx, putDataset, removeDataset } from "./stats-workbench/data-store";
 import { AnalysisTypePanel } from "./stats-workbench/sections/analysis-type-panel";
 import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
@@ -120,6 +121,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   minimalAutoShowResultEnabled = true,
   analysisExecutor,
   onResult,
+  onHelpOpen,
   hideInternalVariableList = false,
   allowedAnalyses,
   onBeforeCopyApaTable,
@@ -368,7 +370,15 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         options: {},
         assignments: externalAssignments
       };
-      const output = analysisExecutor ? await analysisExecutor(payload) : await executeExternalAnalysis(method, currentData, input);
+      let output: unknown;
+      try {
+        output = analysisExecutor ? await analysisExecutor(payload) : await executeExternalAnalysis(method, currentData, input);
+      } catch (err) {
+        // 외부 실행 경로도 같은 콜백으로 알린 뒤 다시 던진다. 호출한 쪽의 예외 처리를
+        // 뺏지 않으면서, 기록하는 쪽은 실패를 놓치지 않는다.
+        onResult?.({ payload, result: undefined, error: classifyAnalysisFailure(err) });
+        throw err;
+      }
       setAnalysisTypeRaw(method);
       setAssignments(externalAssignments);
       setResult(output);
@@ -572,6 +582,12 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     async (payload: AnalysisPayload) => {
       if (!workerReady) {
         setError(t("workerStillInitializing", { progress: workerProgress ?? 0 }));
+        // 조기 반환도 실패다. 알리지 않으면 기록하는 쪽에서는 "시도 없음" 과 구별되지 않는다.
+        onResult?.({
+          payload,
+          result: undefined,
+          error: { message: "Worker is still initializing.", kind: "SYSTEM", code: "worker_not_ready" }
+        });
         return;
       }
 
@@ -590,7 +606,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
           setWorkerStatusMessage("Worker connected and analysis completed.");
         }
       } catch (err) {
+        const failure = classifyAnalysisFailure(err);
         setError(err instanceof Error ? err.message : t("unknownExecutionError"));
+        // 성공과 같은 콜백으로 실패도 알린다 — 기록하는 쪽에서 "시도 후 실패" 를
+        // "시도 없음" 과 구별할 수 있어야 한다.
+        onResult?.({ payload, result: undefined, error: failure });
         if (!analysisExecutor) {
           setWorkerConnectionState("error");
           setWorkerStatusMessage(err instanceof Error ? err.message : t("workerFailed"));
@@ -914,6 +934,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   showPrefix={false}
                   subtleUnderline
                   showHelpButton={showAnalysisHelpButton}
+                  onHelpOpen={onHelpOpen}
                   allowedAnalyses={allowedAnalyses}
                 />
                 <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
@@ -1004,6 +1025,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   analysisType={analysisType}
                   onChange={setAnalysisType}
                   showHelpButton={showAnalysisHelpButton}
+                  onHelpOpen={onHelpOpen}
                   allowedAnalyses={allowedAnalyses}
                 />
                 {showDatasetPopover ? (
