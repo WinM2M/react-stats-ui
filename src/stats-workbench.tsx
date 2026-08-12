@@ -11,6 +11,7 @@ import {
 } from "./stats-workbench/analysis";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./stats-workbench/constants";
 import { classifyAnalysisFailure } from "./stats-workbench/failure";
+import type { AnalysisTrigger } from "./stats-workbench/types";
 import { getDatasets, parseXlsx, putDataset, removeDataset } from "./stats-workbench/data-store";
 import { AnalysisTypePanel } from "./stats-workbench/sections/analysis-type-panel";
 import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
@@ -155,7 +156,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const [minimalAutoShowResult, setMinimalAutoShowResult] = React.useState(true);
   const [showManualRunAction, setShowManualRunAction] = React.useState(false);
   const [showResultAfterManualRun, setShowResultAfterManualRun] = React.useState(false);
-  const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
+  const [analysisQueue, setAnalysisQueue] = React.useState<Array<{ payload: AnalysisPayload; trigger: AnalysisTrigger }>>([]);
   const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
   const [isResizingPanels, setIsResizingPanels] = React.useState(false);
   const [isCompactViewport, setIsCompactViewport] = React.useState(false);
@@ -377,13 +378,13 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       } catch (err) {
         // 외부 실행 경로도 같은 콜백으로 알린 뒤 다시 던진다. 호출한 쪽의 예외 처리를
         // 뺏지 않으면서, 기록하는 쪽은 실패를 놓치지 않는다.
-        onResult?.({ payload, result: undefined, error: classifyAnalysisFailure(err) });
+        onResult?.({ payload, trigger: "manual", result: undefined, error: classifyAnalysisFailure(err) });
         throw err;
       }
       setAnalysisTypeRaw(method);
       setAssignments(externalAssignments);
       setResult(output);
-      onResult?.({ payload, result: output });
+      onResult?.({ payload, trigger: "manual", result: output });
       setError("");
       if (layoutMode === "minimal") {
         setShowMinimalResult(true);
@@ -580,12 +581,13 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   }, [layoutMode]);
 
   const executeAnalysisPayload = React.useCallback(
-    async (payload: AnalysisPayload) => {
+    async (payload: AnalysisPayload, trigger: AnalysisTrigger = "manual") => {
       if (!workerReady) {
         setError(t("workerStillInitializing", { progress: workerProgress ?? 0 }));
         // 조기 반환도 실패다. 알리지 않으면 기록하는 쪽에서는 "시도 없음" 과 구별되지 않는다.
         onResult?.({
           payload,
+          trigger,
           result: undefined,
           error: { message: "Worker is still initializing.", kind: "SYSTEM", code: "worker_not_ready" }
         });
@@ -601,7 +603,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       try {
         const output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
         setResult(output);
-        onResult?.({ payload, result: output });
+        onResult?.({ payload, trigger, result: output });
         if (!analysisExecutor) {
           setWorkerConnectionState("ready");
           setWorkerStatusMessage("Worker connected and analysis completed.");
@@ -611,7 +613,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         setError(err instanceof Error ? err.message : t("unknownExecutionError"));
         // 성공과 같은 콜백으로 실패도 알린다 — 기록하는 쪽에서 "시도 후 실패" 를
         // "시도 없음" 과 구별할 수 있어야 한다.
-        onResult?.({ payload, result: undefined, error: failure });
+        onResult?.({ payload, trigger, result: undefined, error: failure });
         if (!analysisExecutor) {
           setWorkerConnectionState("error");
           setWorkerStatusMessage(err instanceof Error ? err.message : t("workerFailed"));
@@ -624,8 +626,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     [analysisExecutor, onResult, workerProgress, workerReady]
   );
 
-  const enqueueAnalysis = React.useCallback((payload: AnalysisPayload) => {
-    setAnalysisQueue((prev) => [...prev, payload]);
+  const enqueueAnalysis = React.useCallback((payload: AnalysisPayload, trigger: AnalysisTrigger) => {
+    setAnalysisQueue((prev) => [...prev, { payload, trigger }]);
   }, []);
 
   const requestRunAnalysis = React.useCallback(() => {
@@ -640,7 +642,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
 
     setError("");
     setShowManualRunAction(false);
-    enqueueAnalysis(payloadInfo.payload);
+    enqueueAnalysis(payloadInfo.payload, "manual");
   }, [enqueueAnalysis, payloadInfo, workerProgress, workerReady]);
 
   const requestRunAnalysisFromManual = React.useCallback(() => {
@@ -707,7 +709,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
 
     setError("");
     setShowManualRunAction(false);
-    enqueueAnalysis(payloadInfo.payload);
+    enqueueAnalysis(payloadInfo.payload, "auto");
   }, [
     analysisDef.roles,
     analysisType,
@@ -729,7 +731,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
 
     const [next, ...rest] = analysisQueue;
     setAnalysisQueue(rest);
-    void executeAnalysisPayload(next);
+    void executeAnalysisPayload(next.payload, next.trigger);
   }, [analysisQueue, executeAnalysisPayload, isRunning]);
 
   React.useEffect(() => {

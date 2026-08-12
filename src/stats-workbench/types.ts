@@ -55,6 +55,19 @@ export type AnalysisFailureKind =
   /** The analysis ran and rejected: bad roles, too few cases, no convergence. */
   | "STATS";
 
+/**
+ * 실행을 누가 시작했는가.
+ *
+ * 워크벤치는 화면 진입·변수 변경 시 스스로 한 번 돌린다. 그 실행까지 "학생이 분석을
+ * 수행했다" 로 기록하면 학습 로그가 오염된다 — 아무것도 누르지 않아도 완수로 잡힌다.
+ * 기록하는 쪽이 구별할 수 있도록 계기를 함께 알린다.
+ */
+export type AnalysisTrigger =
+  /** 사용자가 실행을 눌렀거나 임베더가 명시적으로 호출했다. */
+  | "manual"
+  /** 워크벤치가 상태 변화를 보고 스스로 돌렸다. */
+  | "auto";
+
 export type AnalysisFailure = {
   /** Untranslated, straight from the thrower. Translate at the point of display. */
   message: string;
@@ -65,6 +78,8 @@ export type AnalysisFailure = {
 
 export type AnalysisResult = {
   payload: AnalysisPayload;
+  /** 이 실행을 누가 시작했는지. 기록 여부를 가르는 기준이다. */
+  trigger: AnalysisTrigger;
   /** Undefined when `error` is set. */
   result: unknown;
   /**
