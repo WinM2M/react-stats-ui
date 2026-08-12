@@ -12,6 +12,8 @@ type AnalysisTypePanelProps = {
   showPrefix?: boolean;
   subtleUnderline?: boolean;
   showHelpButton?: boolean;
+  /** When given, only these analyses are offered. Undefined means all of them. */
+  allowedAnalyses?: AnalysisKind[];
 };
 
 export function AnalysisTypePanel({
@@ -19,7 +21,8 @@ export function AnalysisTypePanel({
   onChange,
   showPrefix = true,
   subtleUnderline = false,
-  showHelpButton = true
+  showHelpButton = true,
+  allowedAnalyses
 }: AnalysisTypePanelProps) {
   const { t, i18n } = useTranslation();
   const [openList, setOpenList] = React.useState(false);
@@ -28,6 +31,20 @@ export function AnalysisTypePanel({
   const popoverRef = React.useRef<HTMLDivElement>(null);
   const helpUi = React.useMemo(() => getAnalysisHelpUi(i18n.language), [i18n.language]);
   const selectedLabel = t(`analysisKinds.${analysisType}`, { defaultValue: ANALYSIS_DEFS[analysisType].label });
+
+  const groups = React.useMemo(() => {
+    if (!allowedAnalyses) {
+      return ANALYSIS_GROUPS;
+    }
+
+    const allowed = new Set(allowedAnalyses);
+    return ANALYSIS_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => allowed.has(item) ) })).filter(
+      (group) => group.items.length > 0
+    );
+  }, [allowedAnalyses]);
+
+  // With nothing to switch to, a dropdown is just a button that does nothing.
+  const choosable = groups.reduce((count, group) => count + group.items.length, 0) > 1;
 
   React.useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -76,18 +93,28 @@ export function AnalysisTypePanel({
     <section className="relative" ref={popoverRef}>
       <div className="flex items-center gap-2">
         {showPrefix ? <span className="relative -top-0.5 text-sm font-semibold text-slate-700">{t("analysis")}:</span> : null}
-        <button
-          type="button"
-          onClick={() => {
-            setOpenList((prev) => !prev);
-            setOpenHelp(false);
-          }}
-          className={`w-80 truncate bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 hover:bg-slate-50 ${
-            subtleUnderline ? "border-b border-slate-300" : "border-b-2 border-black"
-          }`}
-        >
-          {selectedLabel}
-        </button>
+        {choosable ? (
+          <button
+            type="button"
+            onClick={() => {
+              setOpenList((prev) => !prev);
+              setOpenHelp(false);
+            }}
+            className={`w-80 truncate bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 hover:bg-slate-50 ${
+              subtleUnderline ? "border-b border-slate-300" : "border-b-2 border-black"
+            }`}
+          >
+            {selectedLabel}
+          </button>
+        ) : (
+          <span
+            className={`w-80 truncate bg-white px-3 pb-2 text-left text-xl font-bold leading-tight text-slate-900 ${
+              subtleUnderline ? "border-b border-slate-300" : "border-b-2 border-black"
+            }`}
+          >
+            {selectedLabel}
+          </span>
+        )}
         {showHelpButton ? (
           <button
             type="button"
@@ -107,7 +134,7 @@ export function AnalysisTypePanel({
       {openList ? (
         <div className="absolute left-0 top-[calc(100%+0.5rem)] z-30 w-[min(420px,92vw)] rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
           <div className="max-h-72 overflow-auto">
-            {ANALYSIS_GROUPS.map((group) => (
+            {groups.map((group) => (
               <section key={group.key} className="mb-2 last:mb-0">
                 <div className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {t(`analysisGroups.${group.key}`)}

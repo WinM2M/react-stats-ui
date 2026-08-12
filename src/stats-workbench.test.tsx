@@ -132,3 +132,147 @@ describe("StatsWorkbench external control", () => {
     expect(screen.queryByText("Auto show result")).toBeNull();
   });
 });
+
+describe("StatsWorkbench allowedAnalyses", () => {
+  it("offers only the listed analyses in the picker", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="crosstabs"
+        allowedAnalyses={["crosstabs", "ttestIndependent"]}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => {
+      screen.getByRole("button", { name: "Crosstabs" }).click();
+    });
+
+    expect(screen.queryByText("Independent-Samples T-Test")).not.toBeNull();
+    expect(screen.queryByText("Linear Regression (OLS)")).toBeNull();
+    expect(screen.queryByText("Principal Component Analysis")).toBeNull();
+  });
+
+  it("drops the dropdown entirely when only one analysis is allowed", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="crosstabs"
+        allowedAnalyses={["crosstabs"]}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    expect(screen.queryByText("Crosstabs")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Crosstabs" })).toBeNull();
+  });
+
+  it("opens on an allowed analysis when initialAnalysis contradicts the list", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="pca"
+        allowedAnalyses={["crosstabs"]}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    expect(screen.queryByText("Crosstabs")).not.toBeNull();
+    expect(screen.queryByText("Principal Component Analysis")).toBeNull();
+  });
+
+  it("refuses an external run of an analysis outside the list", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="crosstabs"
+        allowedAnalyses={["crosstabs"]}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => {
+      ref.current?.injectData({ rows: [{ x: 1, y: 2 }] });
+    });
+
+    await expect(ref.current?.executeAnalysis("pca", { variables: ["x", "y"] })).rejects.toThrow(
+      'Analysis "pca" is not in allowedAnalyses.'
+    );
+  });
+});
+
+describe("StatsWorkbench onBeforeCopyApaTable", () => {
+  const renderWithResult = async (onBeforeCopyApaTable?: () => boolean | Promise<boolean>) => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({ success: true, data: { summary: { statistic: 1.5 } } })}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="crosstabs"
+        onBeforeCopyApaTable={onBeforeCopyApaTable}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => {
+      ref.current?.injectData({ rows: [{ x: 1, y: 2 }] });
+    });
+    await act(async () => {
+      await ref.current?.executeAnalysis("crosstabs", { rowVariable: "x", colVariable: "y" });
+    });
+    act(() => {
+      ref.current?.setResultVisible(true);
+    });
+
+    return ref;
+  };
+
+  it("lets the embedder cancel the copy the result panel would have made", async () => {
+    const writeText = jest.fn(async () => undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const onBeforeCopyApaTable = jest.fn(() => false);
+    await renderWithResult(onBeforeCopyApaTable);
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Copy" }).click();
+    });
+
+    expect(onBeforeCopyApaTable).toHaveBeenCalled();
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.queryByText("Copied")).toBeNull();
+  });
+
+  it("copies as usual once the embedder says go ahead", async () => {
+    const writeText = jest.fn(async () => undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const onBeforeCopyApaTable = jest.fn(async () => true);
+    await renderWithResult(onBeforeCopyApaTable);
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Copy" }).click();
+    });
+
+    expect(onBeforeCopyApaTable).toHaveBeenCalled();
+    expect(writeText).toHaveBeenCalled();
+  });
+});

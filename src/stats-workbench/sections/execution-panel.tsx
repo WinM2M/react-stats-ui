@@ -19,6 +19,7 @@ type ExecutionPanelProps = {
   onCloseResult?: () => void;
   autoShowResult?: boolean;
   onAutoShowResultChange?: (next: boolean) => void;
+  onBeforeCopy?: () => boolean | Promise<boolean>;
 };
 
 
@@ -153,7 +154,8 @@ export function ExecutionPanel({
   minimalChrome = false,
   onCloseResult,
   autoShowResult = true,
-  onAutoShowResultChange
+  onAutoShowResultChange,
+  onBeforeCopy
 }: ExecutionPanelProps) {
   const { t } = useTranslation();
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
@@ -182,6 +184,12 @@ export function ExecutionPanel({
       return;
     }
 
+    // The embedder may want to say something first. It gets the last word, and no
+    // status flashes here — whatever it puts on screen is the feedback.
+    if (onBeforeCopy && (await onBeforeCopy()) === false) {
+      return;
+    }
+
     const copied = await copyApaTablesToClipboard(tables);
     if (copied) {
       setCopyStatus("copied");
@@ -190,7 +198,7 @@ export function ExecutionPanel({
       setCopyStatus("error");
       setTimeout(() => setCopyStatus("idle"), 1400);
     }
-  }, [tables]);
+  }, [onBeforeCopy, tables]);
 
   return (
     <div

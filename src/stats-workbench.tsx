@@ -44,6 +44,18 @@ function normalizeInitialAnalysis(kind: string): AnalysisKind {
   return kind as AnalysisKind;
 }
 
+/**
+ * Keeps the selection inside `allowedAnalyses`. An initial analysis outside the list is
+ * the embedder contradicting itself, so the list wins rather than the page silently
+ * opening on a test it meant to withhold.
+ */
+function clampToAllowed(kind: AnalysisKind, allowed: AnalysisKind[] | undefined): AnalysisKind {
+  if (!allowed || allowed.length === 0 || allowed.includes(kind)) {
+    return kind;
+  }
+  return allowed[0];
+}
+
 function inferVariableType(values: unknown[]): "continuous" | "nominal" | "unknown" {
   const nonEmpty = values.filter((v) => v !== null && v !== undefined && String(v).trim() !== "").slice(0, 50);
   if (nonEmpty.length === 0) {
@@ -107,7 +119,9 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   minimalAutoShowResultEnabled = true,
   analysisExecutor,
   onResult,
-  hideInternalVariableList = false
+  hideInternalVariableList = false,
+  allowedAnalyses,
+  onBeforeCopyApaTable
 }: StatsWorkbenchProps, ref) {
   const { t } = useTranslation();
   const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
@@ -115,7 +129,9 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
   const [injectedDataset, setInjectedDataset] = React.useState<Dataset | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = React.useState<string | null>(null);
-  const [analysisType, setAnalysisType] = React.useState<AnalysisKind>(normalizeInitialAnalysis(initialAnalysis));
+  const [analysisType, setAnalysisTypeRaw] = React.useState<AnalysisKind>(
+    clampToAllowed(normalizeInitialAnalysis(initialAnalysis), allowedAnalyses)
+  );
   const [assignments, setAssignments] = React.useState<Record<RoleKey, string[]>>(EMPTY_ASSIGNMENTS);
   const [selectedAvailable, setSelectedAvailable] = React.useState<string | null>(null);
   const [selectedAssigned, setSelectedAssigned] = React.useState<Partial<Record<RoleKey, string>>>({});
@@ -158,6 +174,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const panelsRef = React.useRef<HTMLElement>(null);
   const workerReady = analysisExecutor ? true : workerConnectionState === "ready";
   const blockInitialLoading = !analysisExecutor && workerConnectionState === "connecting" && !workerReady;
+
+  const setAnalysisType = React.useCallback(
+    (next: AnalysisKind) => setAnalysisTypeRaw(clampToAllowed(next, allowedAnalyses)),
+    [allowedAnalyses]
+  );
 
   React.useEffect(() => {
     setActiveLanguage(language);
@@ -310,6 +331,12 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         throw new Error("No injected dataset found. Call injectData first.");
       }
 
+      // Otherwise the run would succeed and leave the picker showing a test the
+      // embedder listed as unavailable.
+      if (allowedAnalyses && !allowedAnalyses.includes(method)) {
+        throw new Error(`Analysis "${method}" is not in allowedAnalyses.`);
+      }
+
       // An external caller names its variables in `input` under the same keys the roles
       // use, so mirror them into the assignment state. Without this the role panel stays
       // empty and warns "Set Row Variable." directly above a result it just computed.
@@ -331,7 +358,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         assignments: externalAssignments
       };
       const output = analysisExecutor ? await analysisExecutor(payload) : await executeExternalAnalysis(method, currentData, input);
-      setAnalysisType(method);
+      setAnalysisTypeRaw(method);
       setAssignments(externalAssignments);
       setResult(output);
       onResult?.({ payload, result: output });
@@ -863,6 +890,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   showPrefix={false}
                   subtleUnderline
                   showHelpButton={showAnalysisHelpButton}
+                  allowedAnalyses={allowedAnalyses}
                 />
                 <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
                   {showDatasetPopover ? (
@@ -939,6 +967,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       onCloseResult={() => setShowMinimalResult(false)}
                       autoShowResult={effectiveMinimalAutoShowResult}
                       onAutoShowResultChange={minimalAutoShowResultEnabled ? setMinimalAutoShowResult : undefined}
+                      onBeforeCopy={onBeforeCopyApaTable}
                     />
                   </div>
                 </div>
@@ -947,7 +976,12 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
           ) : (
             <>
               <div className="flex select-none flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-[640px]:p-2">
-                <AnalysisTypePanel analysisType={analysisType} onChange={setAnalysisType} showHelpButton={showAnalysisHelpButton} />
+                <AnalysisTypePanel
+                  analysisType={analysisType}
+                  onChange={setAnalysisType}
+                  showHelpButton={showAnalysisHelpButton}
+                  allowedAnalyses={allowedAnalyses}
+                />
                 {showDatasetPopover ? (
                   <DatasetPanel
                     datasets={datasets}
@@ -1022,6 +1056,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   onTogglePayload={() => setShowPayload((prev) => !prev)}
                   workerReady={workerReady}
                   workerProgress={workerProgress}
+                  onBeforeCopy={onBeforeCopyApaTable}
                 />
               </section>
             </>

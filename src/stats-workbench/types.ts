@@ -93,6 +93,21 @@ export type StatsWorkbenchProps = {
   language?: SupportedLanguage;
   showDatasetPopover?: boolean;
   showAnalysisHelpButton?: boolean;
+  /**
+   * Restricts which analyses the picker offers. Omit for all of them. A single entry
+   * drops the dropdown entirely and shows the name as a label, which is what an
+   * embedder wanting one fixed test on a page needs.
+   *
+   * This is a UI affordance, not a security boundary — the engine itself is open
+   * source and reachable from the console either way.
+   */
+  allowedAnalyses?: AnalysisKind[];
+  /**
+   * Runs before the result panel's copy button copies anything. Returning false
+   * cancels the copy, leaving the embedder free to show its own prompt first and
+   * then call `copyApaTable()` on the ref to go ahead.
+   */
+  onBeforeCopyApaTable?: () => boolean | Promise<boolean>;
   minimalAutoShowResultEnabled?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
