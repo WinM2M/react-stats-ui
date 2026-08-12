@@ -922,8 +922,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       >
         <section
           className={cn(
-            "grid h-full min-h-0 grid-rows-[auto_1fr] max-[640px]:gap-2",
-            layoutMode === "minimal" ? "gap-1.5" : "gap-3"
+            "grid h-full min-h-0 max-[640px]:gap-2",
+            // Minimal renders a single child. Leaving it in an `auto` row meant the
+            // panel sized to its content and ignored the height its host gave it, so a
+            // taller container just grew empty space underneath.
+            layoutMode === "minimal" ? "grid-rows-[1fr] gap-1.5" : "grid-rows-[auto_1fr] gap-3"
           )}
         >
           {layoutMode === "minimal" ? (

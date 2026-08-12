@@ -149,7 +149,7 @@ describe("StatsWorkbench allowedAnalyses", () => {
 
     await waitFor(() => expect(ref.current).not.toBeNull());
     act(() => {
-      screen.getByRole("button", { name: "Crosstabs" }).click();
+      screen.getByRole("button", { name: "Crosstabs (Chi-Square Test)" }).click();
     });
 
     expect(screen.queryByText("Independent-Samples T-Test")).not.toBeNull();
@@ -171,8 +171,8 @@ describe("StatsWorkbench allowedAnalyses", () => {
     );
 
     await waitFor(() => expect(ref.current).not.toBeNull());
-    expect(screen.queryByText("Crosstabs")).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Crosstabs" })).toBeNull();
+    expect(screen.queryByText("Crosstabs (Chi-Square Test)")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Crosstabs (Chi-Square Test)" })).toBeNull();
   });
 
   it("opens on an allowed analysis when initialAnalysis contradicts the list", async () => {
@@ -189,7 +189,7 @@ describe("StatsWorkbench allowedAnalyses", () => {
     );
 
     await waitFor(() => expect(ref.current).not.toBeNull());
-    expect(screen.queryByText("Crosstabs")).not.toBeNull();
+    expect(screen.queryByText("Crosstabs (Chi-Square Test)")).not.toBeNull();
     expect(screen.queryByText("Principal Component Analysis")).toBeNull();
   });
 
@@ -362,5 +362,36 @@ describe("StatsWorkbench variableListPosition", () => {
 
   it("moves it to the last column, and gives the roles the wider one", async () => {
     expect(await columnsOf("end")).toEqual({ index: 1, template: "2fr_1fr" });
+  });
+})
+
+describe("StatsWorkbench analysis labels", () => {
+  const pickerLabel = async (language?: "en" | "ko") => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    const { container, unmount } = render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="crosstabs"
+        allowedAnalyses={["crosstabs"]}
+        language={language}
+      />
+    );
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    // The single allowed analysis renders as a plain label rather than a dropdown.
+    const label = container.querySelector("span.w-80")?.textContent ?? "";
+    unmount();
+    return label;
+  };
+
+  it("names the test inside the crosstabs entry, so it can be found", async () => {
+    // Someone looking for a chi-square test does not search for "Crosstabs".
+    expect(await pickerLabel("en")).toContain("Chi-Square");
+  });
+
+  it("translates the picker rather than leaving every locale in English", async () => {
+    expect(await pickerLabel("ko")).toBe("교차분석 (카이제곱 검정)");
   });
 })
