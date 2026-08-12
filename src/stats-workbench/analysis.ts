@@ -65,7 +65,16 @@ function getInputForAnalysis(
   }
   if (analysisType === "ttestIndependent") {
     const groupVariable = assignments.groupVariable[0];
-    const values = Array.from(new Set(data.map((row) => row[groupVariable]).filter((v) => v !== null && v !== undefined)));
+    // 빈 칸은 집단이 아니라 결측이다. 걸러내지 않으면 "" 가 하나의 집단으로 잡히고,
+    // 그 값이 그대로 Select 항목으로 들어가 빈 문자열 value 로 렌더된다 —
+    // Radix Select 는 빈 문자열을 금지하므로 임베더 화면 전체가 죽는다.
+    const values = Array.from(
+      new Set(
+        data
+          .map((row) => row[groupVariable])
+          .filter((v) => v !== null && v !== undefined && String(v).trim() !== "")
+      )
+    );
     if (values.length < 2) {
       return {
         input: { data },
