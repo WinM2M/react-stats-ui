@@ -55,9 +55,23 @@ export type ExternalDataInput = {
 
 export type ExternalAnalysisInput = Omit<Record<string, unknown>, "data">;
 
+export type RunState = {
+  /** Whether `run()` would do anything right now. */
+  canRun: boolean;
+  /** Why not, phrased for a user, when `canRun` is false. */
+  reason: string | null;
+  workerReady: boolean;
+};
+
 export type StatsWorkbenchControl = {
   injectData: (data: ExternalDataInput) => void;
   clearInjectedData: () => void;
+  /**
+   * Runs whatever the role panel currently holds — the same thing the panel's own run
+   * action does. An embedder wanting its own run button needs this, because the roles
+   * belong to the workbench and cannot be passed to `executeAnalysis` from outside.
+   */
+  run: () => void;
   executeAnalysis: (method: AnalysisKind, input?: ExternalAnalysisInput) => Promise<unknown>;
   runFrequencies: (input?: ExternalAnalysisInput) => Promise<unknown>;
   runDescriptives: (input?: ExternalAnalysisInput) => Promise<unknown>;
@@ -108,6 +122,11 @@ export type StatsWorkbenchProps = {
    * then call `copyApaTable()` on the ref to go ahead.
    */
   onBeforeCopyApaTable?: () => boolean | Promise<boolean>;
+  /**
+   * Fires whenever the answer to "would `run()` work" changes. An embedder drawing its
+   * own run button needs this to enable it, since a ref method cannot re-render them.
+   */
+  onRunStateChange?: (state: RunState) => void;
   minimalAutoShowResultEnabled?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;

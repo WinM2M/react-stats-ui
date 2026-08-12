@@ -4,6 +4,7 @@ export {
   type AnalysisPayload,
   type AnalysisResult,
   type ExternalDataInput,
+  type RunState,
   type StatsWorkbenchControl,
   type StatsWorkbenchProps,
   type SupportedLanguage,

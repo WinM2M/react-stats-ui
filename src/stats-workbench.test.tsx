@@ -276,3 +276,50 @@ describe("StatsWorkbench onBeforeCopyApaTable", () => {
     expect(writeText).toHaveBeenCalled();
   });
 });
+
+describe("StatsWorkbench run control", () => {
+  it("reports when a run would work and runs the current assignments", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    const analysisExecutor = jest.fn(async (payload: Record<string, unknown>) => ({ success: true, payload }));
+    const states: Array<{ canRun: boolean; reason: string | null }> = [];
+
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={analysisExecutor}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="descriptives"
+        minimalAutoShowResultEnabled={false}
+        onRunStateChange={(state) => states.push({ canRun: state.canRun, reason: state.reason })}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    // Nothing loaded yet, so the embedder is told a run would go nowhere.
+    expect(states.length).toBeGreaterThan(0);
+    expect(states[states.length - 1].canRun).toBe(false);
+
+    act(() => {
+      ref.current?.injectData({ rows: [{ score: 1 }, { score: 2 }] });
+    });
+    act(() => {
+      ref.current?.assignVariableToRole("score", "variables");
+    });
+
+    await waitFor(() => expect(states[states.length - 1].canRun).toBe(true));
+    expect(states[states.length - 1].reason).toBeNull();
+
+    await act(async () => {
+      ref.current?.run();
+    });
+
+    await waitFor(() => expect(analysisExecutor).toHaveBeenCalled());
+    const payload = analysisExecutor.mock.calls[analysisExecutor.mock.calls.length - 1][0] as {
+      analysisType: string;
+      assignments: Record<string, string[]>;
+    };
+    expect(payload.analysisType).toBe("descriptives");
+    expect(payload.assignments.variables).toEqual(["score"]);
+  });
+})

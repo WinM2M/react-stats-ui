@@ -99,6 +99,7 @@ export type {
   ExternalDataInput,
   PayloadInfo,
   RoleKey,
+  RunState,
   StatsWorkbenchControl,
   StatsWorkbenchProps,
   VariableMeta,
@@ -121,7 +122,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   onResult,
   hideInternalVariableList = false,
   allowedAnalyses,
-  onBeforeCopyApaTable
+  onBeforeCopyApaTable,
+  onRunStateChange
 }: StatsWorkbenchProps, ref) {
   const { t } = useTranslation();
   const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
@@ -172,6 +174,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const panelsRef = React.useRef<HTMLElement>(null);
+  /** The imperative handle is built above the run callbacks, so it reaches them here. */
+  const runFromHandleRef = React.useRef<() => void>(() => {});
   const workerReady = analysisExecutor ? true : workerConnectionState === "ready";
   const blockInitialLoading = !analysisExecutor && workerConnectionState === "connecting" && !workerReady;
 
@@ -473,6 +477,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     (): StatsWorkbenchControl => ({
       injectData,
       clearInjectedData,
+      run: () => runFromHandleRef.current(),
       executeAnalysis: (method, input = {}) => executeExternalMethod(method, input),
       runFrequencies: (input = {}) => executeExternalMethod("frequencies", input),
       runDescriptives: (input = {}) => executeExternalMethod("descriptives", input),
@@ -615,6 +620,18 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     setShowResultAfterManualRun(true);
     requestRunAnalysis();
   }, [requestRunAnalysis]);
+
+  runFromHandleRef.current = requestRunAnalysisFromManual;
+
+  // Reported rather than queried, because a ref method cannot re-render an embedder's
+  // own run button when the answer changes underneath it.
+  React.useEffect(() => {
+    onRunStateChange?.({
+      canRun: Boolean(workerReady && payloadInfo.canRun),
+      reason: workerReady ? (payloadInfo.canRun ? null : payloadInfo.reason ?? t("setupIncomplete")) : t("workerStillInitializing", { progress: workerProgress ?? 0 }),
+      workerReady
+    });
+  }, [onRunStateChange, payloadInfo.canRun, payloadInfo.reason, t, workerProgress, workerReady]);
 
   React.useEffect(() => {
     if (lastAutoRunKeyRef.current === null) {
