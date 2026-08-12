@@ -1,7 +1,7 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import * as React from "react";
 import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
-import { useTranslation, I18nextProvider } from "react-i18next";
+import { I18nextProvider } from "react-i18next";
 import {
   ensureWorkerInitialized,
   executeExternalAnalysis,
@@ -125,7 +125,14 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   onBeforeCopyApaTable,
   onRunStateChange
 }: StatsWorkbenchProps, ref) {
-  const { t } = useTranslation();
+  // `useTranslation` here would resolve against the host application's i18n instance,
+  // because the provider below only wraps the returned JSX — not this body. Strings
+  // raised from here (worker status, run blockers) came out as raw keys inside an
+  // embedder that had never heard of them. Bind to our own bundle instead.
+  const t = React.useCallback(
+    (key: string, options?: Record<string, unknown>) => workbenchI18n.t(key, options) as string,
+    []
+  );
   const PANEL_HEIGHT_STORAGE_KEY = "stats-workbench.topPanelHeight";
   const MINIMAL_AUTO_SHOW_STORAGE_KEY = "stats-workbench.minimalAutoShowResult";
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
