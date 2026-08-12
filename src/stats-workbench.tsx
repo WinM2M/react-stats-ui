@@ -125,7 +125,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   hideInternalVariableList = false,
   allowedAnalyses,
   onBeforeCopyApaTable,
-  onRunStateChange
+  onRunStateChange,
+  variableListPosition
 }: StatsWorkbenchProps, ref) {
   // `useTranslation` here would resolve against the host application's i18n instance,
   // because the provider below only wraps the returned JSX — not this body. Strings
@@ -986,6 +987,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       onManualRunAction={requestRunAnalysisFromManual}
                       onResetAssignments={resetAssignments}
                       showVariableList={!hideInternalVariableList}
+                      variableListPosition={variableListPosition}
                       variableListDatasetId={selectedDataset?.id ?? null}
                       variableListDatasetName={selectedDataset?.name ?? null}
                       onAvailableVariableActivate={assignVariableToBestRole}
@@ -1078,6 +1080,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   groupCandidates={groupCandidates}
                   onResetAssignments={resetAssignments}
                   showVariableList={!hideInternalVariableList}
+                  variableListPosition={variableListPosition}
                   variableListDatasetId={selectedDataset?.id ?? null}
                   variableListDatasetName={selectedDataset?.name ?? null}
                   onAvailableVariableActivate={assignVariableToBestRole}

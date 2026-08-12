@@ -323,3 +323,44 @@ describe("StatsWorkbench run control", () => {
     expect(payload.assignments.variables).toEqual(["score"]);
   });
 })
+
+describe("StatsWorkbench variableListPosition", () => {
+  const columnsOf = async (position?: "start" | "end") => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    const { container, unmount } = render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="descriptives"
+        variableListPosition={position}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => {
+      ref.current?.injectData({ rows: [{ score: 1 }, { score: 2 }] });
+    });
+
+    const grid = container.querySelector(".sm\\:grid-cols-\\[1fr_2fr\\], .sm\\:grid-cols-\\[2fr_1fr\\]");
+    // The draggable card is unique to the list; the word "Variables" is not, because
+    // descriptives names its role that too.
+    await waitFor(() => expect(container.querySelector('[draggable="true"]')).not.toBeNull());
+    const card = container.querySelector('[draggable="true"]') as Element;
+    // Which of the grid's own children contains the card decides which column it lands in.
+    const own = [...(grid?.children ?? [])];
+    const index = own.findIndex((child) => child.contains(card));
+    const template = grid?.className.includes("2fr_1fr") ? "2fr_1fr" : "1fr_2fr";
+    unmount();
+    return { index, template };
+  };
+
+  it("puts the variable list in the first column by default", async () => {
+    expect(await columnsOf()).toEqual({ index: 0, template: "1fr_2fr" });
+  });
+
+  it("moves it to the last column, and gives the roles the wider one", async () => {
+    expect(await columnsOf("end")).toEqual({ index: 1, template: "2fr_1fr" });
+  });
+})

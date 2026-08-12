@@ -159,6 +159,12 @@ export type StatsWorkbenchProps = {
    * own run button needs this to enable it, since a ref method cannot re-render them.
    */
   onRunStateChange?: (state: RunState) => void;
+  /**
+   * Which side of the assignment panel the variable list sits on. Defaults to the left.
+   * An embedder whose other screens put it on the right needs `"end"` so a visitor
+   * moving between them is not hunting for it.
+   */
+  variableListPosition?: "start" | "end";
   minimalAutoShowResultEnabled?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
