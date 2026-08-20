@@ -141,6 +141,17 @@ export type StatsWorkbenchControl = {
   toggleAutoShowResult: () => boolean;
   getAutoShowResult: () => boolean;
   copyApaTable: () => Promise<boolean>;
+  /**
+   * The APA tables as HTML — the same markup `copyApaTable` puts on the clipboard,
+   * handed back instead of written out. `null` when there is no result to render.
+   *
+   * The clipboard is the wrong road for an embedder that wants to *keep* a result:
+   * reading it back needs a permission prompt, and it destroys whatever the person
+   * had copied a moment ago. An embedder collecting results into a report needs the
+   * markup itself, and the markup carries inline styles precisely so it survives
+   * being pasted into an editor that knows nothing about this package's CSS.
+   */
+  getApaTableHtml: () => string | null;
   assignVariableToRole: (variableName: string, role: RoleKey) => boolean;
   assignVariableToBestRole: (variableName: string) => boolean;
   handleExternalVariableDrop: (item: VariableDragItem, role?: RoleKey) => boolean;

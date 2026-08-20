@@ -19,7 +19,11 @@ import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
 import { WorkerSignalIndicator } from "./stats-workbench/sections/worker-signal-indicator";
 import { workbenchI18n, type SupportedLanguage } from "./stats-workbench/i18n";
-import { buildTableData, copyApaTablesToClipboard } from "./stats-workbench/result-utils";
+import {
+  buildApaClipboardHtml,
+  buildTableData,
+  copyApaTablesToClipboard
+} from "./stats-workbench/result-utils";
 import type {
   AnalysisKind,
   AnalysisPayload,
@@ -399,6 +403,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     return await copyApaTablesToClipboard(tables);
   }, [result]);
 
+  const getApaTableHtml = React.useCallback(() => {
+    const tables = buildTableData(result);
+    return tables.length > 0 ? buildApaClipboardHtml(tables) : null;
+  }, [result]);
+
   const variableByName = React.useMemo(() => {
     const map = new Map<string, VariableMeta>();
     (selectedDataset?.columns ?? []).forEach((column) => map.set(column.name, column));
@@ -542,6 +551,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       },
       getAutoShowResult: () => effectiveMinimalAutoShowResult,
       copyApaTable,
+      getApaTableHtml,
       assignVariableToRole,
       assignVariableToBestRole,
       handleExternalVariableDrop
@@ -549,6 +559,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     [
       clearInjectedData,
       copyApaTable,
+      getApaTableHtml,
       effectiveMinimalAutoShowResult,
       executeExternalMethod,
       assignVariableToBestRole,

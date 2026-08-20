@@ -81,6 +81,28 @@ describe("StatsWorkbench external control", () => {
     expect(payload.input.data).toHaveLength(2);
   });
 
+  it("hands back the APA tables as HTML, rather than only to the clipboard", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(<StatsWorkbench ref={ref} layoutMode="minimal" showDatasetPopover={false} />);
+    await waitFor(() => expect(ref.current).not.toBeNull());
+
+    // Nothing has been run yet: there is no result to hand back.
+    expect(ref.current?.getApaTableHtml()).toBeNull();
+
+    act(() => {
+      ref.current?.injectData({ rows: [{ score: 10 }, { score: 15 }] });
+    });
+    await act(async () => {
+      await ref.current?.runFrequencies({ variable: "score" });
+    });
+
+    const html = ref.current?.getApaTableHtml();
+    expect(html).toContain("<table");
+    // The markup carries its own styling, because the embedder pasting it into a
+    // report editor has none of this package's CSS.
+    expect(html).toContain("style=");
+  });
+
   it("throws when external run is requested without injected data", async () => {
     const ref = React.createRef<StatsWorkbenchControl>();
     render(<StatsWorkbench ref={ref} analysisExecutor={async () => ({})} showDatasetPopover={false} />);
