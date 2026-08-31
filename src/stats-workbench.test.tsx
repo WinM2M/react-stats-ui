@@ -239,6 +239,53 @@ describe("StatsWorkbench allowedAnalyses", () => {
   });
 });
 
+describe("StatsWorkbench APA 복사 단추 꾸미기", () => {
+  const renderWithTables = async (props: Record<string, unknown>) => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({
+          success: true,
+          data: { tables: [{ title: "Descriptives", rows: [{ group: "A", n: 3 }] }] }
+        })}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        {...props}
+      />
+    );
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => {
+      ref.current?.injectData({ rows: [{ score: 10, group: "A" }, { score: 15, group: "B" }] });
+    });
+    await act(async () => {
+      await ref.current?.runTtestIndependent({ variable: "score", groupVariable: "group" });
+    });
+    return document.querySelector("[data-apa-copy]") as HTMLElement | null;
+  };
+
+  it("문구를 임베더가 정할 수 있다", async () => {
+    // 기본값 "Copy" 는 무엇을 복사하는지 말하지 않는다. 결과까지 온 방문자 다섯 중
+    // 이 단추를 누른 사람이 0명이었던 것이 이 prop 의 이유다.
+    const btn = await renderWithTables({ apaCopyLabel: "Copy APA table" });
+    expect(btn?.textContent).toContain("Copy APA table");
+  });
+
+  it("문구를 안 주면 로케일 기본값을 쓴다", async () => {
+    const btn = await renderWithTables({});
+    expect(btn?.textContent).toContain("Copy");
+  });
+
+  it("강조하면 채운 단추가 된다", async () => {
+    const subtle = await renderWithTables({});
+    const subtleClass = subtle?.className ?? "";
+    document.body.innerHTML = "";
+    const strong = await renderWithTables({ apaCopyEmphasis: "strong" });
+    expect(subtleClass).not.toContain("bg-indigo-600");
+    expect(strong?.className).toContain("bg-indigo-600");
+  });
+});
+
 describe("StatsWorkbench onBeforeCopyApaTable", () => {
   const renderWithResult = async (onBeforeCopyApaTable?: () => boolean | Promise<boolean>) => {
     const ref = React.createRef<StatsWorkbenchControl>();

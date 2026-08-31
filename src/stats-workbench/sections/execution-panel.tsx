@@ -20,6 +20,21 @@ type ExecutionPanelProps = {
   autoShowResult?: boolean;
   onAutoShowResultChange?: (next: boolean) => void;
   onBeforeCopy?: () => boolean | Promise<boolean>;
+  /**
+   * 복사 단추의 문구를 바꾼다.
+   *
+   * 기본값 "Copy" 는 무엇을 복사하는지 말하지 않는다. 임베더 쪽 실측에서, 결과까지 온
+   * 방문자 5명 중 이 단추를 누른 사람이 0명이었다 — 눌러 보고 그만둔 것이 아니라
+   * 손이 가지 않았다. 무엇을 주는지가 문구에 없으면 눈에 띄어도 이유가 생기지 않는다.
+   */
+  copyLabel?: string;
+  /**
+   * 복사 단추의 무게.
+   *
+   * `subtle`(기본)은 표 위에 조용히 붙는 회색 단추다. `strong`은 채운 단추로, 이 표를
+   * 가져가는 것이 이 화면에서 할 만한 다음 일이라고 말하는 화면에서 쓴다.
+   */
+  copyEmphasis?: "subtle" | "strong";
 };
 
 
@@ -155,7 +170,9 @@ export function ExecutionPanel({
   onCloseResult,
   autoShowResult = true,
   onAutoShowResultChange,
-  onBeforeCopy
+  onBeforeCopy,
+  copyLabel,
+  copyEmphasis = "subtle"
 }: ExecutionPanelProps) {
   const { t } = useTranslation();
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
@@ -163,6 +180,10 @@ export function ExecutionPanel({
   const [copyStatus, setCopyStatus] = React.useState<"idle" | "copied" | "error">("idle");
   const moreRef = React.useRef<HTMLDivElement>(null);
   const tables = buildTableData(result);
+  /* 복사한 직후·실패는 라이브러리 문구를 쓴다. 그건 상태 알림이지 이름이 아니다. */
+  const copyIdleLabel = copyLabel ?? t("copy");
+  const copyStatusLabel =
+    copyStatus === "copied" ? t("copied") : copyStatus === "error" ? t("copyFailed") : copyIdleLabel;
   const runDisabled = isRunning || !payloadInfo.canRun || !workerReady;
 
   React.useEffect(() => {
@@ -315,13 +336,18 @@ export function ExecutionPanel({
                 <div className="mb-2 flex justify-end">
                   <button
                     type="button"
+                    data-apa-copy=""
                     onClick={() => void handleCopyApaTable()}
-                    className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                    aria-label={t("copy")}
-                    title={copyStatus === "copied" ? t("copied") : copyStatus === "error" ? t("copyFailed") : t("copy")}
+                    className={
+                      copyEmphasis === "strong"
+                        ? "inline-flex items-center gap-1.5 rounded-md border border-indigo-600 bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700"
+                        : "inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    }
+                    aria-label={copyIdleLabel}
+                    title={copyStatusLabel}
                   >
-                    <Copy className="h-3.5 w-3.5" />
-                    {copyStatus === "copied" ? t("copied") : copyStatus === "error" ? t("copyFailed") : t("copy")}
+                    <Copy className={copyEmphasis === "strong" ? "h-4 w-4" : "h-3.5 w-3.5"} />
+                    {copyStatusLabel}
                   </button>
                 </div>
                 {tables.map((table, index) => (

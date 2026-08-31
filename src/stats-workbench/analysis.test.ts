@@ -38,3 +38,25 @@ describe("getPayload — 독립표본 t-검정의 집단 후보", () => {
     expect(info.meta?.groupCandidates).toEqual([1, 2]);
   });
 });
+
+describe("getPayload — 역할만 주어졌을 때", () => {
+  it("집단 값을 데이터에서 파생한다", () => {
+    // 외부 호출자는 역할 이름만 안다. group1Value/group2Value 는 데이터에서 나오는
+    // 값이라 호출자가 줄 수 없고, 이게 없으면 SDK 가 표로 그릴 수 없는 형태를 돌려준다.
+    const info = getPayload(
+      "ttestIndependent",
+      [
+        { sex: "남", score: 3 },
+        { sex: "여", score: 4 },
+        { sex: "남", score: 5 }
+      ],
+      assign({ variable: ["score"], groupVariable: ["sex"] }),
+      {}
+    );
+    expect(info.canRun).toBe(true);
+    expect(info.payload.input.group1Value).toBe("남");
+    expect(info.payload.input.group2Value).toBe("여");
+    expect(info.payload.input.variable).toBe("score");
+    expect(info.payload.input.groupVariable).toBe("sex");
+  });
+});

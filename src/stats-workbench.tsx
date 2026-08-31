@@ -4,7 +4,6 @@ import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
 import { I18nextProvider } from "react-i18next";
 import {
   ensureWorkerInitialized,
-  executeExternalAnalysis,
   executeDefaultAnalysis,
   getPayload,
   validateForRole
@@ -130,6 +129,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   hideInternalVariableList = false,
   allowedAnalyses,
   onBeforeCopyApaTable,
+  apaCopyLabel,
+  apaCopyEmphasis,
   onRunStateChange,
   variableListPosition
 }: StatsWorkbenchProps, ref) {
@@ -369,16 +370,36 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         }
       });
 
-      const payload: AnalysisPayload = {
-        analysisType: method,
-        method,
-        input: { ...input, data: currentData },
-        options: {},
-        assignments: externalAssignments
-      };
+      /*
+       * The roles are not the SDK's arguments, and for one analysis that difference is
+       * fatal. `ttestIndependent` needs `group1Value`/`group2Value` — which are derived
+       * from the data, not named by the caller — and without them the SDK returns a shape
+       * the table renderer cannot draw ("Table rendering is not available for this result
+       * shape"). Every other analysis happened to need nothing beyond its roles, which is
+       * why this went unnoticed.
+       *
+       * `getPayload` is what the panel's own Run uses, so routing through it makes the two
+       * paths produce identical input for all fifteen analyses rather than fifteen chances
+       * to drift. Anything the caller passed that is not a role — options like
+       * `equalVariance` — is handed to it as options, and kept in the payload so an
+       * `analysisExecutor` still sees what it was given.
+       */
+      const roleKeys = new Set(ANALYSIS_DEFS[method].roles.map((roleDef) => roleDef.key as string));
+      const externalOptions: Record<string, unknown> = {};
+      Object.entries(input).forEach(([key, value]) => {
+        if (!roleKeys.has(key)) externalOptions[key] = value;
+      });
+
+      const built = getPayload(method, currentData, externalAssignments, externalOptions);
+      const payload: AnalysisPayload = built.payload;
+      if (!built.canRun) {
+        const err = new Error(built.reason ?? "Analysis cannot run with the given variables.");
+        onResult?.({ payload, trigger: "manual", result: undefined, error: classifyAnalysisFailure(err) });
+        throw err;
+      }
       let output: unknown;
       try {
-        output = analysisExecutor ? await analysisExecutor(payload) : await executeExternalAnalysis(method, currentData, input);
+        output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
       } catch (err) {
         // 외부 실행 경로도 같은 콜백으로 알린 뒤 다시 던진다. 호출한 쪽의 예외 처리를
         // 뺏지 않으면서, 기록하는 쪽은 실패를 놓치지 않는다.
@@ -1031,6 +1052,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       autoShowResult={effectiveMinimalAutoShowResult}
                       onAutoShowResultChange={minimalAutoShowResultEnabled ? setMinimalAutoShowResult : undefined}
                       onBeforeCopy={onBeforeCopyApaTable}
+                      copyLabel={apaCopyLabel}
+                      copyEmphasis={apaCopyEmphasis}
                     />
                   </div>
                 </div>
@@ -1122,6 +1145,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   workerReady={workerReady}
                   workerProgress={workerProgress}
                   onBeforeCopy={onBeforeCopyApaTable}
+                  copyLabel={apaCopyLabel}
+                  copyEmphasis={apaCopyEmphasis}
                 />
               </section>
             </>

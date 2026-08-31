@@ -115,10 +115,22 @@ export type StatsWorkbenchControl = {
   clearInjectedData: () => void;
   /**
    * Runs whatever the role panel currently holds — the same thing the panel's own run
-   * action does. An embedder wanting its own run button needs this, because the roles
-   * belong to the workbench and cannot be passed to `executeAnalysis` from outside.
+   * action does. For an embedder that wants its own run button on top of roles the
+   * visitor set by hand.
    */
   run: () => void;
+  /**
+   * Runs one analysis on the injected data, naming the variables yourself.
+   *
+   * Pass each role under the key that analysis declares — `ttestIndependent` takes
+   * `variable` and `groupVariable`, `ttestPaired` takes `variable1`/`variable2`,
+   * `descriptives` takes `variables`. Those roles are mirrored into the panel, so the
+   * screen shows what was run instead of warning that nothing is set.
+   *
+   * Anything else you pass is treated as an option (`equalVariance`, `alpha`, …).
+   * Arguments the SDK needs but you cannot know — the two group values an independent
+   * t-test compares, for instance — are derived from the data for you.
+   */
   executeAnalysis: (method: AnalysisKind, input?: ExternalAnalysisInput) => Promise<unknown>;
   runFrequencies: (input?: ExternalAnalysisInput) => Promise<unknown>;
   runDescriptives: (input?: ExternalAnalysisInput) => Promise<unknown>;
@@ -180,6 +192,23 @@ export type StatsWorkbenchProps = {
    * then call `copyApaTable()` on the ref to go ahead.
    */
   onBeforeCopyApaTable?: () => boolean | Promise<boolean>;
+  /**
+   * APA 표 복사 단추의 문구. 기본값은 로케일의 "Copy".
+   *
+   * 기본 문구는 무엇을 복사하는지 말하지 않는다. 임베더 실측에서, 결과까지 도달한
+   * 방문자 5명 중 이 단추를 누른 사람이 0명이었다 — 눌러 보고 그만둔 것이 아니라
+   * 손이 가지 않았다. "Copy APA table" 처럼 무엇을 주는지 적을 수 있게 연다.
+   *
+   * 복사 직후·실패 문구는 바뀌지 않는다. 그건 이름이 아니라 상태 알림이다.
+   */
+  apaCopyLabel?: string;
+  /**
+   * APA 표 복사 단추의 무게. 기본은 표 위에 조용히 붙는 회색 단추(`subtle`).
+   *
+   * `strong` 은 채운 단추다. 이 표를 가져가는 것이 그 화면에서 할 만한 다음 일인 곳에서
+   * 쓴다. 결과를 보여주는 것 자체가 목적인 공개 계산기 페이지가 그런 경우다.
+   */
+  apaCopyEmphasis?: "subtle" | "strong";
   /**
    * Fires whenever the answer to "would `run()` work" changes. An embedder drawing its
    * own run button needs this to enable it, since a ref method cannot re-render them.
