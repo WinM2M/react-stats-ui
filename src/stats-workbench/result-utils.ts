@@ -838,7 +838,7 @@ function buildApaClipboardText(tables: TableData[]): string {
     .join("\n\n");
 }
 
-function buildApaClipboardHtml(tables: TableData[]): string {
+export function buildApaClipboardHtml(tables: TableData[]): string {
   const sections = tables
     .map((table, index) => {
       const widths =

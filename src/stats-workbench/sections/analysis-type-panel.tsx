@@ -12,6 +12,8 @@ type AnalysisTypePanelProps = {
   showPrefix?: boolean;
   subtleUnderline?: boolean;
   showHelpButton?: boolean;
+  /** Fires when the help popover opens, not when it closes. */
+  onHelpOpen?: (analysisType: AnalysisKind) => void;
   /** When given, only these analyses are offered. Undefined means all of them. */
   allowedAnalyses?: AnalysisKind[];
 };
@@ -22,6 +24,7 @@ export function AnalysisTypePanel({
   showPrefix = true,
   subtleUnderline = false,
   showHelpButton = true,
+  onHelpOpen,
   allowedAnalyses
 }: AnalysisTypePanelProps) {
   const { t, i18n } = useTranslation();
@@ -119,7 +122,13 @@ export function AnalysisTypePanel({
           <button
             type="button"
             onClick={() => {
-              setOpenHelp((prev) => !prev);
+              setOpenHelp((prev) => {
+                // 여는 순간에만 알린다 — 닫기까지 세면 열람 횟수가 두 배로 잡힌다
+                if (!prev) {
+                  onHelpOpen?.(analysisType);
+                }
+                return !prev;
+              });
               setOpenList(false);
             }}
             className="rounded-full p-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900"

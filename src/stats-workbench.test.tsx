@@ -81,6 +81,28 @@ describe("StatsWorkbench external control", () => {
     expect(payload.input.data).toHaveLength(2);
   });
 
+  it("hands back the APA tables as HTML, rather than only to the clipboard", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(<StatsWorkbench ref={ref} layoutMode="minimal" showDatasetPopover={false} />);
+    await waitFor(() => expect(ref.current).not.toBeNull());
+
+    // Nothing has been run yet: there is no result to hand back.
+    expect(ref.current?.getApaTableHtml()).toBeNull();
+
+    act(() => {
+      ref.current?.injectData({ rows: [{ score: 10 }, { score: 15 }] });
+    });
+    await act(async () => {
+      await ref.current?.runFrequencies({ variable: "score" });
+    });
+
+    const html = ref.current?.getApaTableHtml();
+    expect(html).toContain("<table");
+    // The markup carries its own styling, because the embedder pasting it into a
+    // report editor has none of this package's CSS.
+    expect(html).toContain("style=");
+  });
+
   it("throws when external run is requested without injected data", async () => {
     const ref = React.createRef<StatsWorkbenchControl>();
     render(<StatsWorkbench ref={ref} analysisExecutor={async () => ({})} showDatasetPopover={false} />);
@@ -149,7 +171,7 @@ describe("StatsWorkbench allowedAnalyses", () => {
 
     await waitFor(() => expect(ref.current).not.toBeNull());
     act(() => {
-      screen.getByRole("button", { name: "Crosstabs" }).click();
+      screen.getByRole("button", { name: "Crosstabs (Chi-Square Test)" }).click();
     });
 
     expect(screen.queryByText("Independent-Samples T-Test")).not.toBeNull();
@@ -171,8 +193,8 @@ describe("StatsWorkbench allowedAnalyses", () => {
     );
 
     await waitFor(() => expect(ref.current).not.toBeNull());
-    expect(screen.queryByText("Crosstabs")).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Crosstabs" })).toBeNull();
+    expect(screen.queryByText("Crosstabs (Chi-Square Test)")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Crosstabs (Chi-Square Test)" })).toBeNull();
   });
 
   it("opens on an allowed analysis when initialAnalysis contradicts the list", async () => {
@@ -189,7 +211,7 @@ describe("StatsWorkbench allowedAnalyses", () => {
     );
 
     await waitFor(() => expect(ref.current).not.toBeNull());
-    expect(screen.queryByText("Crosstabs")).not.toBeNull();
+    expect(screen.queryByText("Crosstabs (Chi-Square Test)")).not.toBeNull();
     expect(screen.queryByText("Principal Component Analysis")).toBeNull();
   });
 
@@ -214,6 +236,53 @@ describe("StatsWorkbench allowedAnalyses", () => {
     await expect(ref.current?.executeAnalysis("pca", { variables: ["x", "y"] })).rejects.toThrow(
       'Analysis "pca" is not in allowedAnalyses.'
     );
+  });
+});
+
+describe("StatsWorkbench APA 복사 단추 꾸미기", () => {
+  const renderWithTables = async (props: Record<string, unknown>) => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({
+          success: true,
+          data: { tables: [{ title: "Descriptives", rows: [{ group: "A", n: 3 }] }] }
+        })}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        {...props}
+      />
+    );
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => {
+      ref.current?.injectData({ rows: [{ score: 10, group: "A" }, { score: 15, group: "B" }] });
+    });
+    await act(async () => {
+      await ref.current?.runTtestIndependent({ variable: "score", groupVariable: "group" });
+    });
+    return document.querySelector("[data-apa-copy]") as HTMLElement | null;
+  };
+
+  it("문구를 임베더가 정할 수 있다", async () => {
+    // 기본값 "Copy" 는 무엇을 복사하는지 말하지 않는다. 결과까지 온 방문자 다섯 중
+    // 이 단추를 누른 사람이 0명이었던 것이 이 prop 의 이유다.
+    const btn = await renderWithTables({ apaCopyLabel: "Copy APA table" });
+    expect(btn?.textContent).toContain("Copy APA table");
+  });
+
+  it("문구를 안 주면 로케일 기본값을 쓴다", async () => {
+    const btn = await renderWithTables({});
+    expect(btn?.textContent).toContain("Copy");
+  });
+
+  it("강조하면 채운 단추가 된다", async () => {
+    const subtle = await renderWithTables({});
+    const subtleClass = subtle?.className ?? "";
+    document.body.innerHTML = "";
+    const strong = await renderWithTables({ apaCopyEmphasis: "strong" });
+    expect(subtleClass).not.toContain("bg-indigo-600");
+    expect(strong?.className).toContain("bg-indigo-600");
   });
 });
 
@@ -321,5 +390,77 @@ describe("StatsWorkbench run control", () => {
     };
     expect(payload.analysisType).toBe("descriptives");
     expect(payload.assignments.variables).toEqual(["score"]);
+  });
+})
+
+describe("StatsWorkbench variableListPosition", () => {
+  const columnsOf = async (position?: "start" | "end") => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    const { container, unmount } = render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="descriptives"
+        variableListPosition={position}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => {
+      ref.current?.injectData({ rows: [{ score: 1 }, { score: 2 }] });
+    });
+
+    const grid = container.querySelector(".sm\\:grid-cols-\\[1fr_2fr\\], .sm\\:grid-cols-\\[2fr_1fr\\]");
+    // The draggable card is unique to the list; the word "Variables" is not, because
+    // descriptives names its role that too.
+    await waitFor(() => expect(container.querySelector('[draggable="true"]')).not.toBeNull());
+    const card = container.querySelector('[draggable="true"]') as Element;
+    // Which of the grid's own children contains the card decides which column it lands in.
+    const own = [...(grid?.children ?? [])];
+    const index = own.findIndex((child) => child.contains(card));
+    const template = grid?.className.includes("2fr_1fr") ? "2fr_1fr" : "1fr_2fr";
+    unmount();
+    return { index, template };
+  };
+
+  it("puts the variable list in the first column by default", async () => {
+    expect(await columnsOf()).toEqual({ index: 0, template: "1fr_2fr" });
+  });
+
+  it("moves it to the last column, and gives the roles the wider one", async () => {
+    expect(await columnsOf("end")).toEqual({ index: 1, template: "2fr_1fr" });
+  });
+})
+
+describe("StatsWorkbench analysis labels", () => {
+  const pickerLabel = async (language?: "en" | "ko") => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    const { container, unmount } = render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={async () => ({})}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="crosstabs"
+        allowedAnalyses={["crosstabs"]}
+        language={language}
+      />
+    );
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    // The single allowed analysis renders as a plain label rather than a dropdown.
+    const label = container.querySelector("span.w-80")?.textContent ?? "";
+    unmount();
+    return label;
+  };
+
+  it("names the test inside the crosstabs entry, so it can be found", async () => {
+    // Someone looking for a chi-square test does not search for "Crosstabs".
+    expect(await pickerLabel("en")).toContain("Chi-Square");
+  });
+
+  it("translates the picker rather than leaving every locale in English", async () => {
+    expect(await pickerLabel("ko")).toBe("교차분석 (카이제곱 검정)");
   });
 })

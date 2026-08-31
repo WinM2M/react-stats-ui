@@ -163,6 +163,26 @@ const common = {
     dimensionReduction: "Dimension Reduction",
     scale: "Scale"
   },
+  // The picker had no translatable labels at all — it fell back to the hardcoded English
+  // in ANALYSIS_DEFS, so every locale showed English. Naming the test inside the entry
+  // matters too: someone hunting for a chi-square test does not search for "Crosstabs".
+  analysisKinds: {
+    frequencies: "Frequencies",
+    descriptives: "Descriptives",
+    crosstabs: "Crosstabs (Chi-Square Test)",
+    ttestIndependent: "Independent-Samples T-Test",
+    ttestPaired: "Paired-Samples T-Test",
+    anovaOneway: "One-Way ANOVA",
+    posthocTukey: "Post-hoc Tukey HSD",
+    linearRegression: "Linear Regression (OLS)",
+    logisticBinary: "Binary Logistic Regression",
+    logisticMultinomial: "Multinomial Logistic Regression",
+    kmeans: "K-Means Cluster",
+    hierarchicalCluster: "Hierarchical Cluster",
+    pca: "Principal Component Analysis",
+    mds: "Multidimensional Scaling",
+    cronbachAlpha: "Reliability Analysis (Cronbach's Alpha)"
+  },
   roles: {
     variable: "Variable",
     variables: "Variables",
@@ -342,6 +362,31 @@ const resources = {
   ko: {
     translation: {
       ...common,
+      analysisGroups: {
+        descriptive: "기술통계량",
+        compareMeans: "평균 비교",
+        regression: "회귀분석",
+        classify: "분류분석",
+        dimensionReduction: "차원 감소",
+        scale: "척도"
+      },
+      analysisKinds: {
+        frequencies: "빈도분석",
+        descriptives: "기술통계",
+        crosstabs: "교차분석 (카이제곱 검정)",
+        ttestIndependent: "독립표본 t검정",
+        ttestPaired: "대응표본 t검정",
+        anovaOneway: "일원배치 분산분석",
+        posthocTukey: "사후검정 Tukey HSD",
+        linearRegression: "선형회귀분석 (OLS)",
+        logisticBinary: "이항 로지스틱 회귀분석",
+        logisticMultinomial: "다항 로지스틱 회귀분석",
+        kmeans: "K-평균 군집분석",
+        hierarchicalCluster: "계층적 군집분석",
+        pca: "주성분분석",
+        mds: "다차원척도법",
+        cronbachAlpha: "신뢰도 분석 (Cronbach 알파)"
+      },
       analysis: "분석",
       datasets: "데이터셋",
       importXlsx: "XLSX 가져오기",

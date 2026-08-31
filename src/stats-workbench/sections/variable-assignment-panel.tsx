@@ -33,6 +33,8 @@ type VariableAssignmentPanelProps = {
   variableListDatasetId?: string | null;
   variableListDatasetName?: string | null;
   showVariableList?: boolean;
+  /** Which side the variable list sits on. Defaults to the left. */
+  variableListPosition?: "start" | "end";
   onAvailableVariableActivate?: (variableName: string) => void;
 };
 
@@ -71,6 +73,7 @@ export function VariableAssignmentPanel({
   variableListDatasetId,
   variableListDatasetName,
   showVariableList = true,
+  variableListPosition = "start",
   onAvailableVariableActivate
 }: VariableAssignmentPanelProps) {
   const { t } = useTranslation();
@@ -117,14 +120,10 @@ export function VariableAssignmentPanel({
     [analysisDef.roles, assignments, onAssign, onAvailableVariableActivate]
   );
 
-  return (
-    <div
-      className={cn(
-        "grid h-full min-h-0 min-w-0 grid-cols-1 gap-3 max-[640px]:gap-2",
-        showVariableList ? "sm:grid-cols-[1fr_2fr]" : "sm:grid-cols-1"
-      )}
-    >
-      {showVariableList ? (
+  const listAtEnd = variableListPosition === "end";
+
+  const variableList = showVariableList ? (
+    <div className={cn("min-h-0", listAtEnd ? "sm:order-2" : "sm:order-1")}>
         <SharedVariableList
           variables={availableVariables}
           heading={t("variables")}
@@ -146,10 +145,25 @@ export function VariableAssignmentPanel({
             setInvalidMessage("");
           }}
         />
-      ) : null}
+    </div>
+  ) : null;
+
+  return (
+    <div
+      className={cn(
+        "grid h-full min-h-0 min-w-0 grid-cols-1 gap-3 max-[640px]:gap-2",
+        showVariableList ? (listAtEnd ? "sm:grid-cols-[2fr_1fr]" : "sm:grid-cols-[1fr_2fr]") : "sm:grid-cols-1"
+      )}
+    >
+      {/* Stacked on a narrow screen the list belongs on top either way, so the ordering
+          only applies from `sm` up — where there are two columns to choose between. */}
+      {listAtEnd ? null : variableList}
 
       <div
-        className="flex h-full min-h-0 flex-col gap-3 sm:grid sm:transition-all sm:duration-300"
+        className={cn(
+          "flex h-full min-h-0 flex-col gap-3 sm:grid sm:transition-all sm:duration-300",
+          listAtEnd ? "sm:order-1" : "sm:order-2"
+        )}
         style={{
           gridTemplateColumns: hasOptions ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr) 0px",
           columnGap: hasOptions ? "0.75rem" : "0"
@@ -321,6 +335,8 @@ export function VariableAssignmentPanel({
           ) : null}
         </div>
       </div>
+
+      {listAtEnd ? variableList : null}
     </div>
   );
 }

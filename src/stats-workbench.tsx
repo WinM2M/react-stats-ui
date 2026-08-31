@@ -4,12 +4,13 @@ import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
 import { I18nextProvider } from "react-i18next";
 import {
   ensureWorkerInitialized,
-  executeExternalAnalysis,
   executeDefaultAnalysis,
   getPayload,
   validateForRole
 } from "./stats-workbench/analysis";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./stats-workbench/constants";
+import { classifyAnalysisFailure } from "./stats-workbench/failure";
+import type { AnalysisTrigger } from "./stats-workbench/types";
 import { getDatasets, parseXlsx, putDataset, removeDataset } from "./stats-workbench/data-store";
 import { AnalysisTypePanel } from "./stats-workbench/sections/analysis-type-panel";
 import { DatasetPanel } from "./stats-workbench/sections/dataset-panel";
@@ -17,7 +18,11 @@ import { ExecutionPanel } from "./stats-workbench/sections/execution-panel";
 import { VariableAssignmentPanel } from "./stats-workbench/sections/variable-assignment-panel";
 import { WorkerSignalIndicator } from "./stats-workbench/sections/worker-signal-indicator";
 import { workbenchI18n, type SupportedLanguage } from "./stats-workbench/i18n";
-import { buildTableData, copyApaTablesToClipboard } from "./stats-workbench/result-utils";
+import {
+  buildApaClipboardHtml,
+  buildTableData,
+  copyApaTablesToClipboard
+} from "./stats-workbench/result-utils";
 import type {
   AnalysisKind,
   AnalysisPayload,
@@ -120,10 +125,14 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   minimalAutoShowResultEnabled = true,
   analysisExecutor,
   onResult,
+  onHelpOpen,
   hideInternalVariableList = false,
   allowedAnalyses,
   onBeforeCopyApaTable,
-  onRunStateChange
+  apaCopyLabel,
+  apaCopyEmphasis,
+  onRunStateChange,
+  variableListPosition
 }: StatsWorkbenchProps, ref) {
   // `useTranslation` here would resolve against the host application's i18n instance,
   // because the provider below only wraps the returned JSX — not this body. Strings
@@ -152,7 +161,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const [minimalAutoShowResult, setMinimalAutoShowResult] = React.useState(true);
   const [showManualRunAction, setShowManualRunAction] = React.useState(false);
   const [showResultAfterManualRun, setShowResultAfterManualRun] = React.useState(false);
-  const [analysisQueue, setAnalysisQueue] = React.useState<AnalysisPayload[]>([]);
+  const [analysisQueue, setAnalysisQueue] = React.useState<Array<{ payload: AnalysisPayload; trigger: AnalysisTrigger }>>([]);
   const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
   const [isResizingPanels, setIsResizingPanels] = React.useState(false);
   const [isCompactViewport, setIsCompactViewport] = React.useState(false);
@@ -361,18 +370,46 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         }
       });
 
-      const payload: AnalysisPayload = {
-        analysisType: method,
-        method,
-        input: { ...input, data: currentData },
-        options: {},
-        assignments: externalAssignments
-      };
-      const output = analysisExecutor ? await analysisExecutor(payload) : await executeExternalAnalysis(method, currentData, input);
+      /*
+       * The roles are not the SDK's arguments, and for one analysis that difference is
+       * fatal. `ttestIndependent` needs `group1Value`/`group2Value` — which are derived
+       * from the data, not named by the caller — and without them the SDK returns a shape
+       * the table renderer cannot draw ("Table rendering is not available for this result
+       * shape"). Every other analysis happened to need nothing beyond its roles, which is
+       * why this went unnoticed.
+       *
+       * `getPayload` is what the panel's own Run uses, so routing through it makes the two
+       * paths produce identical input for all fifteen analyses rather than fifteen chances
+       * to drift. Anything the caller passed that is not a role — options like
+       * `equalVariance` — is handed to it as options, and kept in the payload so an
+       * `analysisExecutor` still sees what it was given.
+       */
+      const roleKeys = new Set(ANALYSIS_DEFS[method].roles.map((roleDef) => roleDef.key as string));
+      const externalOptions: Record<string, unknown> = {};
+      Object.entries(input).forEach(([key, value]) => {
+        if (!roleKeys.has(key)) externalOptions[key] = value;
+      });
+
+      const built = getPayload(method, currentData, externalAssignments, externalOptions);
+      const payload: AnalysisPayload = built.payload;
+      if (!built.canRun) {
+        const err = new Error(built.reason ?? "Analysis cannot run with the given variables.");
+        onResult?.({ payload, trigger: "manual", result: undefined, error: classifyAnalysisFailure(err) });
+        throw err;
+      }
+      let output: unknown;
+      try {
+        output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
+      } catch (err) {
+        // 외부 실행 경로도 같은 콜백으로 알린 뒤 다시 던진다. 호출한 쪽의 예외 처리를
+        // 뺏지 않으면서, 기록하는 쪽은 실패를 놓치지 않는다.
+        onResult?.({ payload, trigger: "manual", result: undefined, error: classifyAnalysisFailure(err) });
+        throw err;
+      }
       setAnalysisTypeRaw(method);
       setAssignments(externalAssignments);
       setResult(output);
-      onResult?.({ payload, result: output });
+      onResult?.({ payload, trigger: "manual", result: output });
       setError("");
       if (layoutMode === "minimal") {
         setShowMinimalResult(true);
@@ -385,6 +422,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const copyApaTable = React.useCallback(async () => {
     const tables = buildTableData(result);
     return await copyApaTablesToClipboard(tables);
+  }, [result]);
+
+  const getApaTableHtml = React.useCallback(() => {
+    const tables = buildTableData(result);
+    return tables.length > 0 ? buildApaClipboardHtml(tables) : null;
   }, [result]);
 
   const variableByName = React.useMemo(() => {
@@ -530,6 +572,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       },
       getAutoShowResult: () => effectiveMinimalAutoShowResult,
       copyApaTable,
+      getApaTableHtml,
       assignVariableToRole,
       assignVariableToBestRole,
       handleExternalVariableDrop
@@ -537,6 +580,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     [
       clearInjectedData,
       copyApaTable,
+      getApaTableHtml,
       effectiveMinimalAutoShowResult,
       executeExternalMethod,
       assignVariableToBestRole,
@@ -569,9 +613,16 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   }, [layoutMode]);
 
   const executeAnalysisPayload = React.useCallback(
-    async (payload: AnalysisPayload) => {
+    async (payload: AnalysisPayload, trigger: AnalysisTrigger = "manual") => {
       if (!workerReady) {
         setError(t("workerStillInitializing", { progress: workerProgress ?? 0 }));
+        // 조기 반환도 실패다. 알리지 않으면 기록하는 쪽에서는 "시도 없음" 과 구별되지 않는다.
+        onResult?.({
+          payload,
+          trigger,
+          result: undefined,
+          error: { message: "Worker is still initializing.", kind: "SYSTEM", code: "worker_not_ready" }
+        });
         return;
       }
 
@@ -584,13 +635,17 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       try {
         const output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
         setResult(output);
-        onResult?.({ payload, result: output });
+        onResult?.({ payload, trigger, result: output });
         if (!analysisExecutor) {
           setWorkerConnectionState("ready");
           setWorkerStatusMessage("Worker connected and analysis completed.");
         }
       } catch (err) {
+        const failure = classifyAnalysisFailure(err);
         setError(err instanceof Error ? err.message : t("unknownExecutionError"));
+        // 성공과 같은 콜백으로 실패도 알린다 — 기록하는 쪽에서 "시도 후 실패" 를
+        // "시도 없음" 과 구별할 수 있어야 한다.
+        onResult?.({ payload, trigger, result: undefined, error: failure });
         if (!analysisExecutor) {
           setWorkerConnectionState("error");
           setWorkerStatusMessage(err instanceof Error ? err.message : t("workerFailed"));
@@ -603,8 +658,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     [analysisExecutor, onResult, workerProgress, workerReady]
   );
 
-  const enqueueAnalysis = React.useCallback((payload: AnalysisPayload) => {
-    setAnalysisQueue((prev) => [...prev, payload]);
+  const enqueueAnalysis = React.useCallback((payload: AnalysisPayload, trigger: AnalysisTrigger) => {
+    setAnalysisQueue((prev) => [...prev, { payload, trigger }]);
   }, []);
 
   const requestRunAnalysis = React.useCallback(() => {
@@ -619,7 +674,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
 
     setError("");
     setShowManualRunAction(false);
-    enqueueAnalysis(payloadInfo.payload);
+    enqueueAnalysis(payloadInfo.payload, "manual");
   }, [enqueueAnalysis, payloadInfo, workerProgress, workerReady]);
 
   const requestRunAnalysisFromManual = React.useCallback(() => {
@@ -686,7 +741,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
 
     setError("");
     setShowManualRunAction(false);
-    enqueueAnalysis(payloadInfo.payload);
+    enqueueAnalysis(payloadInfo.payload, "auto");
   }, [
     analysisDef.roles,
     analysisType,
@@ -708,7 +763,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
 
     const [next, ...rest] = analysisQueue;
     setAnalysisQueue(rest);
-    void executeAnalysisPayload(next);
+    void executeAnalysisPayload(next.payload, next.trigger);
   }, [analysisQueue, executeAnalysisPayload, isRunning]);
 
   React.useEffect(() => {
@@ -901,8 +956,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       >
         <section
           className={cn(
-            "grid h-full min-h-0 grid-rows-[auto_1fr] max-[640px]:gap-2",
-            layoutMode === "minimal" ? "gap-1.5" : "gap-3"
+            "grid h-full min-h-0 max-[640px]:gap-2",
+            // Minimal renders a single child. Leaving it in an `auto` row meant the
+            // panel sized to its content and ignored the height its host gave it, so a
+            // taller container just grew empty space underneath.
+            layoutMode === "minimal" ? "grid-rows-[1fr] gap-1.5" : "grid-rows-[auto_1fr] gap-3"
           )}
         >
           {layoutMode === "minimal" ? (
@@ -914,6 +972,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   showPrefix={false}
                   subtleUnderline
                   showHelpButton={showAnalysisHelpButton}
+                  onHelpOpen={onHelpOpen}
                   allowedAnalyses={allowedAnalyses}
                 />
                 <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
@@ -965,6 +1024,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       onManualRunAction={requestRunAnalysisFromManual}
                       onResetAssignments={resetAssignments}
                       showVariableList={!hideInternalVariableList}
+                      variableListPosition={variableListPosition}
                       variableListDatasetId={selectedDataset?.id ?? null}
                       variableListDatasetName={selectedDataset?.name ?? null}
                       onAvailableVariableActivate={assignVariableToBestRole}
@@ -992,6 +1052,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       autoShowResult={effectiveMinimalAutoShowResult}
                       onAutoShowResultChange={minimalAutoShowResultEnabled ? setMinimalAutoShowResult : undefined}
                       onBeforeCopy={onBeforeCopyApaTable}
+                      copyLabel={apaCopyLabel}
+                      copyEmphasis={apaCopyEmphasis}
                     />
                   </div>
                 </div>
@@ -1004,6 +1066,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   analysisType={analysisType}
                   onChange={setAnalysisType}
                   showHelpButton={showAnalysisHelpButton}
+                  onHelpOpen={onHelpOpen}
                   allowedAnalyses={allowedAnalyses}
                 />
                 {showDatasetPopover ? (
@@ -1056,6 +1119,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   groupCandidates={groupCandidates}
                   onResetAssignments={resetAssignments}
                   showVariableList={!hideInternalVariableList}
+                  variableListPosition={variableListPosition}
                   variableListDatasetId={selectedDataset?.id ?? null}
                   variableListDatasetName={selectedDataset?.name ?? null}
                   onAvailableVariableActivate={assignVariableToBestRole}
@@ -1081,6 +1145,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   workerReady={workerReady}
                   workerProgress={workerProgress}
                   onBeforeCopy={onBeforeCopyApaTable}
+                  copyLabel={apaCopyLabel}
+                  copyEmphasis={apaCopyEmphasis}
                 />
               </section>
             </>

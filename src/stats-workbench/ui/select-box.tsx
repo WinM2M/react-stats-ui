@@ -21,7 +21,15 @@ export function SelectBox({
       <Select.Portal>
         <Select.Content className="z-50 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg">
           <Select.Viewport className="p-1">
-            {items.map((item) => (
+            {/*
+              빈 문자열 value 를 가진 항목은 그리지 않는다.
+
+              Radix 는 빈 문자열을 "선택 해제" 신호로 예약해 두고 항목 value 로 쓰면
+              예외를 던진다. 그 예외는 렌더 중에 터지므로 이 컴포넌트만 죽는 게 아니라
+              **임베더 화면 전체가 날아간다.** 데이터에서 흘러든 값 하나가 호스트 앱을
+              무너뜨리는 것은 라이브러리 쪽에서 막아야 한다.
+            */}
+            {items.filter((item) => item.value !== "").map((item) => (
               <Select.Item
                 key={item.value}
                 value={item.value}
