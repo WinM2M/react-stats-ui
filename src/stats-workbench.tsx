@@ -691,9 +691,10 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     onRunStateChange?.({
       canRun: Boolean(workerReady && payloadInfo.canRun),
       reason: workerReady ? (payloadInfo.canRun ? null : payloadInfo.reason ?? t("setupIncomplete")) : t("workerStillInitializing", { progress: workerProgress ?? 0 }),
-      workerReady
+      workerReady,
+      isRunning
     });
-  }, [onRunStateChange, payloadInfo.canRun, payloadInfo.reason, t, workerProgress, workerReady]);
+  }, [isRunning, onRunStateChange, payloadInfo.canRun, payloadInfo.reason, t, workerProgress, workerReady]);
 
   React.useEffect(() => {
     if (lastAutoRunKeyRef.current === null) {

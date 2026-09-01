@@ -391,6 +391,42 @@ describe("StatsWorkbench run control", () => {
     expect(payload.analysisType).toBe("descriptives");
     expect(payload.assignments.variables).toEqual(["score"]);
   });
+
+  it("tells the embedder while an analysis is running", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    let release: (value: { success: boolean }) => void = () => {};
+    // Held open so the running window is observable rather than over before we look.
+    const analysisExecutor = jest.fn(
+      () => new Promise<{ success: boolean }>((resolve) => { release = resolve; })
+    );
+    const states: Array<{ canRun: boolean; isRunning: boolean }> = [];
+
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={analysisExecutor}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="descriptives"
+        minimalAutoShowResultEnabled={false}
+        onRunStateChange={(state) => states.push({ canRun: state.canRun, isRunning: state.isRunning })}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => { ref.current?.injectData({ rows: [{ score: 1 }, { score: 2 }] }); });
+    act(() => { ref.current?.assignVariableToRole("score", "variables"); });
+    await waitFor(() => expect(states[states.length - 1].canRun).toBe(true));
+    expect(states[states.length - 1].isRunning).toBe(false);
+
+    act(() => { ref.current?.run(); });
+
+    // 이 창이 비어 있던 것이 문제였다. 임베더가 자기 버튼을 돌릴 수 있어야 한다.
+    await waitFor(() => expect(states[states.length - 1].isRunning).toBe(true));
+
+    await act(async () => { release({ success: true }); });
+    await waitFor(() => expect(states[states.length - 1].isRunning).toBe(false));
+  });
 })
 
 describe("StatsWorkbench variableListPosition", () => {

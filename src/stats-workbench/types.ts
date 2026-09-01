@@ -108,6 +108,18 @@ export type RunState = {
   /** Why not, phrased for a user, when `canRun` is false. */
   reason: string | null;
   workerReady: boolean;
+  /**
+   * Whether an analysis is executing right now.
+   *
+   * The panel's own run button has always spun on this; an embedder that draws its own
+   * button could not see it, so its button sat inert through a multi-second run and the
+   * page looked frozen. Reported here so a host button can show the same thing.
+   *
+   * Note `canRun` stays true while this is true — the run is queued rather than refused,
+   * which is what the panel's own button relies on. A host button should disable on
+   * `isRunning || !canRun`.
+   */
+  isRunning: boolean;
 };
 
 export type StatsWorkbenchControl = {
