@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, jest } from "@jest/globals";
 import * as React from "react";
+import { PROGRESS_EVENT_NAME } from "@winm2m/inferential-stats-js";
 import { StatsWorkbench } from "./stats-workbench";
 import type { StatsWorkbenchControl } from "./stats-workbench";
 
@@ -458,6 +459,37 @@ describe("StatsWorkbench run control", () => {
 
     await act(async () => { release({ success: true }); await pending; });
     await waitFor(() => expect(states[states.length - 1]).toBe(false));
+  });
+
+  it("does not treat analysis progress as the worker re-initialising", async () => {
+    const states: Array<{ workerReady: boolean }> = [];
+    render(
+      <StatsWorkbench
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="descriptives"
+        minimalAutoShowResultEnabled={false}
+        onRunStateChange={(state) => states.push({ workerReady: state.workerReady })}
+      />
+    );
+
+    // 엔진이 뜨는 과정. progress 100 이 오면 준비된 것으로 본다.
+    await act(async () => {
+      globalThis.dispatchEvent(
+        new CustomEvent(PROGRESS_EVENT_NAME, { detail: { stage: "init", progress: 100, message: "ready" } })
+      );
+    });
+    await waitFor(() => expect(states[states.length - 1].workerReady).toBe(true));
+
+    // 엔진 1.9.0 부터 분석마다 오는 이벤트. 이걸 초기화로 받으면 workerReady 가 false 로
+    // 떨어져, 분석이 도는 내내 실행 버튼이 죽고 "워커 초기화 중"이라고 보고하게 된다.
+    await act(async () => {
+      globalThis.dispatchEvent(
+        new CustomEvent(PROGRESS_EVENT_NAME, { detail: { stage: "analysis", progress: 0, message: "Running run_descriptives..." } })
+      );
+    });
+
+    expect(states[states.length - 1].workerReady).toBe(true);
   });
 })
 

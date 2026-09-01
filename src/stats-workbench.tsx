@@ -223,6 +223,17 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       const progress = typeof detail.progress === "number" ? detail.progress : null;
       const message = detail.message ?? t("initializingWorkerSimple");
 
+      /*
+       * 이 화면이 그리는 것은 워커가 뜨는 과정이다. 엔진 1.9.0 부터는 분석이 돌 때마다
+       * stage="analysis" 로 0 → 100 을 함께 보내는데, 그걸 여기서 받으면 실행할 때마다
+       * 진행률이 0% 로 떨어지고 연결 상태가 "connecting" 으로 돌아간다 — 다 뜬 워커가
+       * 매번 다시 뜨는 것처럼 보인다.
+       *
+       * 실행 중 여부는 isRunning 이 이미 들고 있으므로 여기서는 무시한다. 그 외의 stage
+       * 는 옛 엔진이 보내던 초기화 단계일 수 있어 그대로 둔다.
+       */
+      if (stage === "analysis") return;
+
       setWorkerConnectionState(stage === "ready" || progress === 100 ? "ready" : "connecting");
       setWorkerStatusMessage(`[${stage}] ${message}`);
       setWorkerProgress(progress);
