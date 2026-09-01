@@ -398,6 +398,10 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         throw err;
       }
       let output: unknown;
+      // 이 경로도 실행 중임을 알려야 한다. 0.22.0 은 패널 자체 실행만 덮었는데, 자기
+      // 버튼과 자기 역할 배정을 쓰는 임베더는 전부 이쪽으로 들어온다 — 그 쪽 화면에서만
+      // 스피너가 안 돌았다.
+      setIsRunning(true);
       try {
         output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
       } catch (err) {
@@ -405,6 +409,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
         // 뺏지 않으면서, 기록하는 쪽은 실패를 놓치지 않는다.
         onResult?.({ payload, trigger: "manual", result: undefined, error: classifyAnalysisFailure(err) });
         throw err;
+      } finally {
+        setIsRunning(false);
       }
       setAnalysisTypeRaw(method);
       setAssignments(externalAssignments);

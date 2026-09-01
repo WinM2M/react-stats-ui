@@ -427,6 +427,38 @@ describe("StatsWorkbench run control", () => {
     await act(async () => { release({ success: true }); });
     await waitFor(() => expect(states[states.length - 1].isRunning).toBe(false));
   });
+
+  it("also reports running for the external executeAnalysis path", async () => {
+    const ref = React.createRef<StatsWorkbenchControl>();
+    let release: (value: { success: boolean }) => void = () => {};
+    const analysisExecutor = jest.fn(
+      () => new Promise<{ success: boolean }>((resolve) => { release = resolve; })
+    );
+    const states: Array<boolean> = [];
+
+    render(
+      <StatsWorkbench
+        ref={ref}
+        analysisExecutor={analysisExecutor}
+        layoutMode="minimal"
+        showDatasetPopover={false}
+        initialAnalysis="descriptives"
+        minimalAutoShowResultEnabled={false}
+        onRunStateChange={(state) => states.push(state.isRunning)}
+      />
+    );
+
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    act(() => { ref.current?.injectData({ rows: [{ score: 1 }, { score: 2 }] }); });
+
+    // 임베더가 자기 역할 배정으로 직접 부르는 경로. 0.22.0 은 이쪽을 빠뜨렸다.
+    let pending: Promise<unknown> | undefined;
+    act(() => { pending = ref.current?.executeAnalysis("descriptives", { variables: ["score"] }); });
+    await waitFor(() => expect(states[states.length - 1]).toBe(true));
+
+    await act(async () => { release({ success: true }); await pending; });
+    await waitFor(() => expect(states[states.length - 1]).toBe(false));
+  });
 })
 
 describe("StatsWorkbench variableListPosition", () => {
