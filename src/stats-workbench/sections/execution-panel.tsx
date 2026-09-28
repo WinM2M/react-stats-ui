@@ -143,7 +143,7 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
                   }
                   return (
                     <td key={`${table.title}-${rowIndex}-${column}`} className="whitespace-nowrap px-3 py-1.5 align-top">
-                      {formatApaCell(display)}
+                      {formatApaCell(display, column)}
                     </td>
                   );
                 })}

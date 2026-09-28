@@ -369,10 +369,34 @@ function buildRegressionTables(objectPayload: Record<string, unknown>): TableDat
   return tables;
 }
 
-function formatApaValue(value: unknown): string {
+/**
+ * Columns that hold a significance probability, under every name the analyses
+ * emit for one.  Matched exactly rather than by prefix: `significantDifference`
+ * is a boolean and must not be treated as a p-value.
+ */
+const P_VALUE_COLUMNS = new Set([
+  "p",
+  "pValue",
+  "significance",
+  "significanceTwoTailed",
+  "asymptoticSignificance"
+]);
+
+/** APA reports anything below this as "< .001" rather than as a rounded figure. */
+const P_VALUE_FLOOR = 0.001;
+
+function formatApaValue(value: unknown, column?: string): string {
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
       return "NA";
+    }
+    // A p-value is never exactly zero, so the uniform 3-decimal rule below would
+    // print a true claim (p = 2e-90) as a false one ("0.000") — "p = .000" is a
+    // reporting error, and these tables get pasted straight into papers.  APA
+    // asks for "< .001" instead.  Only p-value columns are special-cased; the
+    // uniform rule is deliberate for everything else (see the tests).
+    if (column !== undefined && P_VALUE_COLUMNS.has(column) && value >= 0 && value < P_VALUE_FLOOR) {
+      return "< .001";
     }
     // Round-half-away-from-zero to 3 decimals.  JS Math.round uses
     // round-half-up which behaves asymmetrically for negative .5 ties, so
@@ -823,8 +847,8 @@ export function buildTableData(raw: unknown): TableData[] {
   ];
 }
 
-export function formatApaCell(value: unknown): string {
-  return formatApaValue(value);
+export function formatApaCell(value: unknown, column?: string): string {
+  return formatApaValue(value, column);
 }
 
 function buildApaClipboardText(tables: TableData[]): string {
@@ -832,7 +856,9 @@ function buildApaClipboardText(tables: TableData[]): string {
     .map((table, index) => {
       const header = [`Table ${index + 1}`, table.title].join("\t");
       const columns = table.columns.join("\t");
-      const rows = table.rows.map((row) => table.columns.map((column) => formatApaValue(row[column])).join("\t")).join("\n");
+      const rows = table.rows
+        .map((row) => table.columns.map((column) => formatApaValue(row[column], column)).join("\t"))
+        .join("\n");
       return `${header}\n${columns}\n${rows}`;
     })
     .join("\n\n");
@@ -858,7 +884,7 @@ export function buildApaClipboardHtml(tables: TableData[]): string {
           const cells = table.columns
             .map(
               (column) =>
-                `<td style="padding:6px 8px;vertical-align:top;font-size:12px;line-height:1.4;">${formatApaValue(row[column])}</td>`
+                `<td style="padding:6px 8px;vertical-align:top;font-size:12px;line-height:1.4;">${formatApaValue(row[column], column)}</td>`
             )
             .join("");
           return `<tr>${cells}</tr>`;

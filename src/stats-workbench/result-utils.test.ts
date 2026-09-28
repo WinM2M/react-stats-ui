@@ -45,6 +45,35 @@ describe("result-utils", () => {
       expect(formatApaCell(-0.0005)).toBe("-0.001");
     });
 
+    it("reports a p-value below .001 as \"< .001\", not as 0.000", () => {
+      // "p = .000" is a reporting error — a p-value is never exactly zero, and
+      // these tables are pasted straight into papers.
+      for (const column of ["p", "pValue", "significance", "significanceTwoTailed", "asymptoticSignificance"]) {
+        expect(formatApaCell(4.65e-90, column)).toBe("< .001");
+        expect(formatApaCell(0.0009, column)).toBe("< .001");
+        expect(formatApaCell(0, column)).toBe("< .001");
+      }
+    });
+
+    it("keeps the uniform rule for p-values at or above .001", () => {
+      expect(formatApaCell(0.001, "p")).toBe("0.001");
+      expect(formatApaCell(0.0234, "pValue")).toBe("0.023");
+      expect(formatApaCell(0.5, "significance")).toBe("0.500");
+      expect(formatApaCell(1, "p")).toBe("1.000");
+    });
+
+    it("does not treat a lookalike column as a p-value", () => {
+      // `significantDifference` is a boolean; `percent` is a percentage.
+      expect(formatApaCell(0.0001, "significantDifference")).toBe("0.000");
+      expect(formatApaCell(0.0001, "percent")).toBe("0.000");
+      expect(formatApaCell(false, "significantDifference")).toBe("False");
+    });
+
+    it("leaves small numbers alone when no column is given", () => {
+      // The uniform rule is what every other cell relies on.
+      expect(formatApaCell(4.65e-90)).toBe("0.000");
+    });
+
     it("avoids negative-zero output", () => {
       expect(formatApaCell(-0.0001)).toBe("0.000");
     });
