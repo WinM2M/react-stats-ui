@@ -79,7 +79,7 @@ export function createBaseLocale(overrides: LocaleOverride = {}): LocalePack {
       k: "Sets the number of clusters to partition the dataset into.",
       method: "Defines how distances between clusters are merged.",
       metric: "Defines the distance function used between observations.",
-      rotation: "Applies rotation to improve factor interpretability.",
+      rotation: "Re-orients the components so each variable loads mainly on one of them. Varimax keeps the components uncorrelated; Promax and Oblimin let them correlate, which fits related constructs better and adds a pattern matrix, a structure matrix and a component correlation matrix to the output.",
       nComponents: "Sets the lower-dimensional component count to keep."
     },
     purpose: {
@@ -124,6 +124,7 @@ export function createBaseLocale(overrides: LocaleOverride = {}): LocalePack {
       communalities: "Low communalities may indicate weak representation by extracted factors.",
       explainedVariance: "Use cumulative explained variance to judge retained components.",
       componentLoading: "Component loadings describe how original variables contribute to each component.",
+      obliqueRotation: "After an oblique rotation (Promax, Oblimin) read the pattern matrix for each variable's unique contribution and the structure matrix for its plain correlation with the component; the component correlation matrix says how far the components are from independent. Percent of variance is not reported per component there, because correlated components overlap.",
       stress: "Lower stress implies better distance preservation in low dimensions.",
       distancePreservation: "Validate whether neighborhood relationships are preserved after projection.",
       alphaThreshold: "Use alpha as a reliability guideline, not a strict pass/fail rule.",

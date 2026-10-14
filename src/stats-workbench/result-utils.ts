@@ -113,38 +113,76 @@ function buildPcaTables(objectPayload: Record<string, unknown>): TableData[] {
     : [];
   const sortBySize = objectPayload.sortBySize !== false;
   const rotation = typeof objectPayload.rotation === "string" ? objectPayload.rotation : "none";
-  const matrixTitle = rotation === "varimax" ? "Rotated Component Matrix" : "Component Matrix";
+  /**
+   * An oblique rotation (promax, oblimin) lets the components correlate, and that
+   * splits one table into three: the pattern matrix of partial weights, the
+   * structure matrix of plain correlations, and the component correlation matrix
+   * itself. SPSS prints all three, and reading a pattern loading without the
+   * other two is how an oblique solution gets misread.
+   *
+   * `rotationApplied` is a separate flag because a one-component solution has no
+   * second axis to rotate against: the rotation was asked for and not performed,
+   * so the table is the unrotated Component Matrix.
+   */
+  const rotationApplied = objectPayload.rotationApplied !== false && rotation !== "none";
+  const isOblique = objectPayload.rotationIsOblique === true;
+  const matrixTitle = !rotationApplied
+    ? "Component Matrix"
+    : isOblique
+      ? "Pattern Matrix"
+      : "Rotated Component Matrix";
 
-  if (sortBySize && sortedLoadings.length > 0 && loadingColumns.length > 0) {
-    const rows = sortedLoadings.map((item) => {
-      const row: Record<string, unknown> = { variable: item.variable ?? "" };
-      const loadings = Array.isArray(item.loadings) ? (item.loadings as unknown[]) : [];
-      loadingColumns.forEach((column, index) => {
-        row[column] = loadings[index] ?? null;
-      });
-      return row;
-    });
-    tables.push({
-      title: matrixTitle,
-      columns: ["variable", ...loadingColumns],
-      rows
-    });
-  } else if (objectPayload.loadings && typeof objectPayload.loadings === "object" && !Array.isArray(objectPayload.loadings)) {
-    const loadingsRecord = objectPayload.loadings as Record<string, unknown>;
-    const orderedVars = variablesOrder.length > 0 ? variablesOrder : Object.keys(loadingsRecord);
+  const asRecord = (value: unknown): Record<string, unknown> | null =>
+    value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+
+  const loadingsRecord = asRecord(objectPayload.loadings);
+  /**
+   * One variable order for every loading table, so the pattern and the structure
+   * matrix can be read side by side. "Sort by size" groups variables by their
+   * dominant component, which the payload has already worked out.
+   */
+  const orderedVars = sortBySize && sortedLoadings.length > 0
+    ? sortedLoadings.map((item) => String(item.variable ?? ""))
+    : variablesOrder.length > 0
+      ? variablesOrder
+      : Object.keys(loadingsRecord ?? {});
+
+  const pushMatrix = (title: string, record: Record<string, unknown> | null): void => {
+    if (!record || orderedVars.length === 0 || loadingColumns.length === 0) {
+      return;
+    }
     const rows = orderedVars.map((variable) => {
       const row: Record<string, unknown> = { variable };
-      const values = Array.isArray(loadingsRecord[variable]) ? (loadingsRecord[variable] as unknown[]) : [];
+      const values = Array.isArray(record[variable]) ? (record[variable] as unknown[]) : [];
       loadingColumns.forEach((column, index) => {
         row[column] = values[index] ?? null;
       });
       return row;
     });
-    tables.push({
-      title: matrixTitle,
-      columns: ["variable", ...loadingColumns],
-      rows
-    });
+    tables.push({ title, columns: ["variable", ...loadingColumns], rows });
+  };
+
+  pushMatrix(matrixTitle, loadingsRecord);
+  if (isOblique) {
+    pushMatrix("Structure Matrix", asRecord(objectPayload.structureLoadings));
+
+    const factorCorrelation = Array.isArray(objectPayload.factorCorrelation)
+      ? (objectPayload.factorCorrelation as unknown[])
+      : [];
+    if (factorCorrelation.length > 0 && loadingColumns.length > 0) {
+      tables.push({
+        title: "Component Correlation Matrix",
+        columns: ["component", ...loadingColumns],
+        rows: factorCorrelation.map((rowValue, rowIndex) => {
+          const values = Array.isArray(rowValue) ? (rowValue as unknown[]) : [];
+          const row: Record<string, unknown> = { component: rowIndex + 1 };
+          loadingColumns.forEach((column, index) => {
+            row[column] = values[index] ?? null;
+          });
+          return row;
+        })
+      });
+    }
   }
 
   return tables;

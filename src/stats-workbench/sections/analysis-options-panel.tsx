@@ -153,7 +153,12 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
             <SelectBox
               value={String(options.rotation ?? "varimax")}
               onChange={(value) => updateOption("rotation", value)}
-              items={[{ value: "varimax", label: t("optionsVarimax") }, { value: "none", label: t("optionsNone") }]}
+              items={[
+                { value: "varimax", label: t("optionsVarimax") },
+                { value: "promax", label: t("optionsPromax") },
+                { value: "oblimin", label: t("optionsOblimin") },
+                { value: "none", label: t("optionsNone") }
+              ]}
             />
             <label className="text-xs font-medium text-slate-600">{t("optionsSortBySize")}</label>
             <SelectBox

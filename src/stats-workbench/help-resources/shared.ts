@@ -335,7 +335,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
     optionKeys: ["rotation"],
-    interpretationKeys: ["explainedVariance", "componentLoading", "communalities"],
+    interpretationKeys: ["explainedVariance", "componentLoading", "communalities", "obliqueRotation"],
     references: [
       { label: "Wikipedia: Principal component analysis", url: "https://en.wikipedia.org/wiki/Principal_component_analysis" },
       { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }

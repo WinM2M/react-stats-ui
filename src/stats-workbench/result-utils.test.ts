@@ -151,6 +151,79 @@ describe("result-utils", () => {
       expect(matrix!.columns).toEqual(["variable", "component1", "component2"]);
       expect(matrix!.rows[0]).toMatchObject({ variable: "a" });
     });
+
+    // 사교 회전(promax, oblimin)은 한 장이던 적재 표를 셋으로 나눈다. SPSS 와
+    // 같은 이름으로 세 장이 모두 나와야 패턴 적재를 해석할 근거가 생긴다.
+    const obliquePayload = {
+      ...samplePayload,
+      rotation: "promax",
+      rotationApplied: true,
+      rotationIsOblique: true,
+      structureLoadings: { a: [0.85, 0.35, 0.02], b: [0.4, 0.75, 0.01], c: [0.05, 0.02, 0.5] },
+      factorCorrelation: [
+        [1, 0.42, -0.1],
+        [0.42, 1, 0.05],
+        [-0.1, 0.05, 1]
+      ],
+      totalVarianceExplained: {
+        ...samplePayload.totalVarianceExplained,
+        rotation: [
+          { component: 1, eigenvalue: 1.6, variancePercent: null, cumulativePercent: null },
+          { component: 2, eigenvalue: 1.3, variancePercent: null, cumulativePercent: null }
+        ]
+      }
+    };
+
+    it("names the loading table Pattern Matrix and adds structure and correlation tables", () => {
+      const tables = buildTableData(obliquePayload);
+      const titles = tables.map((t) => t.title);
+      expect(titles).toContain("Pattern Matrix");
+      expect(titles).toContain("Structure Matrix");
+      expect(titles).toContain("Component Correlation Matrix");
+      expect(titles).not.toContain("Rotated Component Matrix");
+
+      const structure = tables.find((t) => t.title === "Structure Matrix");
+      expect(structure!.columns).toEqual(["variable", "component1", "component2"]);
+      // 패턴 표와 같은 순서로 읽혀야 두 표를 나란히 둘 수 있다.
+      expect(structure!.rows.map((row) => row.variable)).toEqual(
+        tables.find((t) => t.title === "Pattern Matrix")!.rows.map((row) => row.variable)
+      );
+      expect(structure!.rows[0]).toMatchObject({ variable: "a", component1: 0.85, component2: 0.35 });
+
+      const phi = tables.find((t) => t.title === "Component Correlation Matrix");
+      expect(phi!.columns).toEqual(["component", "component1", "component2"]);
+      expect(phi!.rows).toHaveLength(3);
+      expect(phi!.rows[0]).toMatchObject({ component: 1, component1: 1, component2: 0.42 });
+    });
+
+    it("leaves the oblique rotation percentages empty rather than inventing them", () => {
+      const tables = buildTableData(obliquePayload);
+      const tve = tables.find((t) => t.title === "Total Variance Explained");
+      expect(tve!.rows[0]).toMatchObject({ rotationEigenvalue: 1.6, rotationVariancePercent: null, rotationCumulativePercent: null });
+    });
+
+    it("calls the matrix a Component Matrix when the rotation could not be applied", () => {
+      const tables = buildTableData({
+        ...samplePayload,
+        nComponents: 1,
+        rotation: "varimax",
+        rotationApplied: false,
+        sortedLoadings: [{ variable: "a", dominantComponent: 1, dominantLoading: 0.8, loadings: [0.8] }],
+        totalVarianceExplained: { ...samplePayload.totalVarianceExplained, rotation: [] }
+      });
+      const titles = tables.map((t) => t.title);
+      expect(titles).toContain("Component Matrix");
+      expect(titles).not.toContain("Rotated Component Matrix");
+      expect(titles).not.toContain("Structure Matrix");
+    });
+
+    it("omits the oblique tables for an orthogonal rotation", () => {
+      const tables = buildTableData(samplePayload);
+      const titles = tables.map((t) => t.title);
+      expect(titles).not.toContain("Pattern Matrix");
+      expect(titles).not.toContain("Structure Matrix");
+      expect(titles).not.toContain("Component Correlation Matrix");
+    });
   });
 
   describe("Regression tables", () => {
