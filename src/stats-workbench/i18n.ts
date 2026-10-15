@@ -1,4 +1,4 @@
-import i18next from "i18next";
+import i18next, { type i18n } from "i18next";
 import { initReactI18next } from "react-i18next";
 
 export type SupportedLanguage = "en" | "ar" | "zh" | "fr" | "ru" | "es" | "ko" | "ja" | "vi";
@@ -577,7 +577,13 @@ const resources = {
  * global i18next singleton when both share the same module
  * (e.g. after Vite resolve.dedupe).
  */
-export const workbenchI18n = i18next.createInstance();
+/**
+ * The annotation is not decoration. Without it `tsc` infers a type it cannot
+ * write down without naming `../../node_modules/i18next`, which is a path that
+ * only exists in this checkout -- TS2742. Naming the instance type keeps the
+ * emitted declaration portable.
+ */
+export const workbenchI18n: i18n = i18next.createInstance();
 
 void workbenchI18n.use(initReactI18next).init({
   resources,
