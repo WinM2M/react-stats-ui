@@ -125,6 +125,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   minimalAutoShowResultEnabled = true,
   analysisExecutor,
   onResult,
+  resultFooter,
   onHelpOpen,
   hideInternalVariableList = false,
   allowedAnalyses,
@@ -1081,6 +1082,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       onBeforeCopy={onBeforeCopyApaTable}
                       copyLabel={apaCopyLabel}
                       copyEmphasis={apaCopyEmphasis}
+                      resultFooter={result ? resultFooter?.({ analysisType, result }) : undefined}
                     />
                   </div>
                 </div>
@@ -1174,6 +1176,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   onBeforeCopy={onBeforeCopyApaTable}
                   copyLabel={apaCopyLabel}
                   copyEmphasis={apaCopyEmphasis}
+                  resultFooter={result ? resultFooter?.({ analysisType, result }) : undefined}
                 />
               </section>
             </>

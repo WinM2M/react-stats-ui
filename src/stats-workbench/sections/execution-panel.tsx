@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Copy, MoreHorizontal, RefreshCw, X } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -35,6 +36,14 @@ type ExecutionPanelProps = {
    * 가져가는 것이 이 화면에서 할 만한 다음 일이라고 말하는 화면에서 쓴다.
    */
   copyEmphasis?: "subtle" | "strong";
+  /**
+   * Rendered under the result, once there is one.
+   *
+   * The host owns what goes here. Factor analysis, for instance, wants a "make
+   * these factors into variables" panel -- which needs to know where the
+   * host keeps variables, something this component has no business knowing.
+   */
+  resultFooter?: ReactNode;
 };
 
 
@@ -172,7 +181,8 @@ export function ExecutionPanel({
   onAutoShowResultChange,
   onBeforeCopy,
   copyLabel,
-  copyEmphasis = "subtle"
+  copyEmphasis = "subtle",
+  resultFooter,
 }: ExecutionPanelProps) {
   const { t } = useTranslation();
   const [resultView, setResultView] = React.useState<"table" | "json">("table");
@@ -366,6 +376,8 @@ export function ExecutionPanel({
             <div className="text-sm text-slate-500">{t("runToView")}</div>
         )}
       </div>
+
+      {result && resultFooter ? <div className="mt-2 shrink-0">{resultFooter}</div> : null}
 
       {showPayload ? (
         <div className="mt-2 min-h-0 overflow-auto rounded border border-slate-200 bg-white p-2">

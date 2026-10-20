@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type * as React from "react";
 import type { SupportedLanguage } from "./i18n";
 
@@ -259,6 +260,15 @@ export type StatsWorkbenchProps = {
   minimalAutoShowResultEnabled?: boolean;
   analysisExecutor?: (payload: AnalysisPayload) => Promise<unknown>;
   onResult?: (result: AnalysisResult) => void;
+  /**
+   * Rendered under the result, once there is one.
+   *
+   * Factor analysis wants a "turn these factors into variables" panel there,
+   * and that panel has to know where the host keeps variables -- which is the
+   * host's business, not this component's. So the slot is handed over rather
+   * than filled in here.
+   */
+  resultFooter?: (context: { analysisType: AnalysisKind; result: unknown }) => ReactNode;
   /**
    * Fires when the analysis help popover is opened, not when it is closed.
    *

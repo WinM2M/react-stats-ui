@@ -123,8 +123,18 @@ export function VariableAssignmentPanel({
   const listAtEnd = variableListPosition === "end";
 
   const variableList = showVariableList ? (
-    <div className={cn("min-h-0", listAtEnd ? "sm:order-2" : "sm:order-1")}>
+    /*
+      감싼 칸은 그리드가 늘려 주지만, 그 안의 목록은 블록 자식이라 **높이를
+      물려받지 않는다.** 그래서 변수가 많으면 목록이 칸을 뚫고 자라고, 목록이
+      들고 있던 `overflow-auto` 는 한 번도 걸리지 않는다 — 결과 판이 화면 밖으로
+      밀리고 페이지 전체가 스크롤된다.
+
+      칸을 flex 열로 만들고 목록에 `flex-1 min-h-0` 을 줘야 목록이 남은 높이를
+      받아 **자기 안에서** 스크롤한다.
+    */
+    <div className={cn("flex min-h-0 flex-col", listAtEnd ? "sm:order-2" : "sm:order-1")}>
         <SharedVariableList
+          className="min-h-0 flex-1"
           variables={availableVariables}
           heading={t("variables")}
           emptyLabel={t("noAvailableVariables")}
