@@ -1,4 +1,5 @@
 import * as React from "react";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { X } from "lucide-react";
 import { cn } from "../utils";
 import { RoleTag } from "./role-tag";
@@ -34,12 +35,13 @@ const VariableCard = ({
   onClick,
   onDoubleClick,
   onDelete
-}: VariableCardProps) => (
+}: VariableCardProps) => {
+  const card = (
   <div
     onClick={onClick}
     onDoubleClick={onDoubleClick}
-    // 변수 이름은 보통 `q7_1` 같은 약어라, 올려 보면 원래 문항이 보여야 한다.
-    // 그 문장은 호스트만 알고 있으므로 받아서 그대로 단다.
+    // 브라우저 기본 풍선도 남겨 둔다 -- 아래 Radix 풍선이 뜨지 않는 상황
+    // (터치 기기, 포털이 막힌 곳)에서 마지막으로 남는 길이다.
     title={tooltip ?? name}
     className={cn(
       "flex cursor-grab items-center gap-2 rounded-lg border border-slate-200 bg-white text-left shadow-sm transition",
@@ -71,7 +73,33 @@ const VariableCard = ({
       </button>
     ) : null}
   </div>
-);
+  );
+
+  // 올려 보면 **바로** 보여야 한다. 브라우저 기본 풍선은 1~2초를 기다려야 떠서,
+  // 있는 줄도 모르고 지나간다. 포털로 띄우므로 스크롤 칸에 잘리지도 않는다.
+  if (!tooltip || tooltip === name) return card;
+  return (
+    // 이 목록은 워크벤치 밖에서도 쓰인다. Radix 는 Provider 없이 Root 를 만나면
+    // 던지므로 여기서 하나 두른다 -- 중첩은 허용된다.
+    <Tooltip.Provider delayDuration={80}>
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>{card}</Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          side="right"
+          align="start"
+          sideOffset={6}
+          collisionPadding={8}
+          className="z-50 max-w-xs rounded-md bg-slate-900 px-2.5 py-1.5 text-xs leading-snug text-white shadow-lg"
+        >
+          {tooltip}
+          <Tooltip.Arrow className="fill-slate-900" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+    </Tooltip.Provider>
+  );
+};
 
 export type SharedVariableListProps = {
   variables: VariableMeta[];

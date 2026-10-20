@@ -148,7 +148,11 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
           </div>
         )}
 
-        {analysisType === "pca" && (
+        {/*
+          주성분분석에만 열려 있었다. 표를 크기순으로 세우는 것은 성분이든
+          요인이든 같은 일이고, 요인분석 쪽이 오히려 문항이 많아 더 필요하다.
+        */}
+        {(analysisType === "pca" || EFA_PAIRS[analysisType]) && (
           <div className="space-y-2">
             <label className="text-xs font-medium text-slate-600">{t("optionsSortBySize")}</label>
             <SelectBox
