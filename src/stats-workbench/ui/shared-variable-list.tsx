@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { cn } from "../utils";
 import { RoleTag } from "./role-tag";
 import type { VariableDragItem, VariableMeta } from "../types";
@@ -132,6 +132,17 @@ export type SharedVariableListProps = {
    * 한 문항에서 나왔는지는 설문을 들고 있는 호스트만 안다.
    */
   expandSelection?: (names: string[]) => string[];
+  /**
+   * 한 줄로 묶어 보일 변수 꾸러미.
+   *
+   * 다중응답 문항은 보기마다 변수가 하나씩 생겨, 보기 일곱 개짜리 문항 하나가
+   * 목록에서 일곱 줄을 차지한다. 설문에 그런 문항이 몇 개만 있어도 목록이
+   * 문항이 아니라 보기로 채워진다. 꾸러미는 한 줄로 서고, 펼치면 낱개가 보인다.
+   *
+   * 멤버는 이 목록에 **있는 이름만** 쓴다. 역할 칸으로 옮겨 간 변수는 목록에서
+   * 빠지므로, 남은 것만으로 꾸러미를 다시 세운다.
+   */
+  variableGroups?: Array<{ id: string; label: string; members: string[] }>;
 };
 
 export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariableListProps>(function SharedVariableList(
@@ -156,7 +167,8 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     secondaryLabelByName,
     density = "comfortable",
     tooltipByName,
-    expandSelection
+    expandSelection,
+    variableGroups
   },
   ref
 ) {
@@ -240,6 +252,71 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     [onSelect, onSelectionChange, selectedNames, variables]
   );
 
+  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(() => new Set());
+
+  /**
+   * 목록에 실제로 설 줄들.
+   *
+   * 꾸러미는 **첫 멤버 자리**에 한 줄로 선다. 변수 순서가 곧 설문 문항 순서라,
+   * 꾸러미를 맨 아래로 몰면 문항 차례가 흐트러진다.
+   */
+  const rows = React.useMemo(() => {
+    const present = new Set(variables.map((entry) => entry.name));
+    const groupOf = new Map<string, { id: string; label: string; members: string[] }>();
+    for (const group of variableGroups ?? []) {
+      const members = group.members.filter((name) => present.has(name));
+      // 하나만 남았으면 꾸러미로 묶을 것이 없다 -- 그냥 그 변수다.
+      if (members.length < 2) continue;
+      const resolved = { ...group, members };
+      for (const name of members) groupOf.set(name, resolved);
+    }
+
+    const out: Array<
+      | { kind: "variable"; variable: VariableMeta; index: number }
+      | { kind: "group"; group: { id: string; label: string; members: string[] } }
+    > = [];
+    const seen = new Set<string>();
+    variables.forEach((variable, index) => {
+      const group = groupOf.get(variable.name);
+      if (!group) {
+        out.push({ kind: "variable", variable, index });
+        return;
+      }
+      if (seen.has(group.id)) return;
+      seen.add(group.id);
+      out.push({ kind: "group", group });
+    });
+    return out;
+  }, [variableGroups, variables]);
+
+  const variableByName = React.useMemo(
+    () => new Map(variables.map((entry) => [entry.name, entry])),
+    [variables]
+  );
+
+  const handleGroupDragStart = (
+    event: React.DragEvent,
+    group: { id: string; label: string; members: string[] }
+  ) => {
+    const first = variableByName.get(group.members[0]);
+    const payload: VariableDragItem = {
+      variableName: group.members[0],
+      variableNames: group.members,
+      variableType: first?.type,
+      datasetId: datasetId ?? null,
+      datasetName: datasetName ?? null,
+      source: "stats-workbench"
+    };
+    try {
+      event.dataTransfer?.setData(VARIABLE_DRAG_DATA_FORMAT, JSON.stringify(payload));
+      event.dataTransfer?.setData("text/plain", group.members.join(", "));
+    } catch {
+      // Ignore dataTransfer errors (e.g., SSR or unsupported environments)
+    }
+    onDragStart?.(payload);
+    setDraggingName(group.members[0]);
+  };
+
   const handleDragEnd = () => {
     onDragEnd?.();
     setDraggingName(null);
@@ -265,47 +342,132 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
           <div className="p-3 text-sm text-slate-500">{emptyLabel}</div>
         ) : (
           <ul className={cn(density === "compact" ? "space-y-1 p-1" : "space-y-2 p-2")}>
-            {variables.map((variable, index) => (
+            {rows.map((row) =>
+              row.kind === "group" ? (
+                <li key={`group:${row.group.id}`}>
+                  <div
+                    draggable
+                    onDragStart={(event) => handleGroupDragStart(event, row.group)}
+                    onDragEnd={handleDragEnd}
+                    onClick={() => onSelectionChange?.(row.group.members)}
+                    title={row.group.label}
+                    className={cn(
+                      "flex cursor-grab items-center gap-2 rounded-lg border border-slate-200 bg-white text-left shadow-sm transition",
+                      density === "compact" ? "px-2 py-1" : "px-3 py-2",
+                      row.group.members.every((name) => selectedNameSet.has(name))
+                        ? "ring-2 ring-sky-500 border-sky-500"
+                        : "hover:border-slate-300 hover:shadow-md"
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setExpandedGroups((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(row.group.id)) next.delete(row.group.id);
+                          else next.add(row.group.id);
+                          return next;
+                        });
+                      }}
+                      aria-expanded={expandedGroups.has(row.group.id)}
+                      aria-label={row.group.label}
+                      className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    >
+                      <ChevronRight
+                        className={cn(
+                          "h-3.5 w-3.5 transition-transform",
+                          expandedGroups.has(row.group.id) && "rotate-90"
+                        )}
+                      />
+                    </button>
+                    <span
+                      className={cn(
+                        "truncate font-medium text-slate-700",
+                        density === "compact" ? "text-xs" : "text-sm"
+                      )}
+                    >
+                      {row.group.label}
+                    </span>
+                    {/* 보기가 몇 개인지. 한 줄로 접힌 만큼 수는 보여야 한다. */}
+                    <span className="ml-auto shrink-0 rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-600">
+                      {row.group.members.length}
+                    </span>
+                  </div>
+                  {expandedGroups.has(row.group.id) ? (
+                    <ul className={cn("mt-1 border-l border-slate-200 pl-2", density === "compact" ? "space-y-1" : "space-y-2")}>
+                      {row.group.members.map((name) => {
+                        const member = variableByName.get(name);
+                        if (!member) return null;
+                        const memberIndex = variables.findIndex((entry) => entry.name === name);
+                        return (
+                          <li
+                            key={name}
+                            draggable
+                            onDragStart={(event) => handleDragStart(event, member)}
+                            onDragEnd={handleDragEnd}
+                            onClick={(event) => handleItemClick(event, name, memberIndex)}
+                            onDoubleClick={() => onDoubleClick?.(name)}
+                          >
+                            <VariableCard
+                              name={name}
+                              type={member.type}
+                              density={density}
+                              tooltip={tooltipByName?.(name)}
+                              isSelected={selectedNameSet.has(name)}
+                              isDragging={draggingName === name}
+                              isDerived={derivedNames?.has(name)}
+                              onDoubleClick={() => onDoubleClick?.(name)}
+                              onDelete={onDeleteVariable ? () => onDeleteVariable(name) : undefined}
+                            />
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </li>
+              ) : (
               <li
-                key={variable.name}
+                key={row.variable.name}
                 draggable
-                onDragStart={(event) => handleDragStart(event, variable)}
+                onDragStart={(event) => handleDragStart(event, row.variable)}
                 onDragEnd={handleDragEnd}
-                onClick={(event) => handleItemClick(event, variable.name, index)}
-                onDoubleClick={() => onDoubleClick?.(variable.name)}
+                onClick={(event) => handleItemClick(event, row.variable.name, row.index)}
+                onDoubleClick={() => onDoubleClick?.(row.variable.name)}
                 onPointerUp={(event) => {
                   if (event.pointerType !== "touch" && event.pointerType !== "pen") {
                     return;
                   }
                   const now = Date.now();
                   const lastTap = lastTouchTapRef.current;
-                  if (lastTap && lastTap.name === variable.name && now - lastTap.at < 320) {
-                    onDoubleClick?.(variable.name);
+                  if (lastTap && lastTap.name === row.variable.name && now - lastTap.at < 320) {
+                    onDoubleClick?.(row.variable.name);
                     lastTouchTapRef.current = null;
                     return;
                   }
-                  lastTouchTapRef.current = { name: variable.name, at: now };
+                  lastTouchTapRef.current = { name: row.variable.name, at: now };
                 }}
               >
                   <VariableCard
-                    name={variable.name}
-                    type={variable.type}
+                    name={row.variable.name}
+                    type={row.variable.type}
                     density={density}
-                    tooltip={tooltipByName?.(variable.name)}
-                    isSelected={selectedNameSet.has(variable.name)}
-                    isDragging={draggingName === variable.name}
-                    isDerived={derivedNames?.has(variable.name)}
+                    tooltip={tooltipByName?.(row.variable.name)}
+                    isSelected={selectedNameSet.has(row.variable.name)}
+                    isDragging={draggingName === row.variable.name}
+                    isDerived={derivedNames?.has(row.variable.name)}
                     onClick={undefined}
-                    onDoubleClick={() => onDoubleClick?.(variable.name)}
-                    onDelete={onDeleteVariable ? () => onDeleteVariable(variable.name) : undefined}
+                    onDoubleClick={() => onDoubleClick?.(row.variable.name)}
+                    onDelete={onDeleteVariable ? () => onDeleteVariable(row.variable.name) : undefined}
                   />
-                  {secondaryLabelByName?.[variable.name] ? (
-                    <div className="mt-1 px-2 text-[11px] text-slate-500" title={secondaryLabelByName[variable.name]}>
-                      <span className="block truncate">{secondaryLabelByName[variable.name]}</span>
+                  {secondaryLabelByName?.[row.variable.name] ? (
+                    <div className="mt-1 px-2 text-[11px] text-slate-500" title={secondaryLabelByName[row.variable.name]}>
+                      <span className="block truncate">{secondaryLabelByName[row.variable.name]}</span>
                     </div>
                   ) : null}
                 </li>
-              ))}
+              )
+              )}
           </ul>
         )}
       </div>

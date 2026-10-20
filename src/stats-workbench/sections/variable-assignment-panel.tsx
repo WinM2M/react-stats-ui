@@ -39,6 +39,8 @@ type VariableAssignmentPanelProps = {
   variableTooltip?: (name: string) => string | undefined;
   /** 끌기 직전에 고른 변수 목록을 넓힐 기회. 다중응답 묶음이 따라온다. */
   expandDragSelection?: (names: string[]) => string[];
+  /** 목록에서 한 줄로 묶어 보일 변수 꾸러미. 다중응답 문항이 여기 온다. */
+  variableGroups?: Array<{ id: string; label: string; members: string[] }>;
   onAvailableVariableActivate?: (variableName: string) => void;
 };
 
@@ -81,6 +83,7 @@ export function VariableAssignmentPanel({
   density = "comfortable",
   variableTooltip,
   expandDragSelection,
+  variableGroups,
   onAvailableVariableActivate
 }: VariableAssignmentPanelProps) {
   const { t } = useTranslation();
@@ -176,6 +179,7 @@ export function VariableAssignmentPanel({
           density={density}
           tooltipByName={variableTooltip}
           expandSelection={expandDragSelection}
+          variableGroups={variableGroups}
           variables={availableVariables}
           heading={t("variables")}
           emptyLabel={t("noAvailableVariables")}

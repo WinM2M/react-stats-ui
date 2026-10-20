@@ -294,6 +294,14 @@ export type StatsWorkbenchProps = {
    */
   expandDragSelection?: (names: string[], context: { analysisType: AnalysisKind }) => string[];
   /**
+   * Variables to show as one collapsed row in the variable list.
+   *
+   * A multiple-response question becomes one variable per option, so a
+   * seven-option question takes seven rows and the list fills up with options
+   * rather than questions. A group is one row, and expands to its members.
+   */
+  variableGroups?: Array<{ id: string; label: string; members: string[] }>;
+  /**
    * Font size and padding in the variable list.
    *
    * `compact` fits noticeably more on one screen, which is what a survey with
