@@ -87,6 +87,15 @@ export function VariableAssignmentPanel({
   const [dragPayload, setDragPayload] = React.useState<VariableDragItem | null>(null);
   const [invalidRole, setInvalidRole] = React.useState<RoleKey | null>(null);
   const [invalidMessage, setInvalidMessage] = React.useState("");
+  // 드롭 알림은 스스로 사라진다. 끌기 중 경고는 마우스가 떠나면 지워지지만,
+  // 드롭 뒤에 남는 말은 지워 줄 사람이 없다.
+  const noticeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(
+    () => () => {
+      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    },
+    []
+  );
 
   const resolveDragPayload = React.useCallback(
     (event: React.DragEvent): VariableDragItem | null => parseDragPayload(event) ?? dragPayload,
@@ -318,8 +327,29 @@ export function VariableAssignmentPanel({
                           }
                         }
                         setDragPayload(null);
-                        setInvalidRole(null);
-                        setInvalidMessage("");
+                        /*
+                         * 담을 칸이 모자라면 **말해 준다.** 마지막 칸에 여러 개를
+                         * 떨어뜨리면 뒤에 받을 칸이 없어 남는 것이 사라지는데,
+                         * 아무 말도 없으면 넣은 줄 알고 그대로 분석을 돌린다.
+                         */
+                        if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+                        if (cursor < queue.length) {
+                          setInvalidRole(role.key);
+                          setInvalidMessage(
+                            t("droppedPartially", {
+                              taken: cursor,
+                              total: queue.length,
+                              defaultValue: `Only ${cursor} of ${queue.length} fit here.`
+                            })
+                          );
+                          noticeTimerRef.current = setTimeout(() => {
+                            setInvalidRole(null);
+                            setInvalidMessage("");
+                          }, 4000);
+                        } else {
+                          setInvalidRole(null);
+                          setInvalidMessage("");
+                        }
                       }}
                       onClick={() => {
                         if (selectedAvailable) {
