@@ -770,6 +770,55 @@ function buildDescriptivesTables(objectPayload: Record<string, unknown>): TableD
   ];
 }
 
+function buildMultipleResponseTables(objectPayload: Record<string, unknown>): TableData[] {
+  const items = asRecordArray(objectPayload.items);
+  if (items.length === 0) return [];
+
+  const totalResponses = num(objectPayload.totalResponses);
+  const validCases = num(objectPayload.validCases);
+
+  const rows: Array<Record<string, unknown>> = items.map((item) => ({
+    option: item.variable ?? null,
+    n: num(item.count),
+    percentOfResponses: num(item.percentOfResponses),
+    percentOfCases: num(item.percentOfCases)
+  }));
+
+  /*
+   * 합계 줄을 붙인다. 케이스 기준 합이 100 을 넘는 것이 이 표의 요점이다 --
+   * 한 사람이 여러 개를 고른다는 사실이 숫자로 보여야, 응답 기준과 케이스
+   * 기준을 섞어 읽는 일이 줄어든다.
+   */
+  rows.push({
+    option: "Total",
+    n: totalResponses,
+    percentOfResponses: totalResponses === null ? null : 100,
+    percentOfCases: num(objectPayload.percentOfCasesTotal)
+  });
+
+  const tables: TableData[] = [
+    {
+      title: "Multiple Response Frequencies",
+      columns: ["option", "n", "percentOfResponses", "percentOfCases"],
+      rows
+    }
+  ];
+
+  if (validCases !== null) {
+    tables.push({
+      title: "Case Summary",
+      columns: ["statistic", "value"],
+      rows: [
+        { statistic: "Valid cases", value: validCases },
+        { statistic: "Missing cases", value: num(objectPayload.missingCases) },
+        { statistic: "Total responses", value: totalResponses }
+      ]
+    });
+  }
+
+  return tables;
+}
+
 function buildFrequenciesTables(objectPayload: Record<string, unknown>): TableData[] {
   // 변수 목록으로 돌렸으면 문항마다 표가 하나씩 온다. 윗자리의 단일 표는 그
   // 가운데 첫 번째를 되풀이한 것이라, 그대로 두면 같은 표가 두 번 찍힌다.
@@ -869,6 +918,9 @@ export function buildTableData(raw: unknown): TableData[] {
       : null) ??
     ("statistics" in objectPayload && asRecordArray(objectPayload.statistics).some((row) => "skewness" in row)
       ? buildDescriptivesTables(objectPayload)
+      : null) ??
+    ("items" in objectPayload && "totalResponses" in objectPayload && "validCases" in objectPayload
+      ? buildMultipleResponseTables(objectPayload)
       : null) ??
     ("frequencies" in objectPayload && "totalCount" in objectPayload
       ? buildFrequenciesTables(objectPayload)

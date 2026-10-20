@@ -68,6 +68,30 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
       { label: "Wikipedia: Histogram", url: "https://en.wikipedia.org/wiki/Histogram" }
     ]
   },
+  multipleResponse: {
+    label: "Multiple Response Frequencies",
+    summary: "how picks divide across the options of one choose-all question",
+    purposeKey: "distribution",
+    wikipediaTitle: "Multiple_response",
+    formulaLatex: "\\%_{responses}=\\frac{n_i}{\\sum n_i},\\quad \\%_{cases}=\\frac{n_i}{N_{valid}}",
+    apaExample: {
+      title: "Multiple Response Frequencies",
+      columns: ["Option", "n", "% of responses", "% of cases"],
+      rows: [
+        { Option: "Price", n: "42", "% of responses": "35.0", "% of cases": "52.5" },
+        { Option: "Design", n: "48", "% of responses": "40.0", "% of cases": "60.0" },
+        { Option: "Brand", n: "30", "% of responses": "25.0", "% of cases": "37.5" }
+      ]
+    },
+    dataTypes: ["categorical"],
+    dataShapes: ["single"],
+    optionKeys: [],
+    interpretationKeys: ["dominantCategory", "sparseCells"],
+    references: [
+      { label: "Wikipedia: Multiple choice", url: "https://en.wikipedia.org/wiki/Multiple_choice" },
+      { label: "Wikipedia: Frequency (statistics)", url: "https://en.wikipedia.org/wiki/Frequency_(statistics)" }
+    ]
+  },
   descriptives: {
     label: "Descriptives",
     summary: "central tendency and variability",

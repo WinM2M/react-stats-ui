@@ -6,7 +6,7 @@ export const ANALYSIS_GROUPS: Array<{
 }> = [
   {
     key: "descriptive",
-    items: ["frequencies", "descriptives", "crosstabs"]
+    items: ["frequencies", "multipleResponse", "descriptives", "crosstabs"]
   },
   {
     key: "compareMeans",
@@ -42,9 +42,17 @@ export const ANALYSIS_DEFS: Record<AnalysisKind, AnalysisDef> = {
     // 문항을 하나씩 훑는 것이 이 분석의 쓰임이다. 변수를 여럿 넣으면 문항마다
     // 표가 하나씩 나온다.
     roles: [
-      { key: "variable", label: "Variables", multi: true, required: true, minItems: 1 }
+      { key: "variables", label: "Variables", multi: true, required: true, minItems: 1 }
     ],
     label: "Frequencies"
+  },
+  multipleResponse: {
+    // 「모두 고르세요」 문항 하나가 통째로 들어온다. 보기마다 생긴 0/1 변수
+    // 전부를 한 칸에 넣는 것이지, 서로 다른 문항을 섞는 자리가 아니다.
+    label: "Multiple Response Frequencies",
+    roles: [
+      { key: "variables", label: "Option Variables", multi: true, required: true, minItems: 2 }
+    ]
   },
   descriptives: {
     label: "Descriptives",

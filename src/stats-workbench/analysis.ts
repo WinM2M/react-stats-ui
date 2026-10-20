@@ -56,7 +56,12 @@ function getInputForAnalysis(
   options: Record<string, unknown>
 ): { input: Record<string, unknown>; reason?: string; meta?: Record<string, unknown>; sdkMethod?: string } {
   if (analysisType === "frequencies") {
-    return { input: { data, variable: assignments.variable[0], variables: assignments.variable } };
+    return {
+      input: { data, variable: assignments.variables[0], variables: assignments.variables }
+    };
+  }
+  if (analysisType === "multipleResponse") {
+    return { input: { data, variables: assignments.variables } };
   }
   if (analysisType === "descriptives") {
     return { input: { data, variables: assignments.variables } };

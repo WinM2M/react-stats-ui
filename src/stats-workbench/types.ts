@@ -19,6 +19,7 @@ export type RoleKey =
 
 export type AnalysisKind =
   | "frequencies"
+  | "multipleResponse"
   | "descriptives"
   | "crosstabs"
   | "ttestIndependent"

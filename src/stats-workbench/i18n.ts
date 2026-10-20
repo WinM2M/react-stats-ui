@@ -171,6 +171,7 @@ const common = {
   // matters too: someone hunting for a chi-square test does not search for "Crosstabs".
   analysisKinds: {
     frequencies: "Frequencies",
+    multipleResponse: "Multiple Response Frequencies",
     descriptives: "Descriptives",
     crosstabs: "Crosstabs (Chi-Square Test)",
     ttestIndependent: "Independent-Samples T-Test",
@@ -380,6 +381,7 @@ const resources = {
       },
       analysisKinds: {
         frequencies: "빈도분석",
+        multipleResponse: "다중응답 빈도분석",
         descriptives: "기술통계",
         crosstabs: "교차분석 (카이제곱 검정)",
         ttestIndependent: "독립표본 t검정",
