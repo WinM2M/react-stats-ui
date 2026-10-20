@@ -270,6 +270,14 @@ export type StatsWorkbenchProps = {
    */
   resultFooter?: (context: { analysisType: AnalysisKind; result: unknown }) => ReactNode;
   /**
+   * Rendered at the right end of the analysis header bar.
+   *
+   * The bar is the one row that is always visible, so a host that wants a
+   * screen-level action ("open report") next to the analysis name has nowhere
+   * else to put it without absolutely positioning over the component.
+   */
+  headerActions?: ReactNode;
+  /**
    * Font size and padding in the variable list.
    *
    * `compact` fits noticeably more on one screen, which is what a survey with

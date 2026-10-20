@@ -126,6 +126,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   analysisExecutor,
   onResult,
   resultFooter,
+  headerActions,
   density = "comfortable",
   variableTooltip,
   onHelpOpen,
@@ -1005,7 +1006,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   onHelpOpen={onHelpOpen}
                   allowedAnalyses={allowedAnalyses}
                 />
-                <div className="flex items-center gap-3 self-end max-[640px]:self-auto">
+                <div className="ml-auto flex items-center gap-3 self-end max-[640px]:self-auto">
+                  {headerActions}
                   {showDatasetPopover ? (
                     <DatasetPanel
                       datasets={datasets}
@@ -1122,6 +1124,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   statusMessage={workerStatusMessage}
                   progress={workerProgress}
                 />
+                {headerActions ? <div className="ml-auto flex items-center gap-2">{headerActions}</div> : null}
               </div>
 
               <section

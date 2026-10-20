@@ -284,9 +284,13 @@ export function VariableAssignmentPanel({
                         if (!payload || !payload.variableName) {
                           return;
                         }
-                        const names = payload.variableNames && payload.variableNames.length > 0
-                          ? payload.variableNames
-                          : [payload.variableName];
+                        // 한 개만 받는 역할에 여러 개를 떨어뜨리면 뒤의 것이 앞의 것을
+                        // 밀어내 「마지막 변수」만 남는다. 그 칸에는 사용자가 실제로 집은
+                        // 변수를 넣는다.
+                        const names =
+                          role.multi && payload.variableNames && payload.variableNames.length > 0
+                            ? payload.variableNames
+                            : [payload.variableName];
                         names.forEach((name) => {
                           if (!variableByName.has(name)) {
                             return;
