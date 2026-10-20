@@ -129,6 +129,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   resultFooter,
   headerActions,
   showResultDeveloperMenu = true,
+  expandDragSelection,
   density = "comfortable",
   variableTooltip,
   onHelpOpen,
@@ -1049,6 +1050,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                     <VariableAssignmentPanel
                       density={density}
                       variableTooltip={variableTooltip}
+                      expandDragSelection={
+                        expandDragSelection
+                          ? (names: string[]) => expandDragSelection(names, { analysisType })
+                          : undefined
+                      }
                       analysisType={analysisType}
                       analysisDef={analysisDef}
                       availableVariables={availableVariables}
@@ -1152,6 +1158,11 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                 <VariableAssignmentPanel
                   density={density}
                   variableTooltip={variableTooltip}
+                  expandDragSelection={
+                    expandDragSelection
+                      ? (names: string[]) => expandDragSelection(names, { analysisType })
+                      : undefined
+                  }
                   analysisType={analysisType}
                   analysisDef={analysisDef}
                   availableVariables={availableVariables}

@@ -124,6 +124,14 @@ export type SharedVariableListProps = {
   density?: WorkbenchDensity;
   /** 변수마다 마우스를 올렸을 때 보일 설명. 없으면 변수 이름이 그대로 뜬다. */
   tooltipByName?: (name: string) => string | undefined;
+  /**
+   * 끌기 직전에 고른 변수 목록을 **넓힐 기회**.
+   *
+   * 다중응답 문항은 보기마다 변수가 하나씩 생긴다. 사람에게는 문항 하나인데
+   * 화면에서는 여섯 줄이라, 하나를 집으면 나머지도 따라와야 한다. 어느 변수가
+   * 한 문항에서 나왔는지는 설문을 들고 있는 호스트만 안다.
+   */
+  expandSelection?: (names: string[]) => string[];
 };
 
 export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariableListProps>(function SharedVariableList(
@@ -147,7 +155,8 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     onDeleteVariable,
     secondaryLabelByName,
     density = "comfortable",
-    tooltipByName
+    tooltipByName,
+    expandSelection
   },
   ref
 ) {
@@ -163,9 +172,15 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
   }, [selectedName, selectedNames]);
 
   const handleDragStart = (event: React.DragEvent, variable: VariableMeta) => {
-    const multiNames = selectedNameSet.has(variable.name)
+    const picked = selectedNameSet.has(variable.name)
       ? variables.map((entry) => entry.name).filter((name) => selectedNameSet.has(name))
       : [variable.name];
+    // 넓힌 결과에서 이 목록에 없는 이름은 버린다 -- 호스트가 설문을 보고
+    // 답하므로, 이 화면에 올라오지 않은 변수를 집어 줄 수 있다.
+    const expanded = expandSelection?.(picked) ?? picked;
+    const known = new Set(variables.map((entry) => entry.name));
+    const multiNames = expanded.filter((name) => known.has(name));
+    if (multiNames.length === 0) multiNames.push(variable.name);
     const payload: VariableDragItem = {
       variableName: variable.name,
       variableNames: multiNames,

@@ -477,14 +477,30 @@ const asRecordArray = (value: unknown): Array<Record<string, unknown>> =>
  * cramersV — every number the test actually reports.
  */
 function buildCrosstabsTables(objectPayload: Record<string, unknown>): TableData[] {
+  // 행 변수를 여럿 넘겼으면 표가 그 수만큼 온다. 윗자리는 첫 표의 되풀이다.
+  const many = asRecordArray(objectPayload.tables);
+  if (many.length > 0) {
+    return many.flatMap((table) => buildOneCrosstab(table));
+  }
+  return buildOneCrosstab(objectPayload);
+}
+
+function buildOneCrosstab(objectPayload: Record<string, unknown>): TableData[] {
   const tables: TableData[] = [];
   const cells = asRecordArray(objectPayload.table);
   const rowVariable = typeof objectPayload.rowVariable === "string" ? objectPayload.rowVariable : "row";
   const colVariable = typeof objectPayload.colVariable === "string" ? objectPayload.colVariable : "column";
+  const namedVariables =
+    typeof objectPayload.rowVariable === "string" && typeof objectPayload.colVariable === "string";
 
   if (cells.length > 0) {
     tables.push({
-      title: "Crosstabulation",
+      // 표가 여럿일 때 제목이 전부 「Crosstabulation」 이면 어느 문항의 표인지
+      // 알 수 없다. 변수 이름을 아는 경우에만 제목에 적는다 — 모를 때 쓰는
+      // 자리표시자("row x column")를 제목에 올리면 아무 말도 안 하는 셈이다.
+      title: namedVariables
+        ? `Crosstabulation — ${rowVariable} x ${colVariable}`
+        : "Crosstabulation",
       columns: [rowVariable, colVariable, "observed", "expected", "percentOfRow", "percentOfColumn", "percentOfTotal"],
       rows: cells.map((cell) => ({
         [rowVariable]: cell.row ?? null,
@@ -755,6 +771,16 @@ function buildDescriptivesTables(objectPayload: Record<string, unknown>): TableD
 }
 
 function buildFrequenciesTables(objectPayload: Record<string, unknown>): TableData[] {
+  // 변수 목록으로 돌렸으면 문항마다 표가 하나씩 온다. 윗자리의 단일 표는 그
+  // 가운데 첫 번째를 되풀이한 것이라, 그대로 두면 같은 표가 두 번 찍힌다.
+  const many = asRecordArray(objectPayload.tables);
+  if (many.length > 0) {
+    return many.flatMap((table) => buildOneFrequencyTable(table));
+  }
+  return buildOneFrequencyTable(objectPayload);
+}
+
+function buildOneFrequencyTable(objectPayload: Record<string, unknown>): TableData[] {
   const items = asRecordArray(objectPayload.frequencies);
   if (items.length === 0) return [];
   const variable = typeof objectPayload.variable === "string" ? objectPayload.variable : "value";

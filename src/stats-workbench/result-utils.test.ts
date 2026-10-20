@@ -439,7 +439,13 @@ describe("buildTableData — per-analysis tables", () => {
   it("keeps the chi-square statistics that the generic fallback dropped", () => {
     const tables = buildTableData(crosstabsPayload);
     const titles = tables.map((table) => table.title);
-    expect(titles).toEqual(["Crosstabulation", "Chi-Square Tests", "Symmetric Measures"]);
+    // 행 변수를 여럿 넘기면 표가 그 수만큼 나온다. 제목이 전부 같으면 어느
+    // 문항의 표인지 알 수 없어, 교차한 두 변수를 제목에 적는다.
+    expect(titles).toEqual([
+      "Crosstabulation — row x column",
+      "Chi-Square Tests",
+      "Symmetric Measures"
+    ]);
 
     const chi = tables[1].rows[0];
     expect(chi.value).toBeCloseTo(7.934066, 6);

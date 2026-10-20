@@ -37,6 +37,8 @@ type VariableAssignmentPanelProps = {
   variableListPosition?: "start" | "end";
   density?: WorkbenchDensity;
   variableTooltip?: (name: string) => string | undefined;
+  /** 끌기 직전에 고른 변수 목록을 넓힐 기회. 다중응답 묶음이 따라온다. */
+  expandDragSelection?: (names: string[]) => string[];
   onAvailableVariableActivate?: (variableName: string) => void;
 };
 
@@ -78,6 +80,7 @@ export function VariableAssignmentPanel({
   variableListPosition = "start",
   density = "comfortable",
   variableTooltip,
+  expandDragSelection,
   onAvailableVariableActivate
 }: VariableAssignmentPanelProps) {
   const { t } = useTranslation();
@@ -163,6 +166,7 @@ export function VariableAssignmentPanel({
           className="min-h-0 flex-1"
           density={density}
           tooltipByName={variableTooltip}
+          expandSelection={expandDragSelection}
           variables={availableVariables}
           heading={t("variables")}
           emptyLabel={t("noAvailableVariables")}
@@ -284,19 +288,35 @@ export function VariableAssignmentPanel({
                         if (!payload || !payload.variableName) {
                           return;
                         }
-                        // 한 개만 받는 역할에 여러 개를 떨어뜨리면 뒤의 것이 앞의 것을
-                        // 밀어내 「마지막 변수」만 남는다. 그 칸에는 사용자가 실제로 집은
-                        // 변수를 넣는다.
-                        const names =
-                          role.multi && payload.variableNames && payload.variableNames.length > 0
+                        /*
+                         * 여러 개를 한 칸에 떨어뜨렸을 때.
+                         *
+                         * 한 개만 받는 칸이면 뒤의 것이 앞의 것을 밀어내 「마지막
+                         * 변수」만 남는다. 그렇다고 나머지를 버리면 집어 온 것이
+                         * 조용히 사라진다. **떨어뜨린 칸부터 차례로 담는다** —
+                         * 한 개짜리 칸은 하나씩, 여러 개짜리 칸은 남은 것을 전부.
+                         * 교차분석에 두 변수를 끌어다 놓으면 행과 열이 한 번에
+                         * 채워지고, t 검정이면 검정 변수와 집단 변수가 채워진다.
+                         */
+                        const dropped =
+                          payload.variableNames && payload.variableNames.length > 0
                             ? payload.variableNames
                             : [payload.variableName];
-                        names.forEach((name) => {
-                          if (!variableByName.has(name)) {
-                            return;
+                        const queue = dropped.filter((name) => variableByName.has(name));
+                        const startIndex = analysisDef.roles.findIndex((entry) => entry.key === role.key);
+                        const targets = analysisDef.roles.slice(Math.max(0, startIndex));
+
+                        let cursor = 0;
+                        for (const target of targets) {
+                          if (cursor >= queue.length) break;
+                          if (target.multi) {
+                            queue.slice(cursor).forEach((name) => onAssign(name, target.key));
+                            cursor = queue.length;
+                          } else {
+                            onAssign(queue[cursor], target.key);
+                            cursor += 1;
                           }
-                          onAssign(name, role.key);
-                        });
+                        }
                         setDragPayload(null);
                         setInvalidRole(null);
                         setInvalidMessage("");

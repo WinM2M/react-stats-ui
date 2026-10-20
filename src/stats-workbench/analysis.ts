@@ -56,13 +56,20 @@ function getInputForAnalysis(
   options: Record<string, unknown>
 ): { input: Record<string, unknown>; reason?: string; meta?: Record<string, unknown>; sdkMethod?: string } {
   if (analysisType === "frequencies") {
-    return { input: { data, variable: assignments.variable[0] } };
+    return { input: { data, variable: assignments.variable[0], variables: assignments.variable } };
   }
   if (analysisType === "descriptives") {
     return { input: { data, variables: assignments.variables } };
   }
   if (analysisType === "crosstabs") {
-    return { input: { data, rowVariable: assignments.rowVariable[0], colVariable: assignments.colVariable[0] } };
+    return {
+      input: {
+        data,
+        rowVariable: assignments.rowVariable[0],
+        rowVariables: assignments.rowVariable,
+        colVariable: assignments.colVariable[0]
+      }
+    };
   }
   if (analysisType === "ttestIndependent") {
     const groupVariable = assignments.groupVariable[0];

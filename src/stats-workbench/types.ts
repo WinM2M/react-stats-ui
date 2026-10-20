@@ -285,6 +285,15 @@ export type StatsWorkbenchProps = {
    */
   showResultDeveloperMenu?: boolean;
   /**
+   * Called as a drag starts, with the names the user picked. Return the names
+   * to drag instead.
+   *
+   * A multiple-response question becomes one variable per option. To the person
+   * it is a single question, so picking one option should bring the rest -- and
+   * which variables came from one question is something only the host knows.
+   */
+  expandDragSelection?: (names: string[], context: { analysisType: AnalysisKind }) => string[];
+  /**
    * Font size and padding in the variable list.
    *
    * `compact` fits noticeably more on one screen, which is what a survey with

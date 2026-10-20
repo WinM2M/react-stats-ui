@@ -39,10 +39,12 @@ export const ANALYSIS_GROUPS: Array<{
 
 export const ANALYSIS_DEFS: Record<AnalysisKind, AnalysisDef> = {
   frequencies: {
-    label: "Frequencies",
+    // 문항을 하나씩 훑는 것이 이 분석의 쓰임이다. 변수를 여럿 넣으면 문항마다
+    // 표가 하나씩 나온다.
     roles: [
-      { key: "variable", label: "Variable", multi: false, required: true }
-    ]
+      { key: "variable", label: "Variables", multi: true, required: true, minItems: 1 }
+    ],
+    label: "Frequencies"
   },
   descriptives: {
     label: "Descriptives",
@@ -51,7 +53,9 @@ export const ANALYSIS_DEFS: Record<AnalysisKind, AnalysisDef> = {
   crosstabs: {
     label: "Crosstabs",
     roles: [
-      { key: "rowVariable", label: "Row Variable", multi: false, required: true },
+      // 행만 여럿 받는다. 다중응답 문항은 보기마다 열이 하나씩 생기므로 그
+      // 묶음을 통째로 행에 놓고 같은 열 변수와 교차하는 것이 하는 일이다.
+      { key: "rowVariable", label: "Row Variables", multi: true, required: true, minItems: 1 },
       { key: "colVariable", label: "Column Variable", multi: false, required: true }
     ]
   },
