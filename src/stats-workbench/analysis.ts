@@ -195,7 +195,10 @@ function getInputForAnalysis(
             ? undefined
             : toNumber(options.nFactors, 2),
         rotation: pair.rotation,
-        method: pair.method
+        method: pair.method,
+        // 선택지를 열어 놓고 **값을 안 실어 보내고 있었다.** 화면에서 끄면
+        // 꺼진 것처럼 보이는데 표는 그대로 정렬돼 나왔다.
+        sortBySize: toBoolean(options.sortBySize, true)
       }
     };
   }
