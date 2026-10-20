@@ -124,6 +124,28 @@ export function VariableAssignmentPanel({
     [analysisDef.roles, assignments, onAssign, onAvailableVariableActivate]
   );
 
+  /**
+   * 변수 목록의 **여러 개 선택**.
+   *
+   * 목록 컴포넌트에는 범위 선택(Shift)과 여러 개 끌어놓기가 이미 들어 있었는데,
+   * 이 패널이 `onSelectionChange` 를 안 넘겨서 **꺼진 채로** 있었다. 그 prop 이
+   * 없으면 목록은 「한 번에 하나」로 동작한다.
+   *
+   * 문항이 서른 개인 척도를 배정하려면 서른 번을 눌러야 했다.
+   */
+  const [selectedAvailableNames, setSelectedAvailableNames] = React.useState<string[]>([]);
+
+  // 배정이 바뀌면 고른 것을 비운다. 이미 옮겨 간 변수가 선택된 채로 남으면,
+  // 다음 끌어놓기가 목록에 없는 이름을 함께 들고 간다.
+  React.useEffect(() => {
+    setSelectedAvailableNames((prev) => {
+      const stillHere = prev.filter((name) =>
+        availableVariables.some((variable) => variable.name === name),
+      );
+      return stillHere.length === prev.length ? prev : stillHere;
+    });
+  }, [availableVariables]);
+
   const listAtEnd = variableListPosition === "end";
 
   const variableList = showVariableList ? (
@@ -145,6 +167,8 @@ export function VariableAssignmentPanel({
           heading={t("variables")}
           emptyLabel={t("noAvailableVariables")}
           selectedName={selectedAvailable}
+          selectedNames={selectedAvailableNames}
+          onSelectionChange={setSelectedAvailableNames}
           onSelect={(name) => onSelectAvailable(name)}
           onDoubleClick={handleAvailableActivate}
           datasetId={variableListDatasetId}
