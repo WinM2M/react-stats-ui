@@ -303,6 +303,14 @@ export type StatsWorkbenchProps = {
    */
   variableGroups?: Array<{ id: string; label: string; members: string[] }>;
   /**
+   * A readable name for a variable, used for table row labels.
+   *
+   * Multiple-response rows are options, so the row should read
+   * "Recommendation feed", not `fashion_style_aware_03`. Only the host knows
+   * that wording.
+   */
+  variableLabel?: (name: string) => string | undefined;
+  /**
    * Font size and padding in the variable list.
    *
    * `compact` fits noticeably more on one screen, which is what a survey with

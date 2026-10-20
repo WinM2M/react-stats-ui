@@ -19,6 +19,7 @@ type ExecutionPanelProps = {
    * API callers, has no use for them on screen.
    */
   showDeveloperMenu?: boolean;
+  variableLabel?: (name: string) => string | undefined;
   onTogglePayload: () => void;
   workerReady: boolean;
   workerProgress: number | null;
@@ -179,6 +180,7 @@ export function ExecutionPanel({
   error,
   showPayload,
   showDeveloperMenu = true,
+  variableLabel,
   onTogglePayload,
   workerReady,
   workerProgress,
@@ -196,7 +198,7 @@ export function ExecutionPanel({
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [copyStatus, setCopyStatus] = React.useState<"idle" | "copied" | "error">("idle");
   const moreRef = React.useRef<HTMLDivElement>(null);
-  const tables = buildTableData(result);
+  const tables = buildTableData(result, { variableLabel });
   /* 복사한 직후·실패는 라이브러리 문구를 쓴다. 그건 상태 알림이지 이름이 아니다. */
   const copyIdleLabel = copyLabel ?? t("copy");
   const copyStatusLabel =

@@ -131,6 +131,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   showResultDeveloperMenu = true,
   expandDragSelection,
   variableGroups,
+  variableLabel,
   density = "comfortable",
   variableTooltip,
   onHelpOpen,
@@ -305,6 +306,44 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       setShowResultAfterManualRun(false);
     }
   }, [analysisType, injectedDataset?.id, layoutMode, selectedDatasetId]);
+
+  /**
+   * 다중응답 꾸러미를 빈도분석에 떨어뜨리면 **다중응답 빈도분석으로 바꾼다.**
+   *
+   * 보기마다 0/1 표를 내 봐야 어느 보기를 많이 골랐는지가 안 읽힌다. 꾸러미를
+   * 통째로 집어 온 사람이 바라는 것은 그 문항의 분포이지 보기 열 개의 0/1
+   * 분포가 아니다. 분석 이름이 화면 맨 위에 적혀 있으므로 바뀐 것은 보인다.
+   *
+   * 꾸러미와 **정확히 같을 때만** 바꾼다. 다른 변수가 섞여 있으면 보기별 빈도를
+   * 보려는 것일 수 있어, 넘겨짚지 않는다.
+   */
+  const pendingGroupAssignRef = React.useRef<string[] | null>(null);
+
+  React.useEffect(() => {
+    if (analysisType !== "frequencies") return;
+    const names = assignments.variables ?? [];
+    if (names.length < 2) return;
+    const matched = (variableGroups ?? []).find(
+      (group) =>
+        group.members.length === names.length &&
+        group.members.every((member) => names.includes(member))
+    );
+    if (!matched) return;
+    pendingGroupAssignRef.current = [...matched.members];
+    setAnalysisTypeRaw("multipleResponse");
+  }, [analysisType, assignments, variableGroups]);
+
+  /*
+   * 분석을 바꾸면 위의 초기화 효과가 배정을 비운다. 그 효과보다 **뒤에**
+   * 선언해야 비워진 뒤에 되돌려 놓을 수 있다 -- 순서가 곧 동작이다.
+   */
+  React.useEffect(() => {
+    if (analysisType !== "multipleResponse") return;
+    const pending = pendingGroupAssignRef.current;
+    if (!pending) return;
+    pendingGroupAssignRef.current = null;
+    setAssignments((prev) => ({ ...prev, variables: pending }));
+  }, [analysisType]);
 
   const selectedDataset = injectedDataset ?? datasets.find((d) => d.id === selectedDatasetId) ?? null;
   const assignedNames = new Set<string>(Object.values(assignments).flat());
@@ -1109,6 +1148,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       copyEmphasis={apaCopyEmphasis}
                       resultFooter={result ? resultFooter?.({ analysisType, result }) : undefined}
                       showDeveloperMenu={showResultDeveloperMenu}
+                      variableLabel={variableLabel}
                     />
                   </div>
                 </div>
@@ -1213,6 +1253,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   copyEmphasis={apaCopyEmphasis}
                   resultFooter={result ? resultFooter?.({ analysisType, result }) : undefined}
                       showDeveloperMenu={showResultDeveloperMenu}
+                      variableLabel={variableLabel}
                 />
               </section>
             </>

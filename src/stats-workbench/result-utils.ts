@@ -770,7 +770,10 @@ function buildDescriptivesTables(objectPayload: Record<string, unknown>): TableD
   ];
 }
 
-function buildMultipleResponseTables(objectPayload: Record<string, unknown>): TableData[] {
+function buildMultipleResponseTables(
+  objectPayload: Record<string, unknown>,
+  variableLabel?: (name: string) => string | undefined
+): TableData[] {
   const items = asRecordArray(objectPayload.items);
   if (items.length === 0) return [];
 
@@ -778,7 +781,10 @@ function buildMultipleResponseTables(objectPayload: Record<string, unknown>): Ta
   const validCases = num(objectPayload.validCases);
 
   const rows: Array<Record<string, unknown>> = items.map((item) => ({
-    option: item.variable ?? null,
+    option:
+      (typeof item.variable === "string" ? variableLabel?.(item.variable) : undefined) ??
+      item.variable ??
+      null,
     n: num(item.count),
     percentOfResponses: num(item.percentOfResponses),
     percentOfCases: num(item.percentOfCases)
@@ -847,7 +853,18 @@ function buildOneFrequencyTable(objectPayload: Record<string, unknown>): TableDa
   ];
 }
 
-export function buildTableData(raw: unknown): TableData[] {
+export interface BuildTableOptions {
+  /**
+   * 변수 이름을 사람이 읽는 이름으로 바꾼다.
+   *
+   * 다중응답 표의 행은 **보기**다. `fashion_style_aware_03` 이 아니라
+   * 「연예인·인플루언서」라고 적혀야 표가 읽힌다. 그 문장은 설문을 들고 있는
+   * 호스트만 안다.
+   */
+  variableLabel?: (name: string) => string | undefined;
+}
+
+export function buildTableData(raw: unknown, options?: BuildTableOptions): TableData[] {
   const result = raw as { success?: boolean; data?: unknown } | null;
   const payload = result && typeof result === "object" && "data" in result ? result.data : raw;
 
@@ -920,7 +937,7 @@ export function buildTableData(raw: unknown): TableData[] {
       ? buildDescriptivesTables(objectPayload)
       : null) ??
     ("items" in objectPayload && "totalResponses" in objectPayload && "validCases" in objectPayload
-      ? buildMultipleResponseTables(objectPayload)
+      ? buildMultipleResponseTables(objectPayload, options?.variableLabel)
       : null) ??
     ("frequencies" in objectPayload && "totalCount" in objectPayload
       ? buildFrequenciesTables(objectPayload)
