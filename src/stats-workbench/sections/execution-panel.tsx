@@ -375,9 +375,15 @@ export function ExecutionPanel({
         ) : (
             <div className="text-sm text-slate-500">{t("runToView")}</div>
         )}
-      </div>
+        {/*
+          결과 아래에 붙는 것은 결과와 **같이 스크롤한다.**
 
-      {result && resultFooter ? <div className="mt-2 shrink-0">{resultFooter}</div> : null}
+          밖에 두고 `shrink-0` 를 주었더니, 요인 열두 개짜리 패널이 제 높이를
+          그대로 가져가 정작 결과표가 한 줄만 남았다. 아래에 있는 것은 내려서
+          보면 되지만, 결과는 돌리자마자 보여야 한다.
+        */}
+        {result && resultFooter ? <div className="mt-2">{resultFooter}</div> : null}
+      </div>
 
       {showPayload ? (
         <div className="mt-2 min-h-0 overflow-auto rounded border border-slate-200 bg-white p-2">
