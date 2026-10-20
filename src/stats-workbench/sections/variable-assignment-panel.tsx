@@ -8,7 +8,7 @@ import { VARIABLE_DRAG_DATA_FORMAT } from "../types";
 import { AnalysisOptionsPanel } from "./analysis-options-panel";
 import { cn } from "../utils";
 import { RoleTag } from "../ui/role-tag";
-import { SharedVariableList } from "../ui/shared-variable-list";
+import { SharedVariableList, type WorkbenchDensity } from "../ui/shared-variable-list";
 
 type VariableAssignmentPanelProps = {
   analysisType: AnalysisKind;
@@ -35,6 +35,8 @@ type VariableAssignmentPanelProps = {
   showVariableList?: boolean;
   /** Which side the variable list sits on. Defaults to the left. */
   variableListPosition?: "start" | "end";
+  density?: WorkbenchDensity;
+  variableTooltip?: (name: string) => string | undefined;
   onAvailableVariableActivate?: (variableName: string) => void;
 };
 
@@ -74,6 +76,8 @@ export function VariableAssignmentPanel({
   variableListDatasetName,
   showVariableList = true,
   variableListPosition = "start",
+  density = "comfortable",
+  variableTooltip,
   onAvailableVariableActivate
 }: VariableAssignmentPanelProps) {
   const { t } = useTranslation();
@@ -135,6 +139,8 @@ export function VariableAssignmentPanel({
     <div className={cn("flex min-h-0 flex-col", listAtEnd ? "sm:order-2" : "sm:order-1")}>
         <SharedVariableList
           className="min-h-0 flex-1"
+          density={density}
+          tooltipByName={variableTooltip}
           variables={availableVariables}
           heading={t("variables")}
           emptyLabel={t("noAvailableVariables")}

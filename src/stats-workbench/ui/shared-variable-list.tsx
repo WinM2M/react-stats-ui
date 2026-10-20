@@ -7,9 +7,14 @@ import { VARIABLE_DRAG_DATA_FORMAT } from "../types";
 
 type VariableType = VariableMeta["type"];
 
+export type WorkbenchDensity = "comfortable" | "compact";
+
 type VariableCardProps = {
   name: string;
   type: VariableType;
+  density?: WorkbenchDensity;
+  /** 마우스를 올렸을 때 보일 설명. 호스트가 준다(원 문항 등). */
+  tooltip?: string;
   isSelected?: boolean;
   isDragging?: boolean;
   isDerived?: boolean;
@@ -18,18 +23,40 @@ type VariableCardProps = {
   onDelete?: () => void;
 };
 
-const VariableCard = ({ name, type, isSelected, isDragging, isDerived, onClick, onDoubleClick, onDelete }: VariableCardProps) => (
+const VariableCard = ({
+  name,
+  type,
+  density = "comfortable",
+  tooltip,
+  isSelected,
+  isDragging,
+  isDerived,
+  onClick,
+  onDoubleClick,
+  onDelete
+}: VariableCardProps) => (
   <div
     onClick={onClick}
     onDoubleClick={onDoubleClick}
+    // 변수 이름은 보통 `q7_1` 같은 약어라, 올려 보면 원래 문항이 보여야 한다.
+    // 그 문장은 호스트만 알고 있으므로 받아서 그대로 단다.
+    title={tooltip ?? name}
     className={cn(
-      "flex cursor-grab items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition",
+      "flex cursor-grab items-center gap-2 rounded-lg border border-slate-200 bg-white text-left shadow-sm transition",
+      density === "compact" ? "px-2 py-1" : "px-3 py-2",
       isSelected ? "ring-2 ring-sky-500 border-sky-500" : "hover:border-slate-300 hover:shadow-md",
       isDragging && "opacity-50"
     )}
   >
     <RoleTag type={type} />
-    <span className="truncate text-sm font-medium text-slate-700">{name}</span>
+    <span
+      className={cn(
+        "truncate font-medium text-slate-700",
+        density === "compact" ? "text-xs" : "text-sm"
+      )}
+    >
+      {name}
+    </span>
     {isDerived && onDelete ? (
       <button
         type="button"
@@ -65,6 +92,10 @@ export type SharedVariableListProps = {
   derivedNames?: Set<string>;
   onDeleteVariable?: (name: string) => void;
   secondaryLabelByName?: Record<string, string>;
+  /** 글자 크기와 여백. `compact` 는 한 화면에 더 많이 담는다. */
+  density?: WorkbenchDensity;
+  /** 변수마다 마우스를 올렸을 때 보일 설명. 없으면 변수 이름이 그대로 뜬다. */
+  tooltipByName?: (name: string) => string | undefined;
 };
 
 export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariableListProps>(function SharedVariableList(
@@ -86,7 +117,9 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     onDragEnd,
     derivedNames,
     onDeleteVariable,
-    secondaryLabelByName
+    secondaryLabelByName,
+    density = "comfortable",
+    tooltipByName
   },
   ref
 ) {
@@ -173,17 +206,22 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     <div
       ref={ref}
       className={cn(
-        "flex min-h-0 select-none flex-col rounded-xl bg-white p-4 shadow-sm max-[640px]:p-2",
+        "flex min-h-0 select-none flex-col rounded-xl bg-white shadow-sm max-[640px]:p-2",
+        density === "compact" ? "p-2" : "p-4",
         borderless ? "" : "border border-slate-200",
         className
       )}
     >
-      {heading ? <div className="mb-2 text-sm font-semibold">{heading}</div> : null}
+      {heading ? (
+        <div className={cn("mb-2 font-semibold", density === "compact" ? "text-xs" : "text-sm")}>
+          {heading}
+        </div>
+      ) : null}
       <div className={cn("min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200", contentClassName)}>
         {variables.length === 0 ? (
           <div className="p-3 text-sm text-slate-500">{emptyLabel}</div>
         ) : (
-          <ul className="space-y-2 p-2">
+          <ul className={cn(density === "compact" ? "space-y-1 p-1" : "space-y-2 p-2")}>
             {variables.map((variable, index) => (
               <li
                 key={variable.name}
@@ -209,6 +247,8 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
                   <VariableCard
                     name={variable.name}
                     type={variable.type}
+                    density={density}
+                    tooltip={tooltipByName?.(variable.name)}
                     isSelected={selectedNameSet.has(variable.name)}
                     isDragging={draggingName === variable.name}
                     isDerived={derivedNames?.has(variable.name)}

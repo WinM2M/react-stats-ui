@@ -126,6 +126,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   analysisExecutor,
   onResult,
   resultFooter,
+  density = "comfortable",
+  variableTooltip,
   onHelpOpen,
   hideInternalVariableList = false,
   allowedAnalyses,
@@ -1032,6 +1034,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                 <div className="relative min-h-0 flex-1 overflow-hidden">
                   <div className="h-full">
                     <VariableAssignmentPanel
+                      density={density}
+                      variableTooltip={variableTooltip}
                       analysisType={analysisType}
                       analysisDef={analysisDef}
                       availableVariables={availableVariables}
@@ -1131,6 +1135,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                 }}
               >
                 <VariableAssignmentPanel
+                  density={density}
+                  variableTooltip={variableTooltip}
                   analysisType={analysisType}
                   analysisDef={analysisDef}
                   availableVariables={availableVariables}

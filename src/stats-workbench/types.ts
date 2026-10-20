@@ -270,6 +270,22 @@ export type StatsWorkbenchProps = {
    */
   resultFooter?: (context: { analysisType: AnalysisKind; result: unknown }) => ReactNode;
   /**
+   * Font size and padding in the variable list.
+   *
+   * `compact` fits noticeably more on one screen, which is what a survey with
+   * a hundred items needs. Default stays `comfortable` so existing hosts do
+   * not shift under them.
+   */
+  density?: "comfortable" | "compact";
+  /**
+   * Text shown when the pointer rests on a variable.
+   *
+   * Variable names are usually abbreviations (`q7_1`), and the wording they
+   * stand for lives with the host, not here. Return undefined to fall back to
+   * the name itself.
+   */
+  variableTooltip?: (name: string) => string | undefined;
+  /**
    * Fires when the analysis help popover is opened, not when it is closed.
    *
    * An embedder tracking what a learner consulted needs the open event; the panel
