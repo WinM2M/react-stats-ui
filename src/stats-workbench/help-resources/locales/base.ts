@@ -97,6 +97,21 @@ export function createBaseLocale(overrides: LocaleOverride = {}): LocalePack {
       hierarchical: "explore nested grouping structure",
       latentStructure: "identify hidden latent constructs",
       dimensionReduction: "reduce dimensionality while preserving variance",
+      // One purpose per extraction x rotation pair. Sharing a single
+      // "dimension reduction" line across six entries told nobody which of the
+      // six to pick, which is the only question the list raises.
+      factorsCorrelated:
+        "find the factors behind a set of items when those factors are expected to correlate -- the usual case for attitude and personality scales",
+      factorsCorrelatedLarge:
+        "find correlated factors in a larger item pool, where Promax reaches a solution faster than Oblimin",
+      factorsFitCorrelated:
+        "find correlated factors and report model fit, when the items can be treated as normally distributed",
+      factorsFitCorrelatedLarge:
+        "find correlated factors with model fit in a larger item pool",
+      factorsIndependent:
+        "find factors that are kept uncorrelated, which makes each loading easy to read on its own",
+      componentsSummary:
+        "compress many variables into a few components for summary or later analysis, rather than argue about latent factors",
       distanceMap: "project dissimilarities into a low-dimensional map",
       reliability: "evaluate internal consistency of scale items"
     },

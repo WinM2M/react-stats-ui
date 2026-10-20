@@ -19,6 +19,20 @@ export const koHelpLocale = createBaseLocale({
     apaExample: "예제",
     noOptions: "이 분석은 현재 UI에서 설정 가능한 옵션이 없습니다."
   },
+  purpose: {
+    factorsCorrelated:
+      "문항들 뒤에 있는 요인을 찾을 때. 요인끼리 서로 상관이 있다고 보는 경우에 씁니다 — 태도·성격 척도는 대개 그렇습니다",
+    factorsCorrelatedLarge:
+      "문항이 많은 자료에서 서로 상관된 요인을 찾을 때. Promax 가 Oblimin 보다 빠르게 해에 도달합니다",
+    factorsFitCorrelated:
+      "서로 상관된 요인을 찾으면서 모형 적합도까지 보고할 때. 문항을 정규분포로 볼 수 있을 때 씁니다",
+    factorsFitCorrelatedLarge:
+      "문항이 많은 자료에서 상관된 요인을 찾으면서 적합도도 볼 때",
+    factorsIndependent:
+      "요인을 서로 독립으로 두고 볼 때. 적재량 하나하나를 따로 읽기 쉬워집니다",
+    componentsSummary:
+      "잠재요인을 따지기보다 여러 변수를 몇 개로 줄여 요약하거나 뒤 분석에 넘길 때"
+  },
   templates: {
     overview: (analysisLabel, summary) => `${analysisLabel} 분석은 ${summary}을(를) 제공합니다.`,
     purpose: (purposeText) => `이 방법은 ${purposeText}에 사용됩니다.`,

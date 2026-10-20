@@ -321,7 +321,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
   pca: {
     label: "Principal Component Analysis",
     summary: "orthogonal components with maximum variance",
-    purposeKey: "dimensionReduction",
+    purposeKey: "componentsSummary",
     wikipediaTitle: "Principal_component_analysis",
     formulaLatex: "\\mathrm{EVR}_k=\\frac{\\lambda_k}{\\sum_{i=1}^{p}\\lambda_i}",
     apaExample: {
@@ -344,7 +344,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
   efaPafOblimin: {
     label: "Principal Axis Factoring x Direct Oblimin",
     summary: "common factors that are allowed to correlate",
-    purposeKey: "dimensionReduction",
+    purposeKey: "factorsCorrelated",
     wikipediaTitle: "Factor_analysis",
     formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
     apaExample: {
@@ -367,7 +367,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
   efaPafPromax: {
     label: "Principal Axis Factoring x Promax",
     summary: "common factors, oblique rotation for large item sets",
-    purposeKey: "dimensionReduction",
+    purposeKey: "factorsCorrelatedLarge",
     wikipediaTitle: "Factor_analysis",
     formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
     apaExample: {
@@ -390,7 +390,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
   efaMlOblimin: {
     label: "Maximum Likelihood x Direct Oblimin",
     summary: "common factors with fit statistics, correlated",
-    purposeKey: "dimensionReduction",
+    purposeKey: "factorsFitCorrelated",
     wikipediaTitle: "Factor_analysis",
     formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
     apaExample: {
@@ -413,7 +413,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
   efaMlPromax: {
     label: "Maximum Likelihood x Promax",
     summary: "common factors with fit statistics, oblique",
-    purposeKey: "dimensionReduction",
+    purposeKey: "factorsFitCorrelatedLarge",
     wikipediaTitle: "Factor_analysis",
     formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
     apaExample: {
@@ -436,7 +436,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
   efaPafVarimax: {
     label: "Principal Axis Factoring x Varimax",
     summary: "common factors kept uncorrelated",
-    purposeKey: "dimensionReduction",
+    purposeKey: "factorsIndependent",
     wikipediaTitle: "Factor_analysis",
     formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
     apaExample: {
