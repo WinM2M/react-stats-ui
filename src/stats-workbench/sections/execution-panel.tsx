@@ -13,6 +13,12 @@ type ExecutionPanelProps = {
   result: unknown;
   error: string;
   showPayload: boolean;
+  /**
+   * The "..." menu that switches the result to raw JSON and shows the API
+   * payload. Developer tools: an embedder whose users are researchers, not
+   * API callers, has no use for them on screen.
+   */
+  showDeveloperMenu?: boolean;
   onTogglePayload: () => void;
   workerReady: boolean;
   workerProgress: number | null;
@@ -172,6 +178,7 @@ export function ExecutionPanel({
   result,
   error,
   showPayload,
+  showDeveloperMenu = true,
   onTogglePayload,
   workerReady,
   workerProgress,
@@ -278,6 +285,7 @@ export function ExecutionPanel({
         </div>
         <div className="relative" ref={moreRef}>
           <div className="flex items-center gap-1">
+            {showDeveloperMenu ? (
             <button
               type="button"
               onClick={() => setMoreOpen((prev) => !prev)}
@@ -290,6 +298,7 @@ export function ExecutionPanel({
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
+            ) : null}
             {minimalChrome && onCloseResult ? (
               <button
                 type="button"
@@ -303,7 +312,7 @@ export function ExecutionPanel({
             ) : null}
           </div>
 
-          {moreOpen ? (
+          {moreOpen && showDeveloperMenu ? (
             <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-52 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
               <button
                 type="button"

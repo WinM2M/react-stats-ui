@@ -127,6 +127,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   onResult,
   resultFooter,
   headerActions,
+  showResultDeveloperMenu = true,
   density = "comfortable",
   variableTooltip,
   onHelpOpen,
@@ -1089,6 +1090,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       copyLabel={apaCopyLabel}
                       copyEmphasis={apaCopyEmphasis}
                       resultFooter={result ? resultFooter?.({ analysisType, result }) : undefined}
+                      showDeveloperMenu={showResultDeveloperMenu}
                     />
                   </div>
                 </div>
@@ -1186,6 +1188,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   copyLabel={apaCopyLabel}
                   copyEmphasis={apaCopyEmphasis}
                   resultFooter={result ? resultFooter?.({ analysisType, result }) : undefined}
+                      showDeveloperMenu={showResultDeveloperMenu}
                 />
               </section>
             </>

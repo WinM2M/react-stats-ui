@@ -278,6 +278,13 @@ export type StatsWorkbenchProps = {
    */
   headerActions?: ReactNode;
   /**
+   * The result panel's "..." menu (raw JSON, API payload).
+   *
+   * Those are developer tools. A host whose users are researchers can turn
+   * them off; default stays on so existing embedders keep what they had.
+   */
+  showResultDeveloperMenu?: boolean;
+  /**
    * Font size and padding in the variable list.
    *
    * `compact` fits noticeably more on one screen, which is what a survey with
