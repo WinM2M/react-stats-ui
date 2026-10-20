@@ -314,24 +314,22 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
    * 통째로 집어 온 사람이 바라는 것은 그 문항의 분포이지 보기 열 개의 0/1
    * 분포가 아니다. 분석 이름이 화면 맨 위에 적혀 있으므로 바뀐 것은 보인다.
    *
-   * 꾸러미와 **정확히 같을 때만** 바꾼다. 다른 변수가 섞여 있으면 보기별 빈도를
-   * 보려는 것일 수 있어, 넘겨짚지 않는다.
+   * 🔴 판단 근거는 **꾸러미 줄을 끌었다는 사실**이지 배정이 꾸러미와 같아졌다는
+   * 결과가 아니다. 둘은 구별되지 않는다 — 펼쳐서 보기를 하나씩 전부 끌어다
+   * 넣어도 같은 집합이 된다. 그 사람은 보기별 0/1 표를 보려던 것이고, 거기서
+   * 분석을 바꾸면 되돌릴 수 없는 참견이 된다.
    */
   const pendingGroupAssignRef = React.useRef<string[] | null>(null);
 
-  React.useEffect(() => {
-    if (analysisType !== "frequencies") return;
-    const names = assignments.variables ?? [];
-    if (names.length < 2) return;
-    const matched = (variableGroups ?? []).find(
-      (group) =>
-        group.members.length === names.length &&
-        group.members.every((member) => names.includes(member))
-    );
-    if (!matched) return;
-    pendingGroupAssignRef.current = [...matched.members];
-    setAnalysisTypeRaw("multipleResponse");
-  }, [analysisType, assignments, variableGroups]);
+  const handleGroupAssigned = React.useCallback(
+    (_groupId: string, names: string[]) => {
+      if (analysisType !== "frequencies") return;
+      if (names.length < 2) return;
+      pendingGroupAssignRef.current = [...names];
+      setAnalysisTypeRaw("multipleResponse");
+    },
+    [analysisType]
+  );
 
   /*
    * 분석을 바꾸면 위의 초기화 효과가 배정을 비운다. 그 효과보다 **뒤에**
@@ -1106,6 +1104,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                       selectedAssigned={selectedAssigned}
                       onSelectAssigned={(role, name) => setSelectedAssigned((prev) => ({ ...prev, [role]: name }))}
                       onAssign={assignVariableToRole}
+                      onGroupAssigned={handleGroupAssigned}
                       onRemove={removeFromRole}
                       options={options}
                       onOptionsChange={setOptions}
@@ -1216,6 +1215,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   selectedAssigned={selectedAssigned}
                   onSelectAssigned={(role, name) => setSelectedAssigned((prev) => ({ ...prev, [role]: name }))}
                   onAssign={assignVariableToRole}
+                  onGroupAssigned={handleGroupAssigned}
                   onRemove={removeFromRole}
                   options={options}
                   onOptionsChange={setOptions}

@@ -302,6 +302,7 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     const payload: VariableDragItem = {
       variableName: group.members[0],
       variableNames: group.members,
+      groupId: group.id,
       variableType: first?.type,
       datasetId: datasetId ?? null,
       datasetName: datasetName ?? null,

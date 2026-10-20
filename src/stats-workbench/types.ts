@@ -352,6 +352,15 @@ export type VariableMeta = {
 export type VariableDragItem = {
   variableName: string;
   variableNames?: string[];
+  /**
+   * The variable group this drag came from, when the user grabbed the group
+   * row itself rather than its members.
+   *
+   * Which row was dragged cannot be recovered from the names that land: the
+   * same set arrives whether the group row was dragged once or its members
+   * were dragged one at a time, and those are different intentions.
+   */
+  groupId?: string;
   variableType?: VariableType;
   datasetId?: string | null;
   datasetName?: string | null;

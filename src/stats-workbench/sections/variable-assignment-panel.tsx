@@ -21,6 +21,8 @@ type VariableAssignmentPanelProps = {
   selectedAssigned: Partial<Record<RoleKey, string>>;
   onSelectAssigned: (role: RoleKey, name: string) => void;
   onAssign: (variableName: string, role: RoleKey) => void;
+  /** 꾸러미 줄을 통째로 떨어뜨렸을 때. 낱개를 하나씩 넣은 것과 구별된다. */
+  onGroupAssigned?: (groupId: string, names: string[], role: RoleKey) => void;
   onRemove: (role: RoleKey, variableName: string) => void;
   options: Record<string, unknown>;
   onOptionsChange: (next: Record<string, unknown>) => void;
@@ -67,6 +69,7 @@ export function VariableAssignmentPanel({
   selectedAssigned,
   onSelectAssigned,
   onAssign,
+  onGroupAssigned,
   onRemove,
   options,
   onOptionsChange,
@@ -336,6 +339,9 @@ export function VariableAssignmentPanel({
                          * 떨어뜨리면 뒤에 받을 칸이 없어 남는 것이 사라지는데,
                          * 아무 말도 없으면 넣은 줄 알고 그대로 분석을 돌린다.
                          */
+                        if (payload.groupId && cursor > 0) {
+                          onGroupAssigned?.(payload.groupId, queue.slice(0, cursor), role.key);
+                        }
                         if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
                         if (cursor < queue.length) {
                           setInvalidRole(role.key);
