@@ -30,8 +30,32 @@ export type AnalysisKind =
   | "kmeans"
   | "hierarchicalCluster"
   | "pca"
+  /**
+   * Exploratory factor analysis, listed as extraction x rotation pairs.
+   *
+   * The pair is the analysis. Offering "factor analysis" and then asking for
+   * an extraction method and a rotation turns one decision into three, and the
+   * two dropdowns are where people stop and guess. Naming the six combinations
+   * that are actually used puts the decision in the place where it is made --
+   * choosing the analysis -- and leaves nothing to set afterwards but how many
+   * factors to keep.
+   */
+  | "efaPafOblimin"
+  | "efaPafPromax"
+  | "efaMlOblimin"
+  | "efaMlPromax"
+  | "efaPafVarimax"
   | "mds"
   | "cronbachAlpha";
+
+/** Extraction and rotation behind each pair. */
+export const EFA_PAIRS: Record<string, { method: "paf" | "ml"; rotation: "oblimin" | "promax" | "varimax" }> = {
+  efaPafOblimin: { method: "paf", rotation: "oblimin" },
+  efaPafPromax: { method: "paf", rotation: "promax" },
+  efaMlOblimin: { method: "ml", rotation: "oblimin" },
+  efaMlPromax: { method: "ml", rotation: "promax" },
+  efaPafVarimax: { method: "paf", rotation: "varimax" }
+};
 
 export type AnalysisPayload = {
   analysisType: AnalysisKind;

@@ -1,6 +1,7 @@
 import { InferentialStats } from "@winm2m/inferential-stats-js";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./constants";
 import { workbenchI18n } from "./i18n";
+import { EFA_PAIRS } from "./types";
 import type { AnalysisKind, AnalysisPayload, PayloadInfo, RoleKey, VariableMeta } from "./types";
 
 const continuousRoles: Partial<Record<AnalysisKind, RoleKey[]>> = {
@@ -53,7 +54,7 @@ function getInputForAnalysis(
   data: Record<string, unknown>[],
   assignments: Record<RoleKey, string[]>,
   options: Record<string, unknown>
-): { input: Record<string, unknown>; reason?: string; meta?: Record<string, unknown> } {
+): { input: Record<string, unknown>; reason?: string; meta?: Record<string, unknown>; sdkMethod?: string } {
   if (analysisType === "frequencies") {
     return { input: { data, variable: assignments.variable[0] } };
   }
@@ -172,8 +173,29 @@ function getInputForAnalysis(
         variables: assignments.variables,
         nComponents: options.nComponents === "auto" || options.nComponents == null ? undefined : toNumber(options.nComponents, 2),
         standardize: toBoolean(options.standardize, true),
-        rotation: options.rotation ?? "varimax",
+        // Listed as "Principal Components x Varimax", so the rotation is part
+        // of the name and not something to ask about again.
+        rotation: "varimax",
         sortBySize: toBoolean(options.sortBySize, true)
+      }
+    };
+  }
+  if (EFA_PAIRS[analysisType]) {
+    const pair = EFA_PAIRS[analysisType];
+    return {
+      sdkMethod: "efa",
+      input: {
+        data,
+        variables: assignments.variables,
+        // `auto` keeps Kaiser (eigenvalue >= 1). Kaiser over-extracts, and
+        // deciding the count from a scree plot or from theory is ordinary
+        // practice, so the number is the one thing left to set here.
+        nFactors:
+          options.nFactors === "auto" || options.nFactors == null
+            ? undefined
+            : toNumber(options.nFactors, 2),
+        rotation: pair.rotation,
+        method: pair.method
       }
     };
   }
@@ -249,10 +271,12 @@ export function getPayload(
     return out;
   });
 
-  const { input, reason, meta } = getInputForAnalysis(analysisType, data, assignments, options);
+  const { input, reason, meta, sdkMethod } = getInputForAnalysis(analysisType, data, assignments, options);
   const payload: AnalysisPayload = {
     analysisType,
-    method: analysisType,
+    // The six factor-analysis pairs all call the SDK's `efa`; the pair only
+    // decides which extraction and rotation go with it.
+    method: (sdkMethod ?? analysisType) as AnalysisKind,
     input,
     options,
     assignments

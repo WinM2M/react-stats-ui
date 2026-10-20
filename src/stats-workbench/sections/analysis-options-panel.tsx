@@ -1,3 +1,4 @@
+import { EFA_PAIRS } from "../types";
 import type { AnalysisKind } from "../types";
 import { useTranslation } from "react-i18next";
 import { SelectBox } from "../ui/select-box";
@@ -149,17 +150,6 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
 
         {analysisType === "pca" && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-600">{t("optionsRotation")}</label>
-            <SelectBox
-              value={String(options.rotation ?? "varimax")}
-              onChange={(value) => updateOption("rotation", value)}
-              items={[
-                { value: "varimax", label: t("optionsVarimax") },
-                { value: "promax", label: t("optionsPromax") },
-                { value: "oblimin", label: t("optionsOblimin") },
-                { value: "none", label: t("optionsNone") }
-              ]}
-            />
             <label className="text-xs font-medium text-slate-600">{t("optionsSortBySize")}</label>
             <SelectBox
               value={String(options.sortBySize !== false)}
@@ -167,6 +157,28 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
               items={[
                 { value: "true", label: t("optionsYes") },
                 { value: "false", label: t("optionsNo") }
+              ]}
+            />
+          </div>
+        )}
+
+        {EFA_PAIRS[analysisType] && (
+          <div className="space-y-2">
+            {/*
+              요인 수 하나만 묻는다.
+              고유값 기준은 열지 않는다 — 바꿀 만한 값이 1 말고 없다. 1.0 은
+              「한 변수분의 분산」이라는 뜻이 있지만 1.2 나 0.8 에는 그런 근거가
+              없고, 숫자를 바꿔 가며 요인 수가 적당해 보이는 자리를 찾게 된다.
+              요인 수를 바꾸고 싶으면 요인 수를 직접 적는 쪽이 정직하다 — 적은
+              값이 그대로 논문에 적을 숫자가 된다.
+            */}
+            <label className="text-xs font-medium text-slate-600">{t("optionsNumberFactors")}</label>
+            <SelectBox
+              value={String(options.nFactors ?? "auto")}
+              onChange={(value) => updateOption("nFactors", value === "auto" ? "auto" : Number(value))}
+              items={[
+                { value: "auto", label: t("optionsFactorsAuto") },
+                ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: String(n), label: String(n) }))
               ]}
             />
           </div>

@@ -341,6 +341,121 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
       { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }
     ]
   },
+  efaPafOblimin: {
+    label: "Principal Axis Factoring x Direct Oblimin",
+    summary: "common factors that are allowed to correlate",
+    purposeKey: "dimensionReduction",
+    wikipediaTitle: "Factor_analysis",
+    formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
+    apaExample: {
+      title: "Factor Loadings",
+      columns: ["Item", "Factor 1", "Factor 2", "Communality"],
+      rows: [
+        { Item: "Q1", "Factor 1": ".81", "Factor 2": ".09", Communality: ".67" },
+        { Item: "Q2", "Factor 1": ".12", "Factor 2": ".76", Communality: ".59" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["matrix"],
+    optionKeys: ["nFactors"],
+    interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
+    references: [
+      { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
+      { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }
+    ]
+  },
+  efaPafPromax: {
+    label: "Principal Axis Factoring x Promax",
+    summary: "common factors, oblique rotation for large item sets",
+    purposeKey: "dimensionReduction",
+    wikipediaTitle: "Factor_analysis",
+    formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
+    apaExample: {
+      title: "Factor Loadings",
+      columns: ["Item", "Factor 1", "Factor 2", "Communality"],
+      rows: [
+        { Item: "Q1", "Factor 1": ".81", "Factor 2": ".09", Communality: ".67" },
+        { Item: "Q2", "Factor 1": ".12", "Factor 2": ".76", Communality: ".59" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["matrix"],
+    optionKeys: ["nFactors"],
+    interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
+    references: [
+      { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
+      { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }
+    ]
+  },
+  efaMlOblimin: {
+    label: "Maximum Likelihood x Direct Oblimin",
+    summary: "common factors with fit statistics, correlated",
+    purposeKey: "dimensionReduction",
+    wikipediaTitle: "Factor_analysis",
+    formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
+    apaExample: {
+      title: "Factor Loadings",
+      columns: ["Item", "Factor 1", "Factor 2", "Communality"],
+      rows: [
+        { Item: "Q1", "Factor 1": ".81", "Factor 2": ".09", Communality: ".67" },
+        { Item: "Q2", "Factor 1": ".12", "Factor 2": ".76", Communality: ".59" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["matrix"],
+    optionKeys: ["nFactors"],
+    interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
+    references: [
+      { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
+      { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }
+    ]
+  },
+  efaMlPromax: {
+    label: "Maximum Likelihood x Promax",
+    summary: "common factors with fit statistics, oblique",
+    purposeKey: "dimensionReduction",
+    wikipediaTitle: "Factor_analysis",
+    formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
+    apaExample: {
+      title: "Factor Loadings",
+      columns: ["Item", "Factor 1", "Factor 2", "Communality"],
+      rows: [
+        { Item: "Q1", "Factor 1": ".81", "Factor 2": ".09", Communality: ".67" },
+        { Item: "Q2", "Factor 1": ".12", "Factor 2": ".76", Communality: ".59" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["matrix"],
+    optionKeys: ["nFactors"],
+    interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
+    references: [
+      { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
+      { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }
+    ]
+  },
+  efaPafVarimax: {
+    label: "Principal Axis Factoring x Varimax",
+    summary: "common factors kept uncorrelated",
+    purposeKey: "dimensionReduction",
+    wikipediaTitle: "Factor_analysis",
+    formulaLatex: "R-\\Psi=\\Lambda\\Phi\\Lambda^{\\top}",
+    apaExample: {
+      title: "Factor Loadings",
+      columns: ["Item", "Factor 1", "Factor 2", "Communality"],
+      rows: [
+        { Item: "Q1", "Factor 1": ".81", "Factor 2": ".09", Communality: ".67" },
+        { Item: "Q2", "Factor 1": ".12", "Factor 2": ".76", Communality: ".59" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["matrix"],
+    optionKeys: ["nFactors"],
+    interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
+    references: [
+      { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
+      { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }
+    ]
+  },
   mds: {
     label: "Multidimensional Scaling",
     summary: "low-dimensional embedding from distances",

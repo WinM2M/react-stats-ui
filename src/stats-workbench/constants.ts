@@ -22,7 +22,14 @@ export const ANALYSIS_GROUPS: Array<{
   },
   {
     key: "dimensionReduction",
-    items: ["pca"]
+    items: [
+      "efaPafOblimin",
+      "efaPafPromax",
+      "efaMlOblimin",
+      "efaMlPromax",
+      "efaPafVarimax",
+      "pca"
+    ]
   },
   {
     key: "scale",
@@ -106,8 +113,28 @@ export const ANALYSIS_DEFS: Record<AnalysisKind, AnalysisDef> = {
     roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
   },
   pca: {
-    label: "Principal Component Analysis",
+    label: "Principal Components x Varimax",
     roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
+  },
+  efaPafOblimin: {
+    label: "Principal Axis Factoring x Direct Oblimin",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 3 }]
+  },
+  efaPafPromax: {
+    label: "Principal Axis Factoring x Promax",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 3 }]
+  },
+  efaMlOblimin: {
+    label: "Maximum Likelihood x Direct Oblimin",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 3 }]
+  },
+  efaMlPromax: {
+    label: "Maximum Likelihood x Promax",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 3 }]
+  },
+  efaPafVarimax: {
+    label: "Principal Axis Factoring x Varimax",
+    roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 3 }]
   },
   mds: {
     label: "Multidimensional Scaling",

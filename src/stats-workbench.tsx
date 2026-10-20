@@ -978,7 +978,16 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
             // Minimal renders a single child. Leaving it in an `auto` row meant the
             // panel sized to its content and ignored the height its host gave it, so a
             // taller container just grew empty space underneath.
-            layoutMode === "minimal" ? "grid-rows-[1fr] gap-1.5" : "grid-rows-[auto_1fr] gap-3"
+            //
+            // The panel row is `minmax(0, 1fr)`, not `1fr`. A `1fr` track takes `auto`
+            // as its automatic minimum, so a tall child -- a long variable list, say --
+            // pushes the row past the container instead of shrinking. The inner
+            // `overflow-auto` then never engages and the whole page scrolls: the result
+            // panel ends up below the fold while the list runs on. `minmax(0, 1fr)`
+            // lets the row shrink, which is what hands the scrolling back to the list.
+            layoutMode === "minimal"
+              ? "grid-rows-[minmax(0,1fr)] gap-1.5"
+              : "grid-rows-[auto_minmax(0,1fr)] gap-3"
           )}
         >
           {layoutMode === "minimal" ? (
