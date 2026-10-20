@@ -34,6 +34,7 @@ import type {
   VariableMeta,
   VariableDragItem
 } from "./stats-workbench/types";
+import { EFA_PAIRS } from "./stats-workbench/types";
 import { cn } from "./stats-workbench/utils";
 
 function normalizeInitialAnalysis(kind: string): AnalysisKind {
@@ -308,8 +309,17 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const availableVariables = (selectedDataset?.columns ?? []).filter((column) => !assignedNames.has(column.name));
   const analysisDef = ANALYSIS_DEFS[analysisType];
   const payloadInfo = getPayload(analysisType, selectedDataset?.rows ?? [], assignments, options);
+  /**
+   * 옵션 칸을 열지 말지.
+   *
+   * 🔴 분석 종류를 **손으로 적은 목록**이라, 옵션을 새로 만들어도 그 종류를
+   * 여기에 더하지 않으면 패널이 통째로 안 열린다. 요인분석의 「요인 수」와
+   * 「크기순 정렬」이 그렇게 만들어 놓고도 화면에 한 번도 안 떴다. 여섯 쌍이
+   * 모두 빠져 있었다.
+   */
   const hasOptions = React.useMemo(
     () =>
+      Boolean(EFA_PAIRS[analysisType]) ||
       [
         "ttestIndependent",
         "posthocTukey",
