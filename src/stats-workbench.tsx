@@ -172,6 +172,17 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const [showResultAfterManualRun, setShowResultAfterManualRun] = React.useState(false);
   const [analysisQueue, setAnalysisQueue] = React.useState<Array<{ payload: AnalysisPayload; trigger: AnalysisTrigger }>>([]);
   const [topPanelHeight, setTopPanelHeight] = React.useState<number | null>(null);
+  /**
+   * 결과가 나오면 결과 칸이 **위로 열리며 커진다.**
+   *
+   * 분석을 돌리고 나서 보고 싶은 것은 결과다. 그런데 변수 고르는 칸이 화면 절반을
+   * 계속 차지하고 있어, 결과를 보려면 매번 칸막이를 끌어 내려야 했다. 분석 쪽을
+   * 다시 누르면 접힌다 — 변수를 더 손볼 때다.
+   *
+   * 사람이 끌어 맞춘 높이(`topPanelHeight`)와 **따로 둔다.** 이것이 그 값을
+   * 덮으면, 한 번 결과를 본 뒤로는 끌어 둔 높이가 사라진다.
+   */
+  const [resultFocusTop, setResultFocusTop] = React.useState<number | null>(null);
   const [isResizingPanels, setIsResizingPanels] = React.useState(false);
   const [isCompactViewport, setIsCompactViewport] = React.useState(false);
   const [workerConnectionState, setWorkerConnectionState] = React.useState<
@@ -301,6 +312,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     setSelectedAvailable(null);
     setError("");
     setResult(null);
+    setResultFocusTop(null);
     if (layoutMode === "minimal") {
       setShowMinimalResult(false);
       setShowResultAfterManualRun(false);
@@ -706,6 +718,7 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
       try {
         const output = analysisExecutor ? await analysisExecutor(payload) : await executeDefaultAnalysis(payload);
         setResult(output);
+        focusResultPanel();
         onResult?.({ payload, trigger, result: output });
         if (!analysisExecutor) {
           setWorkerConnectionState("ready");
@@ -972,6 +985,18 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
     }
   }, [isCompactViewport, topPanelHeight]);
 
+  /** 결과 칸을 키운다. 위 칸은 최소 높이 가까이로 접되 아주 없애지는 않는다. */
+  const focusResultPanel = React.useCallback(() => {
+    const container = panelsRef.current;
+    if (!container) return;
+    const minPanelHeight = isCompactViewport ? 120 : 220;
+    const height = container.getBoundingClientRect().height;
+    if (height <= 0) return;
+    // 위 칸을 아예 접으면 무엇이 배정돼 있는지 안 보인다. 셋 중 하나쯤 남긴다.
+    const next = Math.max(minPanelHeight, Math.round(height * 0.34));
+    setResultFocusTop(next);
+  }, [isCompactViewport]);
+
   const importDatasetFile = React.useCallback(
     async (file: File) => {
       try {
@@ -1191,11 +1216,24 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                 className={cn("grid min-h-0 min-w-0", isResizingPanels ? "cursor-row-resize select-none" : "")}
                 style={{
                   rowGap: "0.5rem",
-                  gridTemplateRows: topPanelHeight
-                    ? `${topPanelHeight}px 8px minmax(${minPanelHeight}px, 1fr)`
-                    : `minmax(${minPanelHeight}px, 1fr) 8px minmax(${minPanelHeight}px, 1fr)`
+                  gridTemplateRows: (resultFocusTop ?? topPanelHeight)
+                    ? `${resultFocusTop ?? topPanelHeight}px 8px minmax(${minPanelHeight}px, 1fr)`
+                    : `minmax(${minPanelHeight}px, 1fr) 8px minmax(${minPanelHeight}px, 1fr)`,
+                  // 끌어 맞추는 중에는 애니메이션을 끈다. 손을 따라오지 않고 뒤처진다.
+                  transition: isResizingPanels ? undefined : "grid-template-rows 280ms ease"
                 }}
               >
+                {/*
+                  결과가 커진 상태에서 **위 칸을 누르면 접힌다.** 변수를 더 손보려고
+                  올라온 것이니, 따로 단추를 찾을 일이 아니다. 눌러서 되돌리는 것이라
+                  안에 있는 단추·입력을 막지 않게 버블링으로만 받는다.
+                */}
+                <div
+                  className="contents"
+                  onPointerDownCapture={() => {
+                    if (resultFocusTop !== null) setResultFocusTop(null);
+                  }}
+                >
                 <VariableAssignmentPanel
                   density={density}
                   variableTooltip={variableTooltip}
@@ -1228,11 +1266,20 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                   variableListDatasetName={selectedDataset?.name ?? null}
                   onAvailableVariableActivate={assignVariableToBestRole}
                 />
+                </div>
 
                 <div
                   role="separator"
                   aria-orientation="horizontal"
-                  onPointerDown={() => setIsResizingPanels(true)}
+                  onPointerDown={() => {
+                    // 끌기 시작하면 사람이 직접 맞추는 것이다. 지금 보이는 높이를
+                    // 그대로 넘겨 받아야 손을 대는 순간 칸이 튀지 않는다.
+                    if (resultFocusTop !== null) {
+                      setTopPanelHeight(resultFocusTop);
+                      setResultFocusTop(null);
+                    }
+                    setIsResizingPanels(true);
+                  }}
                   className="group relative flex cursor-row-resize items-center justify-center"
                 >
                   <div className="h-1.5 w-20 rounded-full bg-slate-300 transition group-hover:bg-slate-400" />
