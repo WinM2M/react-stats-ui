@@ -34,7 +34,7 @@ import type {
   VariableMeta,
   VariableDragItem
 } from "./stats-workbench/types";
-import { EFA_PAIRS } from "./stats-workbench/types";
+import { ANALYSIS_SPECS } from "./stats-workbench/help-resources/shared";
 import { cn } from "./stats-workbench/utils";
 
 function normalizeInitialAnalysis(kind: string): AnalysisKind {
@@ -361,27 +361,18 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   const analysisDef = ANALYSIS_DEFS[analysisType];
   const payloadInfo = getPayload(analysisType, selectedDataset?.rows ?? [], assignments, options);
   /**
-   * 옵션 칸을 열지 말지.
+   * 옵션 칸을 열지 말지 — **옵션이 정의돼 있으면 연다.**
    *
-   * 🔴 분석 종류를 **손으로 적은 목록**이라, 옵션을 새로 만들어도 그 종류를
-   * 여기에 더하지 않으면 패널이 통째로 안 열린다. 요인분석의 「요인 수」와
-   * 「크기순 정렬」이 그렇게 만들어 놓고도 화면에 한 번도 안 떴다. 여섯 쌍이
-   * 모두 빠져 있었다.
+   * 전에는 분석 종류를 손으로 적은 목록이었다. 옵션을 새로 만들어도 그 종류를
+   * 목록에 더하지 않으면 패널이 통째로 안 열려서, 요인분석의 「요인 수」와
+   * 「크기순 정렬」이 만들어 놓고도 화면에 한 번도 안 떴다(여섯 쌍이 모두 빠져
+   * 있었다). 목록이 기능과 따로 노는 구조라 같은 자리를 또 밟는다.
+   *
+   * 이제 도움말이 쓰는 사양(`optionKeys`)을 그대로 본다. 옵션을 만들면 그 키를
+   * 사양에 적게 되고, 적으면 칸이 열린다 — 맞출 곳이 하나다.
    */
   const hasOptions = React.useMemo(
-    () =>
-      Boolean(EFA_PAIRS[analysisType]) ||
-      [
-        "ttestIndependent",
-        "posthocTukey",
-        "linearRegression",
-        "logisticBinary",
-        "logisticMultinomial",
-        "kmeans",
-        "hierarchicalCluster",
-        "pca",
-        "mds"
-      ].includes(analysisType),
+    () => (ANALYSIS_SPECS[analysisType]?.optionKeys.length ?? 0) > 0,
     [analysisType]
   );
   const groupCandidates = (payloadInfo.meta?.groupCandidates as Array<string | number> | undefined) ?? [];

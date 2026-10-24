@@ -1,6 +1,8 @@
 import type { AnalysisKind } from "../types";
 import type { AnalysisHelpContent, AnalysisHelpResource, HelpUiText } from "./types";
 
+export { ANALYSIS_SPECS };
+
 export type LocalePack = {
   ui: HelpUiText;
   templates: {
@@ -43,6 +45,12 @@ type AnalysisSpec = {
   references: Array<{ label: string; url: string }>;
 };
 
+/**
+ * 분석별 사양. 🔴 `optionKeys` 는 도움말 문구만이 아니라 **옵션 칸을 여는 근거**다
+ * (`stats-workbench.tsx` 의 `hasOptions`). 옵션을 새로 만들면 그 키를 여기 적어야
+ * 화면에 칸이 열린다 — 전에는 분석 종류를 손으로 적은 별도 목록이 그 일을 했고,
+ * 요인분석의 「요인 수」와 「크기순 정렬」이 만들어 놓고도 한 번도 뜨지 않았다.
+ */
 const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
   frequencies: {
     label: "Frequencies",
@@ -358,7 +366,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
-    optionKeys: ["rotation"],
+    optionKeys: ["sortBySize"],
     interpretationKeys: ["explainedVariance", "componentLoading", "communalities", "obliqueRotation"],
     references: [
       { label: "Wikipedia: Principal component analysis", url: "https://en.wikipedia.org/wiki/Principal_component_analysis" },
@@ -381,7 +389,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
-    optionKeys: ["nFactors"],
+    optionKeys: ["nFactors", "sortBySize"],
     interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
     references: [
       { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
@@ -404,7 +412,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
-    optionKeys: ["nFactors"],
+    optionKeys: ["nFactors", "sortBySize"],
     interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
     references: [
       { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
@@ -427,7 +435,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
-    optionKeys: ["nFactors"],
+    optionKeys: ["nFactors", "sortBySize"],
     interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
     references: [
       { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
@@ -450,7 +458,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
-    optionKeys: ["nFactors"],
+    optionKeys: ["nFactors", "sortBySize"],
     interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
     references: [
       { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
@@ -473,7 +481,7 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
     },
     dataTypes: ["continuous"],
     dataShapes: ["matrix"],
-    optionKeys: ["nFactors"],
+    optionKeys: ["nFactors", "sortBySize"],
     interpretationKeys: ["componentLoading", "communalities", "obliqueRotation"],
     references: [
       { label: "Wikipedia: Factor analysis", url: "https://en.wikipedia.org/wiki/Factor_analysis" },
