@@ -186,9 +186,13 @@ export const COLUMN_KEYS: Record<string, string> = {
  *
  * 🔴 아무 칸에나 적용하지 않는다. 응답자가 고른 보기가 우연히 `Total` 일 수 있고,
  * 그걸 바꾸면 **데이터를 고쳐 보여 주는** 셈이다. 그래서 표가 이름표를 놓는 칸으로만
- * 범위를 좁힌다.
+ * 범위를 좁힌다 -- `option` 은 응답자의 보기가 들어오는 칸이므로 여기 없다.
+ * 다중응답 표의 합계 줄만 예외로 아래에서 따로 집는다.
  */
-const LABEL_COLUMNS = new Set(["statistic", "source", "test", "measure", "item", "option"]);
+export const LABEL_COLUMNS = new Set(["statistic", "source", "test", "measure", "item"]);
+
+/** 합계 줄을 우리가 붙이는 표. 그 표의 **마지막 줄 `option`** 만 이름표다. */
+const TABLE_WITH_TOTAL_ROW = "Multiple Response Frequencies";
 
 export const CELL_KEYS: Record<string, string> = {
   "Valid cases": "cellValidCases",
@@ -216,9 +220,18 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
     return column;
   });
 
-  /** 표가 스스로 붙인 이름표만 바꾼다. 응답 값은 건드리지 않는다. */
-  const translateCell = (column: string, value: unknown) => {
-    if (typeof value !== "string" || !LABEL_COLUMNS.has(column)) return value;
+  /**
+   * 표가 스스로 붙인 이름표만 바꾼다. 응답 값은 건드리지 않는다.
+   *
+   * 다중응답 표의 `option` 칸에는 응답자가 고른 보기가 들어온다. 그 보기 이름이
+   * 우연히 `Total` 이어도 바꾸면 안 되므로, **우리가 붙인 마지막 합계 줄**일 때만
+   * 집는다(자리로 가린다 -- 글자로 가리면 같은 이름의 보기와 구별할 수 없다).
+   */
+  const translateCell = (column: string, value: unknown, rowIndex: number) => {
+    if (typeof value !== "string") return value;
+    const isTotalRow =
+      column === "option" && table.title === TABLE_WITH_TOTAL_ROW && rowIndex === table.rows.length - 1;
+    if (!isTotalRow && !LABEL_COLUMNS.has(column)) return value;
     const key = CELL_KEYS[value];
     return key ? t(key) : value;
   };
@@ -248,7 +261,7 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
               <tr key={`${table.title}-${rowIndex}`}>
                 {table.columns.map((column) => {
                   const raw = row[column];
-                  let display: unknown = translateCell(column, raw);
+                  let display: unknown = translateCell(column, raw, rowIndex);
                   if (column === "cases" && typeof raw === "string") {
                     if (raw === "Valid") display = t("resultValid");
                     else if (raw === "Excluded") display = t("resultExcluded");
