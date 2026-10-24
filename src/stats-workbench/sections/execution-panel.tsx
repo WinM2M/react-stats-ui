@@ -54,77 +54,174 @@ type ExecutionPanelProps = {
 };
 
 
+/*
+ * 결과 표의 **말**을 모아 둔 자리.
+ *
+ * 전에는 `if (column === "...")` 가 길게 늘어서 있었고, 거기 없는 열쇠값은 화면에
+ * 그대로 찍혔다 -- `percentOfResponses`, `cellsWithExpectedCountBelow5` 같은 낱말이
+ * 표 머리에 섰다. 영어로 봐도 못 읽는 글자라 번역 이전에 **표기** 문제였고, 늘어선
+ * 조건문은 새 표를 만들 때마다 조용히 한 줄씩 빠뜨리게 되어 있었다.
+ *
+ * 표로 바꾼다. 빠진 자리는 아래 `EXPECTED_*` 를 대조하는 테스트가 잡는다.
+ */
+export const TABLE_TITLE_KEYS: Record<string, string> = {
+  Summary: "summary",
+  Eigenvalues: "resultEigenvalues",
+  Communalities: "resultCommunalities",
+  "Rotated Component Matrix": "resultRotatedComponentMatrix",
+  "Model Summary": "resultModelSummary",
+  "Unstandardized Coefficients": "resultUnstandardizedCoefficients",
+  "Standardized Coefficients": "resultStandardizedCoefficients",
+  Multicollinearity: "resultMulticollinearity",
+  "Case Processing Summary": "resultCaseProcessingSummary",
+  "Reliability Statistics": "resultReliabilityStatistics",
+  "Item Statistics": "resultItemStatistics",
+  "Item-Total Statistics": "resultItemTotalStatistics",
+  "Scale Statistics": "resultScaleStatistics",
+  "Multiple Response Frequencies": "titleMultipleResponseFrequencies",
+  "Case Summary": "titleCaseSummary",
+  "Chi-Square Tests": "titleChiSquareTests",
+  "Symmetric Measures": "titleSymmetricMeasures",
+  "Descriptive Statistics": "titleDescriptiveStatistics",
+  Descriptives: "titleDescriptives",
+  "Group Statistics": "titleGroupStatistics",
+  "Independent Samples Test": "titleIndependentSamplesTest",
+  "Levene's Test for Equality of Variances": "titleLevenesTest",
+  "Paired Samples Statistics": "titlePairedSamplesStatistics",
+  "Paired Samples Test": "titlePairedSamplesTest",
+  ANOVA: "titleAnova",
+  "Effect Size": "titleEffectSize",
+  Coefficients: "titleCoefficients",
+  "Collinearity Statistics": "titleCollinearityStatistics",
+  Method: "titleMethod",
+  "Total Variance Explained": "titleTotalVarianceExplained",
+  "Component Correlation Matrix": "titleComponentCorrelationMatrix"
+};
+
+export const COLUMN_KEYS: Record<string, string> = {
+  statistic: "statistic",
+  value: "value",
+  rSquared: "resultRSquared",
+  adjustedRSquared: "resultAdjustedRSquared",
+  fStatistic: "resultFStatistic",
+  fPValue: "resultP",
+  observations: "resultObservations",
+  method: "resultMethod",
+  selectedVariables: "resultSelectedVariables",
+  b: "resultB",
+  beta: "resultBeta",
+  stdError: "resultStdError",
+  t: "resultT",
+  p: "resultP",
+  ci: "resultCI",
+  tolerance: "resultTolerance",
+  vif: "resultVIF",
+  component: "resultComponent",
+  eigenvalue: "resultEigenvalue",
+  variance: "resultVariance",
+  cumulativeVariance: "resultCumulativeVariance",
+  dominantComponent: "resultDominantComponent",
+  dominantLoading: "resultLoading",
+  cases: "resultCases",
+  n: "resultObservations",
+  percent: "resultPercent",
+  cronbachAlpha: "resultCronbachAlpha",
+  nOfItems: "resultNOfItems",
+  item: "resultItem",
+  mean: "resultMean",
+  stdDeviation: "resultStdDeviation",
+  minimum: "resultMinimum",
+  maximum: "resultMaximum",
+  scaleMeanIfItemDeleted: "resultScaleMeanIfItemDeleted",
+  scaleStdIfItemDeleted: "resultScaleStdIfItemDeleted",
+  correctedItemTotalCorrelation: "resultCorrectedItemTotalCorrelation",
+  alphaIfItemDeleted: "resultAlphaIfItemDeleted",
+  option: "resultOption",
+  frequency: "resultFrequency",
+  cumulativePercent: "resultCumulativePercent",
+  percentOfResponses: "resultPercentOfResponses",
+  percentOfCases: "resultPercentOfCases",
+  percentOfRow: "resultPercentOfRow",
+  percentOfColumn: "resultPercentOfColumn",
+  percentOfTotal: "resultPercentOfTotal",
+  rowVariable: "resultRowVariable",
+  colVariable: "resultColVariable",
+  variable: "resultVariable",
+  observed: "resultObserved",
+  expected: "resultExpected",
+  test: "resultTest",
+  df: "resultDf",
+  significance: "resultSignificance",
+  asymptoticSignificance: "resultAsymptoticSignificance",
+  significanceTwoTailed: "resultSignificanceTwoTailed",
+  minimumExpectedCount: "resultMinimumExpectedCount",
+  cellsWithExpectedCountBelow5: "resultCellsBelowFive",
+  conclusion: "resultConclusion",
+  significantDifference: "resultSignificantDifference",
+  measure: "resultMeasure",
+  group: "resultGroup",
+  group1: "resultGroup1",
+  group2: "resultGroup2",
+  meanDifference: "resultMeanDifference",
+  lower95: "resultLower95",
+  upper95: "resultUpper95",
+  pair: "resultPair",
+  source: "resultSource",
+  sumOfSquares: "resultSumOfSquares",
+  meanSquare: "resultMeanSquare",
+  f: "resultF",
+  r: "resultR",
+  pValue: "resultPValue",
+  skewness: "resultSkewness",
+  kurtosis: "resultKurtosis",
+  initial: "resultInitial",
+  extraction: "resultExtraction",
+  variancePercent: "resultVariancePercent",
+  durbinWatson: "resultDurbinWatson",
+  stdErrorOfEstimate: "resultStdErrorOfEstimate"
+};
+
+/*
+ * 셀에 **이름표로 들어간 글자**. 데이터가 아니라 표가 스스로 붙인 말이라 번역한다.
+ *
+ * 🔴 아무 칸에나 적용하지 않는다. 응답자가 고른 보기가 우연히 `Total` 일 수 있고,
+ * 그걸 바꾸면 **데이터를 고쳐 보여 주는** 셈이다. 그래서 표가 이름표를 놓는 칸으로만
+ * 범위를 좁힌다.
+ */
+const LABEL_COLUMNS = new Set(["statistic", "source", "test", "measure", "item", "option"]);
+
+export const CELL_KEYS: Record<string, string> = {
+  "Valid cases": "cellValidCases",
+  "Missing cases": "cellMissingCases",
+  "Total responses": "cellTotalResponses",
+  Total: "cellTotal",
+  "Between Groups": "cellBetweenGroups",
+  "Within Groups": "cellWithinGroups",
+  "Pearson Chi-Square": "cellPearsonChiSquare",
+  "N of Valid Cases": "cellNOfValidCases",
+  "Cramer's V": "cellCramersV",
+  "Cram\u00e9r's V": "cellCramersV",
+  "Eta-squared": "cellEtaSquared"
+};
+
 function ApaTable({ table, index }: { table: TableData; index: number }) {
   const { t } = useTranslation();
-  const translatedTitle =
-    table.title === "Summary"
-      ? t("summary")
-      : table.title === "Eigenvalues"
-        ? t("resultEigenvalues")
-        : table.title === "Communalities"
-          ? t("resultCommunalities")
-          : table.title === "Rotated Component Matrix"
-            ? t("resultRotatedComponentMatrix")
-            : table.title === "Model Summary"
-              ? t("resultModelSummary")
-              : table.title === "Unstandardized Coefficients"
-                ? t("resultUnstandardizedCoefficients")
-                : table.title === "Standardized Coefficients"
-                  ? t("resultStandardizedCoefficients")
-                  : table.title === "Multicollinearity"
-                    ? t("resultMulticollinearity")
-            : table.title === "Case Processing Summary"
-              ? t("resultCaseProcessingSummary")
-            : table.title === "Reliability Statistics"
-              ? t("resultReliabilityStatistics")
-            : table.title === "Item Statistics"
-              ? t("resultItemStatistics")
-            : table.title === "Item-Total Statistics"
-              ? t("resultItemTotalStatistics")
-            : table.title === "Scale Statistics"
-              ? t("resultScaleStatistics")
-            : table.title;
+  const titleKey = TABLE_TITLE_KEYS[table.title ?? ""];
+  const translatedTitle = titleKey ? t(titleKey) : table.title;
   const translatedColumns = table.columns.map((column) => {
-    if (column === "statistic") return t("statistic");
-    if (column === "value") return t("value");
-    if (column === "rSquared") return t("resultRSquared");
-    if (column === "adjustedRSquared") return t("resultAdjustedRSquared");
-    if (column === "fStatistic") return t("resultFStatistic");
-    if (column === "fPValue") return t("resultP");
-    if (column === "observations") return t("resultObservations");
-    if (column === "method") return t("resultMethod");
-    if (column === "selectedVariables") return t("resultSelectedVariables");
-    if (column === "b") return t("resultB");
-    if (column === "beta") return t("resultBeta");
-    if (column === "stdError") return t("resultStdError");
-    if (column === "t") return t("resultT");
-    if (column === "p") return t("resultP");
-    if (column === "ci") return t("resultCI");
-    if (column === "tolerance") return t("resultTolerance");
-    if (column === "vif") return t("resultVIF");
-    if (column === "component") return t("resultComponent");
-    if (column === "eigenvalue") return t("resultEigenvalue");
-    if (column === "variance") return t("resultVariance");
-    if (column === "cumulativeVariance") return t("resultCumulativeVariance");
-    if (column === "dominantComponent") return t("resultDominantComponent");
-    if (column === "dominantLoading") return t("resultLoading");
-    if (column === "cases") return t("resultCases");
-    if (column === "n") return t("resultObservations");
-    if (column === "percent") return t("resultPercent");
-    if (column === "cronbachAlpha") return t("resultCronbachAlpha");
-    if (column === "nOfItems") return t("resultNOfItems");
-    if (column === "item") return t("resultItem");
-    if (column === "mean") return t("resultMean");
-    if (column === "stdDeviation") return t("resultStdDeviation");
-    if (column === "minimum") return t("resultMinimum");
-    if (column === "maximum") return t("resultMaximum");
-    if (column === "scaleMeanIfItemDeleted") return t("resultScaleMeanIfItemDeleted");
-    if (column === "scaleStdIfItemDeleted") return t("resultScaleStdIfItemDeleted");
-    if (column === "correctedItemTotalCorrelation") return t("resultCorrectedItemTotalCorrelation");
-    if (column === "alphaIfItemDeleted") return t("resultAlphaIfItemDeleted");
+    const key = COLUMN_KEYS[column];
+    if (key) return t(key);
+    // `component1`, `component2` … 처럼 번호가 붙어 오는 적재량 열.
     if (column.startsWith("component")) return `${t("resultComponent")} ${column.replace("component", "")}`;
     return column;
   });
+
+  /** 표가 스스로 붙인 이름표만 바꾼다. 응답 값은 건드리지 않는다. */
+  const translateCell = (column: string, value: unknown) => {
+    if (typeof value !== "string" || !LABEL_COLUMNS.has(column)) return value;
+    const key = CELL_KEYS[value];
+    return key ? t(key) : value;
+  };
 
   return (
     <div className="mb-4 overflow-x-auto">
@@ -151,7 +248,7 @@ function ApaTable({ table, index }: { table: TableData; index: number }) {
               <tr key={`${table.title}-${rowIndex}`}>
                 {table.columns.map((column) => {
                   const raw = row[column];
-                  let display: unknown = raw;
+                  let display: unknown = translateCell(column, raw);
                   if (column === "cases" && typeof raw === "string") {
                     if (raw === "Valid") display = t("resultValid");
                     else if (raw === "Excluded") display = t("resultExcluded");
