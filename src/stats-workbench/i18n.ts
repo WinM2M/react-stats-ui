@@ -585,6 +585,15 @@ export const resources = {
       resultScaleStdIfItemDeleted: "항목 제거 시 척도 표준편차",
       resultCorrectedItemTotalCorrelation: "수정된 항목-전체 상관",
       resultAlphaIfItemDeleted: "항목 제거 시 Cronbach 알파",
+      /*
+       * 🔴 영어 쪽에만 있던 말들. 열쇠는 있는데 값이 영어 그대로라, 결과 표 둘째 칸
+       * 머리가 `Statistic`·`Value` 로 서고 표 이름이 `Table 1` 로 섰다. **있는지**만
+       * 묻는 테스트는 이걸 못 잡는다 -- ko 가 en 을 펼쳐 담아 늘 존재하기 때문이다.
+       */
+      statistic: "통계량",
+      value: "값",
+      summary: "요약",
+      tableLabel: "표 {{index}}",
       resultOption: "보기",
       resultFrequency: "빈도",
       resultCumulativePercent: "누적 퍼센트",

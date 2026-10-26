@@ -13,7 +13,12 @@
 import { readFileSync } from "fs";
 import path from "path";
 
-import { TABLE_TITLE_KEYS, COLUMN_KEYS, LABEL_COLUMNS } from "./sections/execution-panel";
+import {
+  TABLE_TITLE_KEYS,
+  COLUMN_KEYS,
+  CELL_KEYS,
+  LABEL_COLUMNS
+} from "./sections/execution-panel";
 import { resources } from "./i18n";
 
 const source = readFileSync(path.join(__dirname, "result-utils.ts"), "utf8");
@@ -67,6 +72,42 @@ describe("결과 표의 말", () => {
     const keys = [...new Set([...Object.values(COLUMN_KEYS), ...Object.values(TABLE_TITLE_KEYS)])];
     expect(keys.filter((key) => typeof en[key] !== "string")).toEqual([]);
     expect(keys.filter((key) => typeof ko[key] !== "string")).toEqual([]);
+  });
+
+  /*
+   * 🔴 **있는지만 묻는 것으로는 모자란다.** `ko` 는 `common`(영어)을 펼쳐 담으므로
+   * 한국어를 안 적어도 열쇠는 늘 존재한다. 그래서 위 검사는 통과하는데 화면에는
+   * `Statistic`·`Value`·`Table 1` 이 영어로 섰다 -- 실제로 그렇게 새어 나갔다.
+   *
+   * 그래서 **영어와 같은 값**을 찾는다. 통계 기호처럼 같아야 맞는 것만 적어 두고,
+   * 그 밖에 같은 것이 생기면 번역을 빠뜨린 것으로 본다.
+   */
+  it("한국어가 영어 그대로 남아 있지 않다", () => {
+    /** 한국어 SPSS 도 그대로 쓰는 기호·고유명. 여기 적힌 것만 영어와 같아도 된다. */
+    const SAME_ON_PURPOSE = new Set([
+      "resultB",
+      "resultBeta",
+      "resultDurbinWatson",
+      "resultF",
+      "resultFStatistic",
+      "resultP",
+      "resultPercent",
+      "resultR",
+      "resultT",
+      "resultVIF"
+    ]);
+    const en = resources.en.translation as unknown as Record<string, string>;
+    const ko = resources.ko.translation as unknown as Record<string, string>;
+    const keys = [
+      ...new Set([
+        ...Object.values(COLUMN_KEYS),
+        ...Object.values(TABLE_TITLE_KEYS),
+        ...Object.values(CELL_KEYS),
+        "tableLabel"
+      ])
+    ];
+    const untranslated = keys.filter((key) => en[key] === ko[key] && !SAME_ON_PURPOSE.has(key));
+    expect(untranslated).toEqual([]);
   });
 
   it("보기 칸은 이름표 묶음에 들어 있지 않다", () => {
