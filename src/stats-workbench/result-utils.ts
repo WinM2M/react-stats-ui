@@ -292,6 +292,134 @@ function buildCronbachTables(objectPayload: Record<string, unknown>): TableData[
   return tables;
 }
 
+
+/**
+ * 조건부 과정 분석(매개·조절)의 결과 표.
+ *
+ * PROCESS 의 고정폭 출력을 베끼지 않는다. 네 블록으로 나눈다 -- 경로 회귀식,
+ * 직접효과, 간접효과, 조절된 매개 지수.
+ *
+ * 두 가지를 일부러 다르게 했다.
+ *
+ * 1. **조절변수 수준을 열 이름이 아니라 칸 값으로 둔다.** 계산기는 수준 열의
+ *    이름을 조절변수의 변수명으로 짓는데(`fam`), 그러면 열 머리가 번역되지
+ *    않는다. 「fam = -1.05」처럼 한 칸에 담으면 열은 고정되고 말은 번역된다.
+ * 2. **간접효과 표에 t·p 열을 두지 않는다.** 부트스트랩 구간에는 그 값이 없다.
+ *    빈 칸으로 두면 「계산 실패」로 읽힌다 -- 없는 것과 못 구한 것은 다르다.
+ */
+function buildProcessTables(objectPayload: Record<string, unknown>): TableData[] {
+  const tables: TableData[] = [];
+  const asArray = (value: unknown): Array<Record<string, unknown>> =>
+    Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
+
+  const ci = (value: unknown): string => {
+    const pair = Array.isArray(value) ? (value as unknown[]) : [];
+    const lo = typeof pair[0] === "number" ? (pair[0] as number) : null;
+    const hi = typeof pair[1] === "number" ? (pair[1] as number) : null;
+    if (lo == null || hi == null) return "";
+    return `[${lo.toFixed(4)}, ${hi.toFixed(4)}]`;
+  };
+
+  /** 구간이 0 을 품지 않는가. 간접효과 판정의 전부다. */
+  const excludesZero = (value: unknown): boolean => {
+    const pair = Array.isArray(value) ? (value as unknown[]) : [];
+    const lo = typeof pair[0] === "number" ? (pair[0] as number) : null;
+    const hi = typeof pair[1] === "number" ? (pair[1] as number) : null;
+    if (lo == null || hi == null) return false;
+    return (lo > 0 && hi > 0) || (lo < 0 && hi < 0);
+  };
+
+  const atLevel = (levels: unknown): string => {
+    if (!levels || typeof levels !== "object") return "";
+    return Object.entries(levels as Record<string, unknown>)
+      .map(([name, value]) => `${name} = ${typeof value === "number" ? value.toFixed(3) : String(value)}`)
+      .join(", ");
+  };
+
+  const outcomeModels = asArray(objectPayload.outcomeModels);
+
+  if (outcomeModels.length > 0) {
+    tables.push({
+      title: "Model Fit by Path",
+      columns: ["outcome", "rSquared", "adjustedRSquared", "fStatistic", "p", "observations"],
+      rows: outcomeModels.map((model) => ({
+        outcome: model.outcome,
+        rSquared: model.rSquared,
+        adjustedRSquared: model.adjustedRSquared,
+        fStatistic: model.fStatistic,
+        p: model.pValue,
+        observations: model.observations
+      }))
+    });
+
+    tables.push({
+      title: "Path Coefficients",
+      columns: ["outcome", "term", "b", "stdError", "t", "p", "ci"],
+      rows: outcomeModels.flatMap((model) =>
+        asArray(model.coefficients).map((row) => ({
+          outcome: model.outcome,
+          term: row.term,
+          b: row.coefficient,
+          stdError: row.stdError,
+          t: row.tStatistic,
+          p: row.pValue,
+          ci: ci(row.confidenceInterval)
+        }))
+      )
+    });
+  }
+
+  const directEffects = asArray(objectPayload.directEffects);
+  if (directEffects.length > 0) {
+    tables.push({
+      title: "Direct Effect",
+      columns: ["atLevel", "effect", "stdError", "t", "p", "ci"],
+      rows: directEffects.map((row) => ({
+        atLevel: atLevel(row.moderatorLevels),
+        effect: row.effect,
+        stdError: row.stdError,
+        t: row.tStatistic,
+        p: row.pValue,
+        ci: ci(row.confidenceInterval)
+      }))
+    });
+  }
+
+  const indirectEffects = asArray(objectPayload.indirectEffects);
+  if (indirectEffects.length > 0) {
+    tables.push({
+      title: "Indirect Effects",
+      columns: ["via", "atLevel", "effect", "bootStdError", "bootCI", "excludesZero"],
+      rows: indirectEffects.map((row) => ({
+        via: row.via,
+        atLevel: atLevel(row.moderatorLevels),
+        effect: row.effect,
+        bootStdError: row.stdError,
+        bootCI: ci(row.confidenceInterval),
+        excludesZero: excludesZero(row.confidenceInterval) ? "Yes" : "No"
+      }))
+    });
+  }
+
+  const indices = asArray(objectPayload.moderatedMediationIndices);
+  if (indices.length > 0) {
+    tables.push({
+      title: "Index of Moderated Mediation",
+      columns: ["via", "moderator", "index", "bootStdError", "bootCI", "excludesZero"],
+      rows: indices.map((row) => ({
+        via: row.via,
+        moderator: row.moderator,
+        index: row.index,
+        bootStdError: row.stdError,
+        bootCI: ci(row.confidenceInterval),
+        excludesZero: excludesZero(row.confidenceInterval) ? "Yes" : "No"
+      }))
+    });
+  }
+
+  return tables;
+}
+
 function buildRegressionTables(objectPayload: Record<string, unknown>): TableData[] {
   const tables: TableData[] = [];
 
@@ -882,6 +1010,21 @@ export function buildTableData(raw: unknown, options?: BuildTableOptions): Table
     const pcaTables = buildPcaTables(objectPayload);
     if (pcaTables.length > 0) {
       return pcaTables;
+    }
+  }
+
+  // 과정 분석을 회귀보다 먼저 본다. 이 결과에도 경로별 R² 가 들어 있어서,
+  // 순서를 바꾸면 회귀 표로 그려질 여지가 있다.
+  const isProcessPayload =
+    "outcomeModels" in objectPayload &&
+    "indirectEffects" in objectPayload &&
+    "directEffects" in objectPayload &&
+    "roleMapping" in objectPayload;
+
+  if (isProcessPayload) {
+    const processTables = buildProcessTables(objectPayload);
+    if (processTables.length > 0) {
+      return processTables;
     }
   }
 

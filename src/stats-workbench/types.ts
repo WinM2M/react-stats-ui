@@ -15,7 +15,14 @@ export type RoleKey =
   | "independentVariables"
   | "variable1"
   | "variable2"
-  | "items";
+  | "items"
+  /* 조건부 과정 분석(매개·조절)의 역할. */
+  | "predictor"
+  | "outcomeVariable"
+  | "mediators"
+  | "moderator"
+  | "moderator2"
+  | "covariates";
 
 export type AnalysisKind =
   | "frequencies"
@@ -47,6 +54,23 @@ export type AnalysisKind =
   | "efaMlOblimin"
   | "efaMlPromax"
   | "efaPafVarimax"
+  /**
+   * 조건부 과정 분석 — 매개 · 조절 · 조절된 매개.
+   *
+   * 요인분석을 추출x회전 짝으로 펼쳐 놓은 것과 같은 판단이다. "PROCESS" 항목
+   * 하나를 놓고 모형 번호를 고르게 하면, 번호를 모르는 사람은 거기서 멈춘다.
+   * 구조를 이름으로 세우고 번호는 뒤에 괄호로 붙인다 -- 논문에 "Model 4" 라고
+   * 적어야 하는 사람에게는 번호도 필요하기 때문이다.
+   */
+  | "processModeration"
+  | "processModeration2"
+  | "processModeration3Way"
+  | "processMediation"
+  | "processSerialMediation"
+  | "processModMedFirstStage"
+  | "processModMedSecondStage"
+  | "processModMedBothStages"
+  | "processModMedAllPaths"
   | "mds"
   | "cronbachAlpha";
 
@@ -57,6 +81,28 @@ export const EFA_PAIRS: Record<string, { method: "paf" | "ml"; rotation: "oblimi
   efaMlOblimin: { method: "ml", rotation: "oblimin" },
   efaMlPromax: { method: "ml", rotation: "promax" },
   efaPafVarimax: { method: "paf", rotation: "varimax" }
+};
+
+/**
+ * 분석 이름 -> Hayes 모형 번호, 그리고 그 모형이 받는 역할.
+ *
+ * `needsMediators` / `needsModerator` / `needsModerator2` 는 **화면이 어느 칸을
+ * 그릴지**만 정한다. 그 칸이 계산기의 어느 인자로 가는지는 SDK 안의 표가 정한다
+ * (모형 1~3 의 조절변수는 `m`, 모형 14 는 `v` 로 들어간다).
+ */
+export const PROCESS_MODELS: Record<
+  string,
+  { model: number; needsMediators: boolean; needsModerator: boolean; needsModerator2: boolean }
+> = {
+  processModeration: { model: 1, needsMediators: false, needsModerator: true, needsModerator2: false },
+  processModeration2: { model: 2, needsMediators: false, needsModerator: true, needsModerator2: true },
+  processModeration3Way: { model: 3, needsMediators: false, needsModerator: true, needsModerator2: true },
+  processMediation: { model: 4, needsMediators: true, needsModerator: false, needsModerator2: false },
+  processSerialMediation: { model: 6, needsMediators: true, needsModerator: false, needsModerator2: false },
+  processModMedFirstStage: { model: 7, needsMediators: true, needsModerator: true, needsModerator2: false },
+  processModMedSecondStage: { model: 14, needsMediators: true, needsModerator: true, needsModerator2: false },
+  processModMedBothStages: { model: 58, needsMediators: true, needsModerator: true, needsModerator2: false },
+  processModMedAllPaths: { model: 59, needsMediators: true, needsModerator: true, needsModerator2: false }
 };
 
 export type AnalysisPayload = {

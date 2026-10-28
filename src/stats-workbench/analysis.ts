@@ -1,7 +1,7 @@
 import { InferentialStats } from "@winm2m/inferential-stats-js";
 import { ANALYSIS_DEFS, EMPTY_ASSIGNMENTS } from "./constants";
 import { workbenchI18n } from "./i18n";
-import { EFA_PAIRS } from "./types";
+import { EFA_PAIRS, PROCESS_MODELS } from "./types";
 import type { AnalysisKind, AnalysisPayload, PayloadInfo, RoleKey, VariableMeta } from "./types";
 
 const continuousRoles: Partial<Record<AnalysisKind, RoleKey[]>> = {
@@ -19,6 +19,22 @@ const continuousRoles: Partial<Record<AnalysisKind, RoleKey[]>> = {
   mds: ["variables"],
   cronbachAlpha: ["items"]
 };
+
+/**
+ * 조건부 과정 분석은 **네 역할 모두 연속형**이라야 한다.
+ *
+ * 다범주 변수도 PROCESS 에는 자리가 있지만, 우리가 쓰는 계산기는 다범주에서
+ * 일부 지수(부분·조절된조절 매개)를 내지 않는다고 저자가 밝혀 두었다. 화면에서
+ * 막지 않으면 "계산은 되는데 표에 한 줄이 비는" 모양이 되므로 입구에서 막는다.
+ */
+const PROCESS_CONTINUOUS_ROLES: RoleKey[] = [
+  "predictor",
+  "outcomeVariable",
+  "mediators",
+  "moderator",
+  "moderator2",
+  "covariates"
+];
 
 let sdkInstance: InferentialStats | null = null;
 let sdkInitPromise: Promise<InferentialStats> | null = null;
@@ -214,6 +230,32 @@ function getInputForAnalysis(
       }
     };
   }
+  if (PROCESS_MODELS[analysisType]) {
+    const spec = PROCESS_MODELS[analysisType];
+    return {
+      // 아홉 항목이 모두 SDK 의 `process` 하나를 부른다. 항목은 **어느 그림을
+      // 그리는가**(모형 번호)만 정한다 -- 요인분석을 추출x회전 짝으로 펼쳐
+      // 놓은 것과 같은 구조다.
+      sdkMethod: "process",
+      input: {
+        data,
+        model: spec.model,
+        predictor: assignments.predictor[0],
+        outcome: assignments.outcomeVariable[0],
+        mediators: spec.needsMediators ? assignments.mediators : undefined,
+        moderator: spec.needsModerator ? assignments.moderator[0] : undefined,
+        moderator2: spec.needsModerator2 ? assignments.moderator2[0] : undefined,
+        covariates: assignments.covariates.length ? assignments.covariates : undefined,
+        // 5,000 회는 Hayes 가 권하는 값이고 PROCESS 의 기본값이기도 하다.
+        bootstrapSamples: toNumber(options.bootstrapSamples, 5000),
+        confidenceLevel: toNumber(options.confidenceLevel, 95),
+        // 시드를 고정해 둔다. 같은 자료를 두 번 돌렸을 때 신뢰구간 끝자리가
+        // 달라지면, 쓰는 사람은 그것을 계산 오류로 읽는다. 재현이 기본이고
+        // 바꾸고 싶으면 옵션으로 바꾼다.
+        seed: options.seed == null ? 20260101 : toNumber(options.seed, 20260101)
+      }
+    };
+  }
   if (analysisType === "mds") {
     return {
       input: {
@@ -236,7 +278,9 @@ function getInputForAnalysis(
 }
 
 export function validateForRole(kind: AnalysisKind, role: RoleKey, variable: VariableMeta): string | null {
-  const requiresContinuous = continuousRoles[kind]?.includes(role) ?? false;
+  const requiresContinuous = PROCESS_MODELS[kind]
+    ? PROCESS_CONTINUOUS_ROLES.includes(role)
+    : (continuousRoles[kind]?.includes(role) ?? false);
   if (requiresContinuous && variable.type !== "continuous") {
     return workbenchI18n.t("onlyContinuousAllowed");
   }

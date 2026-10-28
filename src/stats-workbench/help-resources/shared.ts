@@ -488,6 +488,240 @@ const ANALYSIS_SPECS: Record<AnalysisKind, AnalysisSpec> = {
       { label: "Wikipedia: Scree plot", url: "https://en.wikipedia.org/wiki/Scree_plot" }
     ]
   },
+  processModeration: {
+    // 조절변수는 매개변수가 아니다. 칸을 따로 둔 이유가 여기 있다.
+    label: "Simple Moderation (Model 1)",
+    summary: "whether the effect of X on Y depends on a third variable",
+    purposeKey: "moderationSimple",
+    wikipediaTitle: "Moderation_(statistics)",
+    formulaLatex: "Y=i+b_1X+b_2W+b_3XW+\\epsilon",
+    apaExample: {
+      title: "Conditional Effect of X on Y",
+      columns: ["Moderator (W)", "Effect", "SE", "t", "p", "95% CI"],
+      rows: [
+        { "Moderator (W)": "-1 SD", Effect: "0.26", SE: "0.07", t: "3.91", p: "< .001", "95% CI": "[0.13, 0.39]" },
+        { "Moderator (W)": "Mean", Effect: "0.49", SE: "0.05", t: "10.33", p: "< .001", "95% CI": "[0.40, 0.58]" },
+        { "Moderator (W)": "+1 SD", Effect: "0.72", SE: "0.07", t: "10.25", p: "< .001", "95% CI": "[0.58, 0.86]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["centeringInteraction", "conditionalEffect", "coefSign"],
+    references: [
+      { label: "Wikipedia: Moderation (statistics)", url: "https://en.wikipedia.org/wiki/Moderation_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
+  processModeration2: {
+    // 둘이 **각각** X 와 곱해진다. 셋이 함께 곱해지는 쪽은 모형 3 이다.
+    label: "Two Moderators (Model 2)",
+    summary: "whether two variables each change the effect of X on Y",
+    purposeKey: "moderationTwo",
+    wikipediaTitle: "Moderation_(statistics)",
+    formulaLatex: "Y=i+b_1X+b_2W+b_3Z+b_4XW+b_5XZ+\\epsilon",
+    apaExample: {
+      title: "Conditional Effect of X on Y",
+      columns: ["Moderator (W)", "Effect", "SE", "t", "p", "95% CI"],
+      rows: [
+        { "Moderator (W)": "-1 SD", Effect: "0.26", SE: "0.07", t: "3.91", p: "< .001", "95% CI": "[0.13, 0.39]" },
+        { "Moderator (W)": "Mean", Effect: "0.49", SE: "0.05", t: "10.33", p: "< .001", "95% CI": "[0.40, 0.58]" },
+        { "Moderator (W)": "+1 SD", Effect: "0.72", SE: "0.07", t: "10.25", p: "< .001", "95% CI": "[0.58, 0.86]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["centeringInteraction", "conditionalEffect", "coefSign"],
+    references: [
+      { label: "Wikipedia: Moderation (statistics)", url: "https://en.wikipedia.org/wiki/Moderation_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
+  processModeration3Way: {
+    // 항이 일곱 개다. 표본이 작으면 3원 항의 검정력이 거의 없다.
+    label: "Three-Way Interaction (Model 3)",
+    summary: "whether one variable's moderation itself depends on a second variable",
+    purposeKey: "moderationThreeWay",
+    wikipediaTitle: "Moderation_(statistics)",
+    formulaLatex: "Y=i+b_1X+b_2W+b_3Z+b_4XW+b_5XZ+b_6WZ+b_7XWZ+\\epsilon",
+    apaExample: {
+      title: "Conditional Effect of X on Y",
+      columns: ["Moderator (W)", "Effect", "SE", "t", "p", "95% CI"],
+      rows: [
+        { "Moderator (W)": "-1 SD", Effect: "0.26", SE: "0.07", t: "3.91", p: "< .001", "95% CI": "[0.13, 0.39]" },
+        { "Moderator (W)": "Mean", Effect: "0.49", SE: "0.05", t: "10.33", p: "< .001", "95% CI": "[0.40, 0.58]" },
+        { "Moderator (W)": "+1 SD", Effect: "0.72", SE: "0.07", t: "10.25", p: "< .001", "95% CI": "[0.58, 0.86]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["centeringInteraction", "conditionalEffect", "pValue"],
+    references: [
+      { label: "Wikipedia: Moderation (statistics)", url: "https://en.wikipedia.org/wiki/Moderation_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
+  processMediation: {
+    // **병렬**이다. 매개변수끼리 서로를 거치지 않는다 — 거치게 하려면 모형 6.
+    label: "Parallel Mediation (Model 4)",
+    summary: "whether X reaches Y through one or more mediators acting in parallel",
+    purposeKey: "mediationParallel",
+    wikipediaTitle: "Mediation_(statistics)",
+    formulaLatex: "M_i=i_i+a_iX;\\quad Y=i_Y+c'X+\\sum_i b_iM_i",
+    apaExample: {
+      title: "Direct and Indirect Effects",
+      columns: ["Effect", "Estimate", "Boot SE", "95% Boot CI"],
+      rows: [
+        { Effect: "Direct (c-prime)", Estimate: "0.21", "Boot SE": "0.06", "95% Boot CI": "[0.10, 0.32]" },
+        { Effect: "Indirect via M", Estimate: "0.25", "Boot SE": "0.04", "95% Boot CI": "[0.18, 0.32]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["bootstrapCI", "causalOrder", "effectSize"],
+    references: [
+      { label: "Wikipedia: Mediation (statistics)", url: "https://en.wikipedia.org/wiki/Mediation_(statistics)" },
+      { label: "Wikipedia: Bootstrapping (statistics)", url: "https://en.wikipedia.org/wiki/Bootstrapping_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
+  processSerialMediation: {
+    // 넣은 **차례가 곧 경로**다. 차례를 바꾸면 다른 모형이 된다.
+    label: "Serial Mediation (Model 6)",
+    summary: "whether X reaches Y through mediators in a fixed order",
+    purposeKey: "mediationSerial",
+    wikipediaTitle: "Mediation_(statistics)",
+    formulaLatex: "M_1=i_1+a_1X;\\quad M_2=i_2+a_2X+d_{21}M_1;\\quad Y=i_Y+c'X+b_1M_1+b_2M_2",
+    apaExample: {
+      title: "Indirect Effects Through a Serial Chain",
+      columns: ["Path", "Estimate", "Boot SE", "95% Boot CI"],
+      rows: [
+        { Path: "X -> M1 -> Y", Estimate: "0.17", "Boot SE": "0.04", "95% Boot CI": "[0.11, 0.25]" },
+        { Path: "X -> M1 -> M2 -> Y", Estimate: "0.06", "Boot SE": "0.02", "95% Boot CI": "[0.03, 0.10]" },
+        { Path: "X -> M2 -> Y", Estimate: "0.04", "Boot SE": "0.02", "95% Boot CI": "[0.01, 0.08]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["bootstrapCI", "causalOrder", "effectSize"],
+    references: [
+      { label: "Wikipedia: Mediation (statistics)", url: "https://en.wikipedia.org/wiki/Mediation_(statistics)" },
+      { label: "Wikipedia: Bootstrapping (statistics)", url: "https://en.wikipedia.org/wiki/Bootstrapping_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
+  processModMedFirstStage: {
+    // 조절이 a경로에 걸린다.
+    label: "Moderated Mediation, First Stage (Model 7)",
+    summary: "whether the X-to-mediator path differs across levels of a moderator",
+    purposeKey: "modMedFirst",
+    wikipediaTitle: "Mediation_(statistics)",
+    formulaLatex: "M=i_M+a_1X+a_2W+a_3XW;\\quad Y=i_Y+c'X+bM",
+    apaExample: {
+      title: "Conditional Indirect Effects and Index of Moderated Mediation",
+      columns: ["Moderator (W)", "Indirect Effect", "Boot SE", "95% Boot CI"],
+      rows: [
+        { "Moderator (W)": "-1 SD", "Indirect Effect": "0.09", "Boot SE": "0.03", "95% Boot CI": "[0.05, 0.15]" },
+        { "Moderator (W)": "Mean", "Indirect Effect": "0.22", "Boot SE": "0.03", "95% Boot CI": "[0.16, 0.29]" },
+        { "Moderator (W)": "+1 SD", "Indirect Effect": "0.34", "Boot SE": "0.05", "95% Boot CI": "[0.25, 0.45]" },
+        { "Moderator (W)": "Index", "Indirect Effect": "0.12", "Boot SE": "0.02", "95% Boot CI": "[0.08, 0.17]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["indexModMed", "bootstrapCI", "conditionalEffect"],
+    references: [
+      { label: "Wikipedia: Mediation (statistics)", url: "https://en.wikipedia.org/wiki/Mediation_(statistics)" },
+      { label: "Wikipedia: Moderation (statistics)", url: "https://en.wikipedia.org/wiki/Moderation_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
+  processModMedSecondStage: {
+    // 조절이 b경로에 걸린다.
+    label: "Moderated Mediation, Second Stage (Model 14)",
+    summary: "whether the mediator-to-Y path differs across levels of a moderator",
+    purposeKey: "modMedSecond",
+    wikipediaTitle: "Mediation_(statistics)",
+    formulaLatex: "M=i_M+aX;\\quad Y=i_Y+c'X+b_1M+b_2W+b_3MW",
+    apaExample: {
+      title: "Conditional Indirect Effects and Index of Moderated Mediation",
+      columns: ["Moderator (W)", "Indirect Effect", "Boot SE", "95% Boot CI"],
+      rows: [
+        { "Moderator (W)": "-1 SD", "Indirect Effect": "0.09", "Boot SE": "0.03", "95% Boot CI": "[0.05, 0.15]" },
+        { "Moderator (W)": "Mean", "Indirect Effect": "0.22", "Boot SE": "0.03", "95% Boot CI": "[0.16, 0.29]" },
+        { "Moderator (W)": "+1 SD", "Indirect Effect": "0.34", "Boot SE": "0.05", "95% Boot CI": "[0.25, 0.45]" },
+        { "Moderator (W)": "Index", "Indirect Effect": "0.12", "Boot SE": "0.02", "95% Boot CI": "[0.08, 0.17]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["indexModMed", "bootstrapCI", "conditionalEffect"],
+    references: [
+      { label: "Wikipedia: Mediation (statistics)", url: "https://en.wikipedia.org/wiki/Mediation_(statistics)" },
+      { label: "Wikipedia: Moderation (statistics)", url: "https://en.wikipedia.org/wiki/Moderation_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
+  processModMedBothStages: {
+    // 같은 조절변수가 a 와 b 모두에 걸린다. 간접효과가 수준에 따라 비선형으로 움직인다.
+    label: "Moderated Mediation, Both Stages (Model 58)",
+    summary: "whether one moderator shapes both halves of the indirect path",
+    purposeKey: "modMedBoth",
+    wikipediaTitle: "Mediation_(statistics)",
+    formulaLatex: "M=i_M+a_1X+a_2W+a_3XW;\\quad Y=i_Y+c'X+b_1M+b_2W+b_3MW",
+    apaExample: {
+      title: "Conditional Indirect Effects and Index of Moderated Mediation",
+      columns: ["Moderator (W)", "Indirect Effect", "Boot SE", "95% Boot CI"],
+      rows: [
+        { "Moderator (W)": "-1 SD", "Indirect Effect": "0.09", "Boot SE": "0.03", "95% Boot CI": "[0.05, 0.15]" },
+        { "Moderator (W)": "Mean", "Indirect Effect": "0.22", "Boot SE": "0.03", "95% Boot CI": "[0.16, 0.29]" },
+        { "Moderator (W)": "+1 SD", "Indirect Effect": "0.34", "Boot SE": "0.05", "95% Boot CI": "[0.25, 0.45]" },
+        { "Moderator (W)": "Index", "Indirect Effect": "0.12", "Boot SE": "0.02", "95% Boot CI": "[0.08, 0.17]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["indexModMed", "bootstrapCI", "conditionalEffect"],
+    references: [
+      { label: "Wikipedia: Mediation (statistics)", url: "https://en.wikipedia.org/wiki/Mediation_(statistics)" },
+      { label: "Wikipedia: Moderation (statistics)", url: "https://en.wikipedia.org/wiki/Moderation_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
+  processModMedAllPaths: {
+    // 직접효과까지 조절되므로 직접효과도 수준별로 여러 줄이 나온다.
+    label: "Moderated Mediation, All Paths (Model 59)",
+    summary: "whether a moderator shapes the indirect path and the direct effect alike",
+    purposeKey: "modMedAll",
+    wikipediaTitle: "Mediation_(statistics)",
+    formulaLatex: "M=i_M+a_1X+a_2W+a_3XW;\\quad Y=i_Y+c'_1X+c'_2W+c'_3XW+b_1M+b_2W+b_3MW",
+    apaExample: {
+      title: "Conditional Indirect Effects and Index of Moderated Mediation",
+      columns: ["Moderator (W)", "Indirect Effect", "Boot SE", "95% Boot CI"],
+      rows: [
+        { "Moderator (W)": "-1 SD", "Indirect Effect": "0.09", "Boot SE": "0.03", "95% Boot CI": "[0.05, 0.15]" },
+        { "Moderator (W)": "Mean", "Indirect Effect": "0.22", "Boot SE": "0.03", "95% Boot CI": "[0.16, 0.29]" },
+        { "Moderator (W)": "+1 SD", "Indirect Effect": "0.34", "Boot SE": "0.05", "95% Boot CI": "[0.25, 0.45]" },
+        { "Moderator (W)": "Index", "Indirect Effect": "0.12", "Boot SE": "0.02", "95% Boot CI": "[0.08, 0.17]" }
+      ]
+    },
+    dataTypes: ["continuous"],
+    dataShapes: ["multi"],
+    optionKeys: [],
+    interpretationKeys: ["indexModMed", "bootstrapCI", "conditionalEffect"],
+    references: [
+      { label: "Wikipedia: Mediation (statistics)", url: "https://en.wikipedia.org/wiki/Mediation_(statistics)" },
+      { label: "Wikipedia: Moderation (statistics)", url: "https://en.wikipedia.org/wiki/Moderation_(statistics)" },
+      { label: "Hayes (2022), Introduction to Mediation, Moderation, and Conditional Process Analysis", url: "https://www.guilford.com/books/Introduction-to-Mediation-Moderation-and-Conditional-Process-Analysis/Andrew-Hayes/9781462549030" }
+    ]
+  },
   mds: {
     label: "Multidimensional Scaling",
     summary: "low-dimensional embedding from distances",

@@ -1,7 +1,7 @@
 import type { AnalysisDef, AnalysisKind, RoleKey } from "./types";
 
 export const ANALYSIS_GROUPS: Array<{
-  key: "descriptive" | "compareMeans" | "regression" | "classify" | "dimensionReduction" | "scale";
+  key: "descriptive" | "compareMeans" | "regression" | "classify" | "conditionalProcess" | "dimensionReduction" | "scale";
   items: AnalysisKind[];
 }> = [
   {
@@ -15,6 +15,22 @@ export const ANALYSIS_GROUPS: Array<{
   {
     key: "regression",
     items: ["linearRegression", "logisticBinary", "logisticMultinomial"]
+  },
+  {
+    // 경로를 묻는 분석이라 회귀 바로 뒤에 둔다. 회귀 묶음 안에 9개를 넣으면
+    // 회귀 3종이 밀려 보이지 않는다.
+    key: "conditionalProcess",
+    items: [
+      "processModeration",
+      "processModeration2",
+      "processModeration3Way",
+      "processMediation",
+      "processSerialMediation",
+      "processModMedFirstStage",
+      "processModMedSecondStage",
+      "processModMedBothStages",
+      "processModMedAllPaths"
+    ]
   },
   {
     key: "classify",
@@ -148,6 +164,102 @@ export const ANALYSIS_DEFS: Record<AnalysisKind, AnalysisDef> = {
     label: "Principal Axis Factoring x Varimax",
     roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 3 }]
   },
+  processModeration: {
+    // Y = i + b1X + b2W + b3XW. 조절변수가 매개변수 자리로 들어가지 않도록 칸을 따로 둔다.
+    label: "Simple Moderation (Model 1)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "moderator", label: "Moderator (W)", multi: false, required: true },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
+  processModeration2: {
+    // 두 조절변수가 **각각** X 와 곱해진다. 셋이 함께 곱해지는 3원 상호작용은 모형 3 이다.
+    label: "Two Moderators (Model 2)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "moderator", label: "Moderator (W)", multi: false, required: true },
+      { key: "moderator2", label: "Moderator (Z)", multi: false, required: true },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
+  processModeration3Way: {
+    // XxWxZ 까지 넣는다. W 의 조절이 Z 수준에 따라 달라지는가를 묻는 자리다.
+    label: "Three-Way Interaction (Model 3)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "moderator", label: "Moderator (W)", multi: false, required: true },
+      { key: "moderator2", label: "Moderator (Z)", multi: false, required: true },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
+  processMediation: {
+    // **병렬**이다. 매개변수를 여럿 넣으면 X 가 각각을 따로 거쳐 Y 로 간다. 서로를 거치게 하려면 모형 6 이다.
+    label: "Parallel Mediation (Model 4)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "mediators", label: "Mediators (M)", multi: true, required: true, minItems: 1 },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
+  processSerialMediation: {
+    // **순서가 뜻을 가진다**: X -> M1 -> M2 -> Y. 넣은 차례가 곧 경로라 최소 두 개가 필요하다.
+    label: "Serial Mediation (Model 6)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "mediators", label: "Mediators (M, in order)", multi: true, required: true, minItems: 2 },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
+  processModMedFirstStage: {
+    // 조절변수가 X -> M (a경로)에 걸린다.
+    label: "Moderated Mediation, First Stage (Model 7)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "mediators", label: "Mediators (M)", multi: true, required: true, minItems: 1 },
+      { key: "moderator", label: "Moderator of a-path (W)", multi: false, required: true },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
+  processModMedSecondStage: {
+    // 조절변수가 M -> Y (b경로)에 걸린다. 계산기에는 `v` 인자로 넘어가는 유일한 모형이다.
+    label: "Moderated Mediation, Second Stage (Model 14)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "mediators", label: "Mediators (M)", multi: true, required: true, minItems: 1 },
+      { key: "moderator", label: "Moderator of b-path (W)", multi: false, required: true },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
+  processModMedBothStages: {
+    // 같은 조절변수가 a 와 b 두 경로 모두에 걸린다.
+    label: "Moderated Mediation, Both Stages (Model 58)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "mediators", label: "Mediators (M)", multi: true, required: true, minItems: 1 },
+      { key: "moderator", label: "Moderator of a- and b-paths (W)", multi: false, required: true },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
+  processModMedAllPaths: {
+    // a, b 에 더해 직접효과 c' 까지 조절된다. 그래서 직접효과도 수준별로 여러 줄이 나온다.
+    label: "Moderated Mediation, All Paths (Model 59)",
+    roles: [
+      { key: "predictor", label: "Independent Variable (X)", multi: false, required: true },
+      { key: "outcomeVariable", label: "Dependent Variable (Y)", multi: false, required: true },
+      { key: "mediators", label: "Mediators (M)", multi: true, required: true, minItems: 1 },
+      { key: "moderator", label: "Moderator of all paths (W)", multi: false, required: true },
+      { key: "covariates", label: "Covariates", multi: true, required: false }
+    ]
+  },
   mds: {
     label: "Multidimensional Scaling",
     roles: [{ key: "variables", label: "Variables", multi: true, required: true, minItems: 2 }]
@@ -168,5 +280,11 @@ export const EMPTY_ASSIGNMENTS: Record<RoleKey, string[]> = {
   independentVariables: [],
   variable1: [],
   variable2: [],
-  items: []
+  items: [],
+  predictor: [],
+  outcomeVariable: [],
+  mediators: [],
+  moderator: [],
+  moderator2: [],
+  covariates: []
 };

@@ -113,7 +113,18 @@ export function createBaseLocale(overrides: LocaleOverride = {}): LocalePack {
       componentsSummary:
         "compress many variables into a few components for summary or later analysis, rather than argue about latent factors",
       distanceMap: "project dissimilarities into a low-dimensional map",
-      reliability: "evaluate internal consistency of scale items"
+      reliability: "evaluate internal consistency of scale items",
+      // 조건부 과정 분석. 모형마다 묻는 질문이 다르므로 한 줄씩 따로 쓴다 --
+      // "매개분석"이라고 뭉쳐 두면 아홉 중 무엇을 고를지에 답하지 못한다.
+      moderationSimple: "test whether the effect of X on Y changes with a third variable",
+      moderationTwo: "test whether two variables each change the effect of X on Y",
+      moderationThreeWay: "test whether one variable's moderation itself depends on a second",
+      mediationParallel: "test whether X reaches Y through one or more mediators acting in parallel",
+      mediationSerial: "test a chain in which X reaches Y through mediators in a fixed order",
+      modMedFirst: "test whether the X-to-mediator path differs across levels of a moderator",
+      modMedSecond: "test whether the mediator-to-Y path differs across levels of a moderator",
+      modMedBoth: "test whether one moderator shapes both halves of the indirect path",
+      modMedAll: "test whether a moderator shapes the indirect path and the direct effect alike"
     },
     interpretation: {
       dominantCategory: "Check which categories dominate and whether rare levels need consolidation.",
@@ -128,6 +139,16 @@ export function createBaseLocale(overrides: LocaleOverride = {}): LocalePack {
       pairwise: "Interpret pairwise adjusted p-values as family-wise controlled comparisons.",
       familywiseError: "Keep family-wise error control in mind when many pairs are tested.",
       coefSign: "Coefficient signs and scales indicate direction and strength of associations.",
+      bootstrapCI:
+        "Judge an indirect effect by whether its bootstrap confidence interval excludes zero. There is no p-value to read, and that is the point of the method.",
+      indexModMed:
+        "An indirect effect that is significant at one moderator level and not at another does not by itself establish moderated mediation. Read the index of moderated mediation instead.",
+      conditionalEffect:
+        "Conditional effects are printed at the moderator's mean and one standard deviation either side. Those three rows are reference points, not categories in the data.",
+      causalOrder:
+        "The path is an assumption you bring, not something the data establishes. Cross-sectional measurement cannot order X, M and Y for you.",
+      centeringInteraction:
+        "Main effects in a model with an interaction are effects at the other variable's zero point. Read them with that in mind rather than as overall effects.",
       rSquared: "Use model fit metrics alongside residual diagnostics.",
       oddsRatio: "Interpret coefficients via odds ratios for clearer effect communication.",
       classification: "Use confusion-related metrics instead of accuracy alone when classes are imbalanced.",

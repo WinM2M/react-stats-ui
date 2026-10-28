@@ -66,6 +66,11 @@ type ExecutionPanelProps = {
  */
 export const TABLE_TITLE_KEYS: Record<string, string> = {
   Summary: "summary",
+  "Model Fit by Path": "resultModelFitByPath",
+  "Path Coefficients": "resultPathCoefficients",
+  "Direct Effect": "resultDirectEffect",
+  "Indirect Effects": "resultIndirectEffects",
+  "Index of Moderated Mediation": "resultIndexOfModeratedMediation",
   Eigenvalues: "resultEigenvalues",
   Communalities: "resultCommunalities",
   "Rotated Component Matrix": "resultRotatedComponentMatrix",
@@ -178,7 +183,18 @@ export const COLUMN_KEYS: Record<string, string> = {
   extraction: "resultExtraction",
   variancePercent: "resultVariancePercent",
   durbinWatson: "resultDurbinWatson",
-  stdErrorOfEstimate: "resultStdErrorOfEstimate"
+  stdErrorOfEstimate: "resultStdErrorOfEstimate",
+  // 조건부 과정 분석.
+  outcome: "resultOutcome",
+  term: "resultTerm",
+  effect: "resultEffect",
+  atLevel: "resultAtLevel",
+  via: "resultVia",
+  moderator: "resultModerator",
+  index: "resultIndex",
+  bootStdError: "resultBootStdError",
+  bootCI: "resultBootCI",
+  excludesZero: "resultExcludesZero"
 };
 
 /*
@@ -189,7 +205,7 @@ export const COLUMN_KEYS: Record<string, string> = {
  * 범위를 좁힌다 -- `option` 은 응답자의 보기가 들어오는 칸이므로 여기 없다.
  * 다중응답 표의 합계 줄만 예외로 아래에서 따로 집는다.
  */
-export const LABEL_COLUMNS = new Set(["statistic", "source", "test", "measure", "item"]);
+export const LABEL_COLUMNS = new Set(["statistic", "source", "test", "measure", "item", "excludesZero"]);
 
 /** 합계 줄을 우리가 붙이는 표. 그 표의 **마지막 줄 `option`** 만 이름표다. */
 const TABLE_WITH_TOTAL_ROW = "Multiple Response Frequencies";
@@ -205,7 +221,9 @@ export const CELL_KEYS: Record<string, string> = {
   "N of Valid Cases": "cellNOfValidCases",
   "Cramer's V": "cellCramersV",
   "Cram\u00e9r's V": "cellCramersV",
-  "Eta-squared": "cellEtaSquared"
+  "Eta-squared": "cellEtaSquared",
+  Yes: "cellYes",
+  No: "cellNo"
 };
 
 function ApaTable({ table, index }: { table: TableData; index: number }) {

@@ -33,6 +33,18 @@ export const koHelpLocale = createBaseLocale({
     componentsSummary:
       "잠재요인을 따지기보다 여러 변수를 몇 개로 줄여 요약하거나 뒤 분석에 넘길 때"
   },
+  interpretation: {
+    bootstrapCI:
+      "간접효과는 부트스트랩 신뢰구간이 0 을 품는지로 판정합니다. p 값이 없는 것이 이 방법의 요지입니다.",
+    indexModMed:
+      "한 수준에서 유의하고 다른 수준에서 유의하지 않다는 것만으로는 「매개가 조절된다」고 말할 수 없습니다. 조절된 매개 지수를 보십시오.",
+    conditionalEffect:
+      "조건부 효과는 조절변수의 평균과 ±1 표준편차에서 계산됩니다. 세 줄은 기준점이지 자료 안의 집단이 아닙니다.",
+    causalOrder:
+      "경로는 자료가 알려 주는 것이 아니라 연구자가 세우는 가정입니다. 한 시점에서 잰 자료는 X·M·Y 의 순서를 정해 주지 않습니다.",
+    centeringInteraction:
+      "상호작용이 든 모형의 주효과는 「상대 변수가 0 일 때의 효과」입니다. 전체 효과로 읽지 마십시오."
+  },
   templates: {
     overview: (analysisLabel, summary) => `${analysisLabel} 분석은 ${summary}을(를) 제공합니다.`,
     purpose: (purposeText) => `이 방법은 ${purposeText}에 사용됩니다.`,

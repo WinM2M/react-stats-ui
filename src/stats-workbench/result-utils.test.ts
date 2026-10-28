@@ -597,3 +597,133 @@ describe("buildTableData — per-analysis tables", () => {
     expect(tables.map((table) => table.title)).toContain("Reliability Statistics");
   });
 });
+
+/**
+ * 조건부 과정 분석의 결과 표.
+ *
+ * 여기서 보는 것은 숫자가 맞는가가 아니라 **표가 사람에게 무엇을 말하는가**다.
+ * 계산은 SDK 가 하고, 그 값이 잘못 읽히는 모양으로 서는 것이 이쪽의 사고다.
+ */
+describe("조건부 과정 분석 결과 표", () => {
+  const payload = {
+    success: true,
+    data: {
+      model: 7,
+      observations: 400,
+      bootstrapSamples: 5000,
+      confidenceLevel: 95,
+      bootstrapMethod: "bootstrap_bc",
+      discardedBootstrapSamples: 0,
+      roleMapping: { x: "auth", y: "intent", m: ["trust"], w: "fam" },
+      outcomeModels: [
+        {
+          outcome: "intent",
+          rSquared: 0.31,
+          adjustedRSquared: 0.3,
+          fStatistic: 59.2,
+          pValue: 0.0000001,
+          observations: 400,
+          coefficients: [
+            {
+              term: "auth",
+              coefficient: 0.2666,
+              stdError: 0.051,
+              tStatistic: 5.22,
+              pValue: 0.0000003,
+              confidenceInterval: [0.1663, 0.367]
+            }
+          ]
+        }
+      ],
+      directEffects: [
+        {
+          moderatorLevels: {},
+          effect: 0.2666,
+          stdError: 0.051,
+          tStatistic: 5.22,
+          pValue: 0.0000003,
+          confidenceInterval: [0.1663, 0.367],
+          method: "ols"
+        }
+      ],
+      indirectEffects: [
+        {
+          via: "trust",
+          moderatorLevels: { fam: -1.0486 },
+          effect: 0.0937,
+          stdError: 0.0277,
+          tStatistic: null,
+          pValue: null,
+          confidenceInterval: [0.0465, 0.1546],
+          method: "bootstrap_bc"
+        },
+        {
+          via: "trust",
+          moderatorLevels: { fam: 0.9862 },
+          effect: 0.0121,
+          stdError: 0.031,
+          tStatistic: null,
+          pValue: null,
+          confidenceInterval: [-0.0493, 0.0741],
+          method: "bootstrap_bc"
+        }
+      ],
+      moderatedMediationIndices: [
+        {
+          via: "trust",
+          moderator: "fam",
+          index: 0.1207,
+          stdError: 0.0226,
+          confidenceInterval: [0.0809, 0.1713]
+        }
+      ]
+    }
+  };
+
+  const tables = buildTableData(payload);
+  const byTitle = (title: string) => tables.find((table) => table.title === title);
+
+  it("회귀 표가 아니라 과정 분석 표로 그려진다", () => {
+    // 이 결과에도 경로별 R² 가 들어 있어서, 판정 순서가 틀리면 회귀 표가 된다.
+    expect(tables.map((table) => table.title)).toEqual([
+      "Model Fit by Path",
+      "Path Coefficients",
+      "Direct Effect",
+      "Indirect Effects",
+      "Index of Moderated Mediation"
+    ]);
+  });
+
+  it("간접효과 표에는 t·p 열이 없다", () => {
+    // 부트스트랩 구간에는 그 값이 없다. 빈 칸으로 두면 「계산 실패」로 읽힌다.
+    const indirect = byTitle("Indirect Effects");
+    expect(indirect?.columns).not.toContain("t");
+    expect(indirect?.columns).not.toContain("p");
+  });
+
+  it("구간이 0 을 품는지를 표가 말한다", () => {
+    const rows = byTitle("Indirect Effects")?.rows ?? [];
+    expect(rows[0].excludesZero).toBe("Yes");
+    // [-0.0493, 0.0741] 은 0 을 품는다 -- 효과가 있다고 말할 수 없는 줄이다.
+    expect(rows[1].excludesZero).toBe("No");
+  });
+
+  it("조절변수 수준이 열 이름이 아니라 칸 값으로 들어간다", () => {
+    // 계산기는 수준 열의 이름을 조절변수의 변수명으로 짓는다. 그대로 쓰면
+    // 열 머리가 번역되지 않는다.
+    const indirect = byTitle("Indirect Effects");
+    expect(indirect?.columns).not.toContain("fam");
+    expect(indirect?.rows[0].atLevel).toBe("fam = -1.049");
+  });
+
+  it("조절이 없는 직접효과는 수준 칸이 빈다", () => {
+    expect(byTitle("Direct Effect")?.rows[0].atLevel).toBe("");
+  });
+
+  it("경로 계수 표가 어느 식의 계수인지 밝힌다", () => {
+    const row = byTitle("Path Coefficients")?.rows[0];
+    expect(row?.outcome).toBe("intent");
+    expect(row?.term).toBe("auth");
+    expect(row?.ci).toBe("[0.1663, 0.3670]");
+  });
+});
