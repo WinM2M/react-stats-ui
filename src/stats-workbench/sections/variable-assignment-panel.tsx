@@ -39,6 +39,8 @@ type VariableAssignmentPanelProps = {
   variableListPosition?: "start" | "end";
   density?: WorkbenchDensity;
   variableTooltip?: (name: string) => string | undefined;
+  onVariableTypeChange?: (name: string, next: "continuous" | "nominal") => void;
+  variableTypeHint?: (name: string, type: "continuous" | "nominal" | "unknown") => string | undefined;
   /** 끌기 직전에 고른 변수 목록을 넓힐 기회. 다중응답 묶음이 따라온다. */
   expandDragSelection?: (names: string[]) => string[];
   /** 목록에서 한 줄로 묶어 보일 변수 꾸러미. 다중응답 문항이 여기 온다. */
@@ -85,6 +87,8 @@ export function VariableAssignmentPanel({
   variableListPosition = "start",
   density = "comfortable",
   variableTooltip,
+  onVariableTypeChange,
+  variableTypeHint,
   expandDragSelection,
   variableGroups,
   onAvailableVariableActivate
@@ -181,6 +185,8 @@ export function VariableAssignmentPanel({
           className="min-h-0 flex-1"
           density={density}
           tooltipByName={variableTooltip}
+          onTypeChange={onVariableTypeChange}
+          typeHintByName={variableTypeHint}
           expandSelection={expandDragSelection}
           variableGroups={variableGroups}
           variables={availableVariables}

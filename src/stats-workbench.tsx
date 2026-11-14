@@ -134,6 +134,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
   variableLabel,
   density = "comfortable",
   variableTooltip,
+  onVariableTypeChange,
+  variableTypeHint,
   onHelpOpen,
   hideInternalVariableList = false,
   allowedAnalyses,
@@ -1104,6 +1106,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                     <VariableAssignmentPanel
                       density={density}
                       variableTooltip={variableTooltip}
+                      onVariableTypeChange={onVariableTypeChange}
+                      variableTypeHint={variableTypeHint}
                       expandDragSelection={
                         expandDragSelection
                           ? (names: string[]) => expandDragSelection(names, { analysisType })
@@ -1228,6 +1232,8 @@ export const StatsWorkbench = React.forwardRef<StatsWorkbenchControl, StatsWorkb
                 <VariableAssignmentPanel
                   density={density}
                   variableTooltip={variableTooltip}
+                      onVariableTypeChange={onVariableTypeChange}
+                      variableTypeHint={variableTypeHint}
                   expandDragSelection={
                     expandDragSelection
                       ? (names: string[]) => expandDragSelection(names, { analysisType })

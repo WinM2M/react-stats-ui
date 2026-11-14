@@ -373,6 +373,18 @@ export type StatsWorkbenchProps = {
    */
   variableTooltip?: (name: string) => string | undefined;
   /**
+   * Lets the analyst override how a variable is measured by clicking its N/C badge.
+   *
+   * Type detection reads the data and the question kind, and it guesses wrong for
+   * numeric answers stored as choices. Without a way to flip it the variable just
+   * sits greyed out of every analysis that needs a scale, with nothing on screen
+   * saying why. The host decides where the override is kept. Omit to keep the
+   * badge inert.
+   */
+  onVariableTypeChange?: (name: string, next: "continuous" | "nominal") => void;
+  /** Words on the badge when it can be clicked. Receives the current type. */
+  variableTypeHint?: (name: string, type: "continuous" | "nominal" | "unknown") => string | undefined;
+  /**
    * Fires when the analysis help popover is opened, not when it is closed.
    *
    * An embedder tracking what a learner consulted needs the open event; the panel

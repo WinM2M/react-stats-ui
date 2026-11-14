@@ -22,6 +22,9 @@ type VariableCardProps = {
   onClick?: () => void;
   onDoubleClick?: () => void;
   onDelete?: () => void;
+  /** N/C 표식을 눌러 측정 수준을 바꾼다. 없으면 표식은 눌리지 않는다. */
+  onTypeChange?: (next: "continuous" | "nominal") => void;
+  typeHint?: string;
 };
 
 const VariableCard = ({
@@ -34,7 +37,9 @@ const VariableCard = ({
   isDerived,
   onClick,
   onDoubleClick,
-  onDelete
+  onDelete,
+  onTypeChange,
+  typeHint
 }: VariableCardProps) => {
   const card = (
   <div
@@ -50,7 +55,27 @@ const VariableCard = ({
       isDragging && "opacity-50"
     )}
   >
-    <RoleTag type={type} />
+    {onTypeChange ? (
+      // 표식을 누르면 명목 ↔ 척도. 자동 판정이 틀렸을 때 고칠 길이 이것 하나다 --
+      // 고칠 길이 없으면 변수는 이유도 모른 채 분석에서 빠진다.
+      <button
+        type="button"
+        draggable={false}
+        onClick={(event) => {
+          event.stopPropagation();
+          onTypeChange(type === "nominal" ? "continuous" : "nominal");
+        }}
+        onDoubleClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        title={typeHint}
+        aria-label={typeHint ?? name}
+        className="shrink-0 rounded transition hover:ring-2 hover:ring-sky-400"
+      >
+        <RoleTag type={type} />
+      </button>
+    ) : (
+      <RoleTag type={type} />
+    )}
     <span
       className={cn(
         "truncate font-medium text-slate-700",
@@ -124,6 +149,10 @@ export type SharedVariableListProps = {
   density?: WorkbenchDensity;
   /** 변수마다 마우스를 올렸을 때 보일 설명. 없으면 변수 이름이 그대로 뜬다. */
   tooltipByName?: (name: string) => string | undefined;
+  /** N/C 표식을 눌러 측정 수준을 바꾼다. 없으면 표식은 눌리지 않는다. */
+  onTypeChange?: (name: string, next: "continuous" | "nominal") => void;
+  /** 눌리는 표식에 붙일 설명. */
+  typeHintByName?: (name: string, type: VariableType) => string | undefined;
   /**
    * 끌기 직전에 고른 변수 목록을 **넓힐 기회**.
    *
@@ -167,12 +196,41 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
     secondaryLabelByName,
     density = "comfortable",
     tooltipByName,
+    onTypeChange,
+    typeHintByName,
     expandSelection,
     variableGroups
   },
   ref
 ) {
   const [draggingName, setDraggingName] = React.useState<string | null>(null);
+
+  /*
+   * 끌기가 끝나면 **어디서 끝났든** 흐림을 푼다.
+   *
+   * 🔴 끌어 역할 칸에 놓으면 그 줄은 목록에서 빠져 사라진다. `dragend` 는 끌기를
+   * 시작한 요소에서 일어나는데 그 요소가 이미 없으니 우리 처리기가 불리지 않았고,
+   * `draggingName` 이 그대로 남았다. 역할을 비워 변수가 목록에 돌아오면 그 줄만
+   * 반투명으로 「죽은」 것처럼 보였다 -- 이유도 안 뜨니 명목변수라 막힌 줄로
+   * 읽혔다(2026-11-14 보고).
+   */
+  React.useEffect(() => {
+    if (draggingName === null) return;
+    const clear = () => setDraggingName(null);
+    document.addEventListener("dragend", clear, true);
+    document.addEventListener("drop", clear, true);
+    return () => {
+      document.removeEventListener("dragend", clear, true);
+      document.removeEventListener("drop", clear, true);
+    };
+  }, [draggingName]);
+
+  // 끌던 변수가 목록에서 빠졌으면(역할 칸으로 갔으면) 끌기 표시도 거둔다.
+  React.useEffect(() => {
+    if (draggingName !== null && !variables.some((entry) => entry.name === draggingName)) {
+      setDraggingName(null);
+    }
+  }, [draggingName, variables]);
   const lastTouchTapRef = React.useRef<{ name: string; at: number } | null>(null);
   const anchorIndexRef = React.useRef<number | null>(null);
 
@@ -420,6 +478,8 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
                               isDerived={derivedNames?.has(name)}
                               onDoubleClick={() => onDoubleClick?.(name)}
                               onDelete={onDeleteVariable ? () => onDeleteVariable(name) : undefined}
+                              onTypeChange={onTypeChange ? (next) => onTypeChange(name, next) : undefined}
+                              typeHint={typeHintByName?.(name, member.type)}
                             />
                           </li>
                         );
@@ -460,6 +520,8 @@ export const SharedVariableList = React.forwardRef<HTMLDivElement, SharedVariabl
                     onClick={undefined}
                     onDoubleClick={() => onDoubleClick?.(row.variable.name)}
                     onDelete={onDeleteVariable ? () => onDeleteVariable(row.variable.name) : undefined}
+                    onTypeChange={onTypeChange ? (next) => onTypeChange(row.variable.name, next) : undefined}
+                    typeHint={typeHintByName?.(row.variable.name, row.variable.type)}
                   />
                   {secondaryLabelByName?.[row.variable.name] ? (
                     <div className="mt-1 px-2 text-[11px] text-slate-500" title={secondaryLabelByName[row.variable.name]}>
