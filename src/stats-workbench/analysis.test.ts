@@ -60,3 +60,43 @@ describe("getPayload — 역할만 주어졌을 때", () => {
     expect(info.payload.input.groupVariable).toBe("sex");
   });
 });
+
+describe("getPayload — 직접 고른 집단 값", () => {
+  const numeric = [
+    { sex: 1, score: 3 },
+    { sex: 2, score: 4 },
+    { sex: 1, score: 5 }
+  ];
+  const run = (data: Record<string, unknown>[], options: Record<string, unknown>) =>
+    getPayload("ttestIndependent", data, assign({ variable: ["score"], groupVariable: ["sex"] }), options);
+
+  it("숫자 집단에서 문자열로 고른 값을 원래 숫자로 되돌린다", () => {
+    const info = run(numeric, { group1Value: "1", group2Value: "2" });
+    expect(info.payload.input.group1Value).toBe(1);
+    expect(info.payload.input.group2Value).toBe(2);
+  });
+
+  it("순서를 바꿔 골라도 원래 값으로 되돌린다", () => {
+    const info = run(numeric, { group1Value: "2", group2Value: "1" });
+    expect(info.payload.input.group1Value).toBe(2);
+    expect(info.payload.input.group2Value).toBe(1);
+  });
+
+  it("문자열 집단은 그대로 둔다", () => {
+    const info = run(
+      [
+        { sex: "남", score: 3 },
+        { sex: "여", score: 4 }
+      ],
+      { group1Value: "여", group2Value: "남" }
+    );
+    expect(info.payload.input.group1Value).toBe("여");
+    expect(info.payload.input.group2Value).toBe("남");
+  });
+
+  it("고르지 않은 쪽은 후보의 앞 값을 쓴다", () => {
+    const info = run(numeric, { group1Value: "2" });
+    expect(info.payload.input.group1Value).toBe(2);
+    expect(info.payload.input.group2Value).toBe(2);
+  });
+});

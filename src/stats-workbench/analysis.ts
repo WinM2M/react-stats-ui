@@ -111,8 +111,15 @@ function getInputForAnalysis(
         meta: { groupCandidates: values }
       };
     }
-    const group1Value = options.group1Value ?? values[0];
-    const group2Value = options.group2Value ?? values[1];
+    // 옵션 패널의 드롭다운은 값을 문자열로 돌려준다. 엔진은 타입까지 같아야 집단 행을
+    // 잡으므로("1" 과 1 은 다른 값), 후보 중 문자열 표기가 같은 원래 값으로 되돌린다.
+    // 이미 문자열로 저장된 옵션도 여기서 구제된다.
+    const restore = (picked: unknown, fallback: unknown) => {
+      if (picked === undefined || picked === null || picked === "") return fallback;
+      return values.find((v) => v === picked) ?? values.find((v) => String(v) === String(picked)) ?? picked;
+    };
+    const group1Value = restore(options.group1Value, values[0]);
+    const group2Value = restore(options.group2Value, values[1]);
     return {
       input: {
         data,

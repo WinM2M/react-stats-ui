@@ -40,13 +40,17 @@ export function AnalysisOptionsPanel({ analysisType, options, onOptionsChange, g
                 <label className="text-xs font-medium text-slate-600">{t("optionsGroup1")}</label>
                 <SelectBox
                   value={String(options.group1Value ?? groupCandidates[0])}
-                  onChange={(value) => updateOption("group1Value", value)}
+                  onChange={(value) =>
+                    updateOption("group1Value", groupCandidates.find((c) => String(c) === value) ?? value)
+                  }
                   items={groupCandidates.map((candidate) => ({ value: String(candidate), label: String(candidate) }))}
                 />
                 <label className="text-xs font-medium text-slate-600">{t("optionsGroup2")}</label>
                 <SelectBox
                   value={String(options.group2Value ?? groupCandidates[1])}
-                  onChange={(value) => updateOption("group2Value", value)}
+                  onChange={(value) =>
+                    updateOption("group2Value", groupCandidates.find((c) => String(c) === value) ?? value)
+                  }
                   items={groupCandidates.map((candidate) => ({ value: String(candidate), label: String(candidate) }))}
                 />
               </>
